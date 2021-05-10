@@ -6,21 +6,21 @@ requieres export_fig function
 % Matlab startup commands
 clear; close all; clc;      % clear your workspace, close figs, clear command window
 
-start = 1;
+start = 99;
 
 
-preSP = 500;                 % first time step pre-stimulus window
-postSP = 999;              % last time step pre-stimulus window
+preSP = 100;                 % first time step pre-stimulus window
+postSP = 300;              % last time step pre-stimulus window
 preLP = 500;                % first time-step post-stimulus window
-postLP = 999;              % last time-step post-stimulus window
+postLP = 6000;              % last time-step post-stimulus window
 preNONAIBS = 200;           % first time step pre-stimulus window
-plotSweeps = 0;             % set to '0' for no plots
+plotSweeps = 1;             % set to '0' for no plots
 missingCountLP = 1;         % count cells with missing LP data
 missingCountSP = 1;         % count cells with missing SP data
 
 % enter folder where data resides (each cell needs a folder)
 %dataFolder{1} = 'D:\conversion';
-dataFolder{1} = 'G:\2Michael\000020\';
+dataFolder{1} = 'C:\Users\mjimenez\Downloads\results\results';
 
 % enter path where files and raw data figures should be saved to 
 save_path = 'D:\genpath\';

@@ -18,7 +18,9 @@ sweep_label = extractfield(info.Groups(1).Groups, 'Name');                  % ge
 %% Get Metadata on cell hierachy
 
 if ~H5L.exists(H5G.open(H5F.open(fileName), ...
-        '/specifications/'),'ndx-mies','H5P_DEFAULT')     
+        '/specifications/'),'ndx-mies','H5P_DEFAULT') && ... 
+    H5L.exists(H5G.open(H5F.open(fileName), ...
+        '/general/'),'Initial access resistance','H5P_DEFAULT')                      %     
 
     Metadata.inital_access_resistance = h5read( ...
         fileName,['/general/Initial access resistance']);                      % saves inital access resistance of the cell 
@@ -37,17 +39,6 @@ if ~H5L.exists(H5G.open(H5F.open(fileName), ...
        Metadata.temperature = ...
            str2double(Metadata.temperature);
     end    
-
-
-    Metadata.membrane_resistance = h5read(...
-        fileName,['/general/Membrane resistance']);                            %
-
-    if ischar(Metadata.membrane_resistance) || ...
-            isstring(Metadata.membrane_resistance)
-       Metadata.membrane_resistance = ...
-           str2double(Metadata.membrane_resistance);
-    end    
-
 else
     Metadata = struct();
     
@@ -88,20 +79,23 @@ for s = 1:length(protocol_name)     % for each sweep with this cell
              contains(protocol_name{s,1},'SubThresh') ||...
                 contains(protocol_name{s,1},'LS')  ||...                        % checks for all long pulse protocols
                    contains(protocol_name{s,1},'subthreshold') ||...
-                     contains(protocol_name{s,1},'SupraThresh')
+                     contains(protocol_name{s,1},'SupraThresh') ||...
+                       contains(protocol_name{s,1},'1000')
             parametersNWB_LP
         LP.name = "long pulse";
     elseif contains(protocol_name{s,1},'short_pulse') || ...
               contains(protocol_name{s,1},'SP')  || ...
-            contains(protocol_name{s,1},'SS')                     % if short (3ms) current pulse
+            contains(protocol_name{s,1},'SS') ||...
+            (contains(protocol_name{s,1},'3') && ...
+              ~contains(protocol_name{s,1},'noise'))                                                             % if short (3ms) current pulse
         parametersNWB_SP
         SP.name = "short pulse";
-    elseif  contains(protocol_name{s,1},'gapfree')
+    elseif  contains(protocol_name{s,1},'apfree')
         parametersNWB_gapfree
         gapfree.name = "gapfree";
     else
-        parametersNWB_NONAIBS
-        NONAIBS.name = "NONAIBS"; 
+%         parametersNWB_NONAIBS
+%         NONAIBS.name = "NONAIBS"; 
     end
    end
 end

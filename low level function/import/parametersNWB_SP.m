@@ -14,8 +14,8 @@ if H5L.exists(H5G.open(H5F.open(fileName), ...
         '/specifications/'),'ndx-mies','H5P_DEFAULT') 
   stimFun = h5read(fileName,[level.Stim,'/data']);
   tempStimOn = find(stimFun(...
-      200/SP.acquireRes(1,SPcount):end,1)~=0,1,'first')...
-      +200/SP.acquireRes(1,SPcount)-1;                                       % offset by 10,000 timepoints to avoid test pulses
+      preSP/SP.acquireRes(1,SPcount):end,1)~=0,1,'first')...
+      +preSP/SP.acquireRes(1,SPcount)-1;                                       % offset by 10,000 timepoints to avoid test pulses
   testpulseOnset = find(stimFun(1:200/SP.acquireRes(1,SPcount)...
       )~=0,1,'first')-1;                                              % finds the onset of the testpulse
   SP.testpulse{1,SPcount} = temp(testpulseOnset+1-...
@@ -26,12 +26,18 @@ elseif  H5L.exists(H5G.open(H5F.open(fileName), ...
         '/stimulus/presentation/'),level.Stim(24:end),'H5P_DEFAULT')       % checks if there is a link with similarly labeled stimulus
 stimFun = h5read(fileName,[level.Stim,'/data']);
 tempStimOn = find(stimFun( ...
-    200/SP.acquireRes(1,SPcount):end,1)~=0,1,'first')+200/SP.acquireRes(1,SPcount)-1;              % offset by 10,000 timepoints to avoid test pulses
-testpulseOnset = find(stimFun(1:200/SP.acquireRes(1,SPcount))~=0,1,'first')-1;                    % finds the onset of the testpulse
+    100/SP.acquireRes(1,SPcount):end,1)~=0,1,'first')+200/SP.acquireRes(1,SPcount)-1;              % offset by 10,000 timepoints to avoid test pulses
+testpulseOnset = find(stimFun(1:100/SP.acquireRes(1,SPcount))~=0,1,'first')-1;                    % finds the onset of the testpulse
 SP.testpulse{1,SPcount} = temp(testpulseOnset-10/SP.acquireRes(1,SPcount):...         % saves voltage data of test pulse epoche
     testpulseOnset+100/SP.acquireRes(1,SPcount));
-SP.stimOff(1,SPcount) = find(stimFun~=0,1,'last')+1;
-stimDur = (SP.stimOff(1,SPcount)-tempStimOn)*SP.acquireRes(1,SPcount);
+    if any(stimFun~=0)
+    SP.stimOff(1,SPcount) = find(stimFun~=0,1,'last')+1;
+    stimDur = (SP.stimOff(1,SPcount)-tempStimOn)*SP.acquireRes(1,SPcount);
+    else
+    stimFun = [];   
+    SP.stimOff(1,SPcount) = NaN;
+    tempStimOn = [];
+    end
 else
 stimFun = [];   
 SP.stimOff(1,SPcount) = NaN;
@@ -39,8 +45,8 @@ tempStimOn = [];
 end    
 
 %% Metadata on sweep/protocol level
-if ~H5L.exists(H5G.open(H5F.open(fileName), ...
-        '/specifications/'),'ndx-mies','H5P_DEFAULT') 
+if  H5L.exists(H5G.open(H5F.open(fileName), ...
+        [level.Resp '/']),'bridge_balance','H5P_DEFAULT')
     if max(abs(stimFun))<1                                                     % checking for Stimulussignal in nA
       SP.sweepAmps(SPcount,1) = ...
       round(mean(stimFun(tempStimOn:SP.stimOff(1,SPcount))*1000));
@@ -75,27 +81,20 @@ else
 end
 %% Extracting the data
 SP.sweep_label(SPcount,1) = string(info.Groups(1).Groups(s).Name);
+if isempty(tempStimOn)                                                 
+SP.stimOn(1,SPcount)  = NaN;
+SP.stimOff(1,SPcount) = NaN;
+tempStimOn = SP.stimOn(1,SPcount)+10000-1;  
+else
+ SP.stimOn(1,SPcount) = tempStimOn-(tempStimOn-preSP/SP.acquireRes(1,SPcount));
+ SP.stimOff(1,SPcount) = SP.stimOff(1,SPcount)-...
+     (tempStimOn-preSP/SP.acquireRes(1,SPcount)); 
+end                                                                    
+SP.V{1,SPcount} = temp(tempStimOn...
+    -(preSP/SP.acquireRes(1,SPcount)):SP.stimOff(1,SPcount)+...
+           (tempStimOn-preSP/SP.acquireRes(1,SPcount))+ ...
+           (postSP/SP.acquireRes(1,SPcount)));                    
 
-if length(temp)>(SP.stimOff(1,SPcount)+(postSP/SP.acquireRes(1,SPcount))) && ...
-    ~isempty(findpeaks(temp)) && ~isVC
-    if isempty(tempStimOn)                                                 % in case there is no SP stimulation (happens in some Rheo reps)   
-    SP.stimOn(1,SPcount)  = SP.stimOn(1,SPcount-1);
-    SP.stimOff(1,SPcount) = SP.stimOff(1,SPcount-1);
-    tempStimOn = SP.stimOn(1,SPcount)+10000-1;  
-    else
-     SP.stimOn(1,SPcount) = tempStimOn-(tempStimOn-preSP/SP.acquireRes(1,SPcount));
-     SP.stimOff(1,SPcount) = SP.stimOff(1,SPcount)-...
-         (tempStimOn-preSP/SP.acquireRes(1,SPcount)); 
-    end                                                                    
-    SP.V{1,SPcount} = temp(tempStimOn...
-        -(preSP/SP.acquireRes(1,SPcount)):SP.stimOff(1,SPcount)+...
-               (tempStimOn-preSP/SP.acquireRes(1,SPcount))+ ...
-               (postSP/SP.acquireRes(1,SPcount)));                    
+SPcount = SPcount + 1;
 
-    SPcount = SPcount + 1;
-
-elseif isfield(SP, 'sweepAmps')
-    SP.sweepAmps(SPcount)= nan;
-    SP.stimOff(SPcount)= nan;
-end
  

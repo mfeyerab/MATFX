@@ -39,8 +39,9 @@ tempStimOn = [];
 end    
 
 %% Metadata on sweep/protocol level
-if ~H5L.exists(H5G.open(H5F.open(fileName), ...
-        '/specifications/'),'ndx-mies','H5P_DEFAULT') 
+if H5L.exists(H5G.open(H5F.open(fileName), ...
+        [level.Resp '/']),'bridge_balance','H5P_DEFAULT') 
+    
     if max(abs(stimFun))<1                                                     % checking for Stimulussignal in nA
       LP.sweepAmps(LPcount,1) = ...
       round(mean(stimFun(tempStimOn:LP.stimOff(1,LPcount))*1000));
