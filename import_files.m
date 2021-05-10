@@ -1,4 +1,4 @@
-%{
+{
 intracellular experiment pipeline
 requieres export_fig function
 %}
