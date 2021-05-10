@@ -89,12 +89,13 @@ else
  SP.stimOn(1,SPcount) = tempStimOn-(tempStimOn-preSP/SP.acquireRes(1,SPcount));
  SP.stimOff(1,SPcount) = SP.stimOff(1,SPcount)-...
      (tempStimOn-preSP/SP.acquireRes(1,SPcount)); 
-end                                                                    
+end  
+if ~isempty(stimFun)
 SP.V{1,SPcount} = temp(tempStimOn...
     -(preSP/SP.acquireRes(1,SPcount)):SP.stimOff(1,SPcount)+...
            (tempStimOn-preSP/SP.acquireRes(1,SPcount))+ ...
            (postSP/SP.acquireRes(1,SPcount)));                    
 
 SPcount = SPcount + 1;
-
+end
  

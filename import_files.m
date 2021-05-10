@@ -1,4 +1,4 @@
-{
+%{
 intracellular experiment pipeline
 requieres export_fig function
 %}
@@ -6,10 +6,10 @@ requieres export_fig function
 % Matlab startup commands
 clear; close all; clc;      % clear your workspace, close figs, clear command window
 
-start = 99;
+start = 16;
 
 
-preSP = 100;                 % first time step pre-stimulus window
+preSP = 500;                 % first time step pre-stimulus window
 postSP = 300;              % last time step pre-stimulus window
 preLP = 500;                % first time-step post-stimulus window
 postLP = 6000;              % last time-step post-stimulus window
@@ -20,7 +20,7 @@ missingCountSP = 1;         % count cells with missing SP data
 
 % enter folder where data resides (each cell needs a folder)
 %dataFolder{1} = 'D:\conversion';
-dataFolder{1} = 'C:\Users\mjimenez\Downloads\results\results';
+dataFolder{1} = 'D:\Michael\results';
 
 % enter path where files and raw data figures should be saved to 
 save_path = 'D:\genpath\';
