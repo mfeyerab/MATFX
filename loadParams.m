@@ -1,9 +1,8 @@
 function params = loadParams
 
 % plotting functions
-params.plot_all = 0;
+params.plot_all = 1;
 params.plot_format = '-jpg';
-
 
 % spike detection
 params.thresholdV = -20;                             % detection threshold for V-based spikes
@@ -17,12 +16,13 @@ params.sampleRTdt = 1000/params.sampleRT;                 % sample rate we want
 params.cutoffInitRa = 20;
 params.factorRelaRa = 0.2;
 params.basic_features = 1;
+params.maxRheoSpikes = 5;
 
 % swep-wise root mean square quality control parameters
 params.LPqc_samplWind = 100; params.LPqc_recovTime = 850; 
 params.SPqc_samplWind = 100; params.SPqc_recovTime = 600;
 params.preAIBS_samplWind = 199;
-params.RMSEst = 0.2;                                 % maximum RMSE measure short term
+params.RMSEst = 0.3;                                 % maximum RMSE measure short term
 params.RMSElt = 0.75;                                % maximum RMSE measure long term
 params.maxDiffBwBeginEnd = 4.5;                        % maximum difference between beginning and end of sweep
 params.maximumRestingPot = -50;                      % minimum resting potential

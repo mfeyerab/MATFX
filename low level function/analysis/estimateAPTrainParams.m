@@ -1,20 +1,19 @@
-function [sp] = estimateAPTrainParams(LP,sp,k)
+function [spTrain, ISIs] = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, ISIs)
 
-% estimate AP train parameters
 
-latency = (sp.thresholdRefTime(1)-LP.stimOn(1,k))*LP.acquireRes(1,k);
+latency = (sp.thresholdTime(1)-StimOn)/round(CCSeries.starting_time_rate/1000);
 % not a firing rate, simply a sum of spikes
-meanFR50 = sum(sp.thresholdRefTime<(LP.stimOn(1,k)+(50/LP.acquireRes(1,k)))) / 0.05;
-meanFR100 = sum(sp.thresholdRefTime<(LP.stimOn(1,k)+(100/LP.acquireRes(1,k)))) / 0.1;
-meanFR250 = sum(sp.thresholdRefTime<(LP.stimOn(1,k)+(250/LP.acquireRes(1,k)))) / 0.25;
-meanFR500 = sum(sp.thresholdRefTime<(LP.stimOn(1,k)+(500/LP.acquireRes(1,k)))) / 0.5;
-meanFR750 = sum(sp.thresholdRefTime<(LP.stimOn(1,k)+(750/LP.acquireRes(1,k)))) / 0.75;
-meanFR1000 = sum(sp.thresholdRefTime<(LP.stimOn(1,k)+(1000/LP.acquireRes(1,k))));
+spTrain.meanFR50(supraCount,1) = sum(sp.thresholdTime<(StimOn+(50/(1000/CCSeries.starting_time_rate)))) / 0.05;
+spTrain.meanFR100(supraCount,1) = sum(sp.thresholdTime<(StimOn+(100/(1000/CCSeries.starting_time_rate)))) / 0.1;
+spTrain.meanFR250(supraCount,1) = sum(sp.thresholdTime<(StimOn+(250/(1000/CCSeries.starting_time_rate)))) / 0.25;
+spTrain.meanFR500(supraCount,1) = sum(sp.thresholdTime<(StimOn+(500/(1000/CCSeries.starting_time_rate)))) / 0.5;
+spTrain.meanFR750(supraCount,1) = sum(sp.thresholdTime<(StimOn+(750/(1000/CCSeries.starting_time_rate)))) / 0.75;
+spTrain.meanFR1000(supraCount,1) = sum(sp.thresholdTime<(StimOn+(1000/(1000/CCSeries.starting_time_rate))));
 
-if length(sp.thresholdRefTime) >= 2						% skip this sweep if there was only 1 
+if length(sp.thresholdTime) >= 2						% skip this sweep if there was only 1 
     peakAdapt = sp.heightTP(end) / sp.heightTP(1);
-    ISI = diff(sp.thresholdRefTime)*LP.acquireRes(1,k);
-	instaRate = 1./ISI;
+    ISI = diff(sp.thresholdTime)*(1000/CCSeries.starting_time_rate);
+	instaRate = 1000./ISI;
 	meanISI = mean(ISI);
 	cvISI = std(ISI) / meanISI;
 	if length(ISI) >= 3
@@ -54,20 +53,15 @@ else
     peakAdapt2 = NaN;
 end
 
-sp.latency = latency;
-sp.meanFR50 = meanFR50;
-sp.meanFR100 = meanFR100;
-sp.meanFR250 = meanFR250;
-sp.meanFR500 = meanFR500;
-sp.meanFR750 = meanFR750;
-sp.meanFR1000 = meanFR1000;
-sp.peakAdapt = peakAdapt;
-sp.ISI = ISI;
-sp.instaRate = instaRate;
-sp.meanISI = meanISI;
-sp.cvISI = cvISI;
-sp.adaptIndex = adaptIndex;
-sp.adaptIndex2 = adaptIndex2;
-sp.peakAdapt2 = peakAdapt2;
-sp.delay = delay;
-sp.burst = burst;
+spTrain.latency(supraCount,1) = latency;
+spTrain.peakAdapt(supraCount,1) = peakAdapt;
+ISIs{1,supraCount} = ISI;
+instaRateCells{1,supraCount}= instaRate;
+
+spTrain.meanISI(supraCount,1) = meanISI;
+spTrain.cvISI(supraCount,1) = cvISI;
+spTrain.adaptIndex(supraCount,1) = adaptIndex;
+spTrain.adaptIndex2(supraCount,1) = adaptIndex2;
+spTrain.peakAdapt2(supraCount,1) = peakAdapt2;
+spTrain.delay(supraCount,1) = delay;
+spTrain.burst(supraCount,1) = burst;

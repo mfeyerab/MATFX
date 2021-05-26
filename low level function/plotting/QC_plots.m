@@ -2,17 +2,6 @@
 QCanalysis summary
 %}
 
-%maximum voltage drift per cell
-ind = find(diffMinMaxV~=0);
-figure('Position',[50 50 300 250]); set(gcf,'color','w');
-histogram(diffMinMaxV(ind),40,'FaceColor','k');
-xlabel('diff b/w min and max V')
-ylabel('probability')
-axis tight
-box off
-export_fig([save_path, 'qc mean diff min max resting V'],plot_format,'-r100');
-close
-
 %distribution of initial membrane potential
 ind = find(qc.OrigV~=0);
 figure('Position',[50 50 300 250]); set(gcf,'color','w');
