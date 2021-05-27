@@ -2,10 +2,10 @@
 processICsweepsParFor
 - analysis of intracellular hyperpolarizing and depolarizing sweeps
 %}
-clear
+clear; tic
 
 mainFolder = 'D:\output_MATNWB\';            % main folder (EDIT HERE)
-start = 11;
+start = 1;
 outDest = 'D:\output_MATNWB\QC\';                                          % general path
 cellList = dir([mainFolder,'*.nwb']);                                      % list of cell data files
 BwSweepMode = 2;                                                           % NeuroNex = 1, Choline macaque = 2
@@ -28,25 +28,16 @@ end
 
 %% Initialize feature and QC summary tables
 
-temp = {cellList.name};
-temp = cellfun(@(S) S(1:end-4), temp, 'Uniform', 0);
-features = {...
-    'Vrest' 'resistance' 'tau' 'Rheo' 'sag' 'sag_ratio' 'sagAmp' ...
-    'widthTP_LP' 'peakLP' 'thresholdLP' 'fastTroughLP' 'slowTroughLP' ...
-    'peakUpStrokeLP' 'peakDownStrokeLP' 'peakStrokeRatioLP' 'heightTP'...
-    'latency' 'medInstaRate' 'maxFiringRate' };
-
-ICsummary = array2table(NaN(length(cellList),length(features)), ...
-    'VariableNames', features,'RowNames', temp);
+ICsummary = initICSummary(cellList); 
 
 qc_tags = {'SweepsTotal' 'QC_total_pass' 'stRMSE_pre' 'stRMSE_post' ...
         'ltRMSE_pre' 'ltRMSE_post' 'diffVrest' ...
         'Vrest'  'holdingI' 'betweenSweep' ...
         'bridge_balance_abs' 'bridge_balance_rela' 'bad_spikes' ...
          };
-
+     
 QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
-    'VariableNames', qc_tags,'RowNames', temp);
+    'VariableNames', qc_tags,'RowNames', {cellList.name});
 
 QCparameterTotal = struct();
 
@@ -56,90 +47,20 @@ for n = start:length(cellList)                                             % for
     disp(cellID)                                                           % display ID number
     cellFile = nwbRead([mainFolder,cellList(n).name]);                     % load nwb file
    
-    %% Initialize processing moduls   
-    module_spikes = types.core.ProcessingModule(...
-             'description','AP processing',...
-             'dynamictable', []  ...
-                   );
-               
-    module_subStats = types.core.ProcessingModule(...
-         'description', 'subthreshold parameters',...
-         'dynamictable', []  ...
-               );
-           
-    module_ISIs = types.core.ProcessingModule(...
-                         'description', 'Table with ISIs per sweep',...
-                         'dynamictable', []  ...
-                               );    
-    module_QC = types.core.ProcessingModule(...
-                         'description', 'Table with QC parameter',...
-                         'dynamictable', []  ...
-                               );     
-        
-    %% Initialize QC columns and adding them to the sweep table
-     new_sweep_table_descriptions = {...
-         'Binary for total QC evaluation of sweep; pass = 1, fail=0'
-         'Binary for short-term root mean sqaure evaluation of prestimulus interval; pass = 1, fail=0'
-         'Binary for short-term root mean sqaure evaluation of poststimulus interval; pass = 1, fail=0'
-         'Binary for long-term root mean sqaure evaluation of prestimulus interval; pass = 1, fail=0'
-         'Binary for long-term root mean sqaure evaluation of poststimulus interval; pass = 1, fail=0'
-         'Binary for QC evaluation of voltage difference between pre and post stimulus intervall; pass = 1, fail=0'
-         'Binary for QC evaluation of prestimulus membrane potential; pass = 1, fail=0'
-         'Binary for QC evaluation of absolute bridge balance value; pass = 1, fail=0'
-         'Binary for QC evaluation of relative bridge balance value; pass = 1, fail=0'
-         'Binary for QC evaluation of holding current value; pass = 1, fail=0'
-         'Binary for QC evaluation of across sweep variability (i.e. drift) of the prestimulus membrane potential; pass = 1, fail=0'
-         'Binary for QC evaluation of sweeps with bad spike wave forms; pass = 1, fail=0'
-         };
-     
-    for t = 2:length(qc_tags)
-        cellFile.general_intracellular_ephys_sweep_table.colnames{t+1} = ...
-            qc_tags{t};
-        cellFile.general_intracellular_ephys_sweep_table.vectordata.map(qc_tags{t}) = ...
-          types.hdmf_common.VectorData(...
-           'description', new_sweep_table_descriptions{t-1},...
-           'data', zeros(...
-              cellFile.general_intracellular_ephys_sweep_table.sweep_number.data.dims,1)...
-              );   
-    end
+    %% Initialize processing moduls and new columns for Sweep table 
+    initProceModules 
     
-    %% Adding colum for sweep amplitudes, stimulus onset and end
-    
-    if ~cellFile.general_intracellular_ephys_sweep_table.vectordata.isKey('SweepAmp')
-      cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-        'SweepAmp') = ...
-          types.hdmf_common.VectorData(...
-           'description', 'amplitdue of the current step injected (if square pulse)',...
-           'data', zeros(...
-              cellFile.general_intracellular_ephys_sweep_table.sweep_number.data.dims,1)...
-              ); 
-          
-              cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-        'StimOn') = ...
-          types.hdmf_common.VectorData(...
-           'description', 'Index of stimulus onset',...
-           'data', zeros(...
-              cellFile.general_intracellular_ephys_sweep_table.sweep_number.data.dims,1)...
-              );   
-              
-              cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-        'StimOff') = ...
-          types.hdmf_common.VectorData(...
-           'description', 'Index of end of stimulus',...
-           'data', zeros(...
-              cellFile.general_intracellular_ephys_sweep_table.sweep_number.data.dims,1)...
-              );   
-    end
-    %% Setting up two QC tables
+    cellFile  = addColumns2SwTabl(cellFile,qc_tags);    
+    %% Setting up two QC tables and initializing Variables for counts and temproray storage
     QC_parameter = array2table(NaN(...
                length(cellFile.acquisition.keys), length(qc_tags)-1));            
     QC_parameter.Properties.VariableNames = ['SweepID', qc_tags(3:end)];    
     QC_parameter.SweepID = string(QC_parameter.SweepID);
     QCpass =  QC_parameter;
-    %% Initializing Variables 
-    ISIs = {}; SpQC = struct();
+    ISIs = {}; SpQC = struct(); spTrain = struct();
     SweepCount = 1;  subCount = 1; supraCount = 1;   
-    sagSweep= []; RheoSweep = [];
+    sagSweep= []; RheoSweep = []; spTrainIDs = {};
+    
     %% Looping through sweeps 
     SweepPathsAll = {cellFile.general_intracellular_ephys_sweep_table.series.data.path};
     SweepPathsStim = {SweepPathsAll{find(contains(SweepPathsAll,'stimulus'))}};
@@ -147,18 +68,17 @@ for n = start:length(cellList)                                             % for
    
     for s = 1:length(SweepPathsStim)                      % loop through sweeps        
 
+        CCStimSeries = cellFile.resolve(SweepPathsStim(s));               
         CurrentPath = cell2mat(SweepPathsStim(s));
         CurrentName = CurrentPath(find(CurrentPath=='/',1,'last')+1:length(CurrentPath));        
+        
         [QC_parameter.SweepID(SweepCount), QCpass.SweepID(SweepCount)] = ...
           deal(string(CurrentName));
-        
-        CCStimSeries = cellFile.resolve(SweepPathsStim(s));
-        
-        idx = find(cellFile.general_intracellular_ephys_sweep_table.sweep_number.data.load== ...
-                CCStimSeries.sweep_number);
-        
+      
+        AquiSwTabIdx = getAquisitionIndex(cellFile, CCStimSeries.sweep_number);
+                      
         CCSeries = cellFile.resolve(...
-             cellFile.general_intracellular_ephys_sweep_table.series.data(idx(2)).path);
+             cellFile.general_intracellular_ephys_sweep_table.series.data(AquiSwTabIdx).path);
          
         if CCStimSeries.data.dims/CCStimSeries.starting_time_rate > 0.25 &&...
             ~contains(CCStimSeries.stimulus_description, 'Ramp') &&...
@@ -173,32 +93,28 @@ for n = start:length(cellList)                                             % for
     %                    StimOffset = 2*CCStimSeries.data.dims/3;              
               end    
 
-              if ~isa(CCSeries, 'types.core.IZeroClampSeries')
-                 [QC_parameter, QCpass] = SweepwiseQC(CCSeries, ...
+             [QC_parameter, QCpass] = SweepwiseQC(CCSeries, ...
                                        StimOn, SweepCount,QC_parameter, ...
                                                QCpass, params);
-              else
-                  SweepCount = SweepCount-1;  
-              end    
 
               sweepAmp = mean(CCStimSeries.data.load(StimOn:StimOff));
               cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    4}.data(idx) = sweepAmp;
+                    4}.data(AquiSwTabIdx) = sweepAmp;
 
               if ~isempty(StimOn)
                    cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    3}.data(idx) = StimOn;
+                    3}.data(AquiSwTabIdx) = StimOn;
                    cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    2}.data(idx) = StimOff;
+                    2}.data(AquiSwTabIdx) = StimOff;
               end
 
            else
                 StimOn = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    3}.data(idx));
+                    3}.data(AquiSwTabIdx));
                 StimOff = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    2}.data(idx));
+                    2}.data(AquiSwTabIdx));
                 sweepAmp = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    4}.data(idx));
+                    4}.data(AquiSwTabIdx));
             end
 
             [QC_parameter, QCpass]  = SweepwiseQC(CCSeries, StimOn, ...
@@ -210,13 +126,13 @@ for n = start:length(cellList)                                             % for
                          processSpikes(CCSeries, StimOn, StimOff, params, ...
                                          supraCount, module_spikes, SpQC, ...
                                            QCpass, SweepCount, CurrentName);
-                       supraCount = supraCount + 1;
 
                        if ~isempty(sp)
-                         [spTrain, ISIs] = ...
-                             estimateAPTrainParams(sp,StimOn,CCSeries,...
-                                                         supraCount, ISIs);
+                           [spTrain, ISIs] = estimateAPTrainParams(...
+                               sp,StimOn,CCSeries, supraCount, ISIs, spTrain);
+                           spTrainIDs(supraCount,1) = {CurrentName};
                        end
+                       supraCount = supraCount + 1;
 
                elseif sweepAmp < 0 
                        module_subStats = subThresFeatures(CCSeries,...
@@ -228,11 +144,13 @@ for n = start:length(cellList)                                             % for
         end
     end
    %% save AP wave and subthreshold parameters
+   module_spTrain = makeSpTrainModule(spTrain, spTrainIDs); 
+   cellFile.processing.set('AP Pattern', module_spTrain); 
    cellFile.processing.set('subthreshold parameters', module_subStats);
    cellFile.processing.set('AP wave', module_spikes);
 
    %% QC bridge balance relative to input resistance
-   Ri_preqc = inputResistance(module_subStats.dynamictable);
+   Ri_preqc = inputResistance(cellFile.processing.values{4}.dynamictable);
    QCpass.bridge_balance_rela = ...
        QC_parameter.bridge_balance_rela < Ri_preqc*params.factorRelaRa;
    
@@ -332,26 +250,33 @@ for n = start:length(cellList)                                             % for
           str2double(cellFile.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
                  <= Ri_preqc*params.factorRelaRa
        
-       [cellFile, ICsummary, RheoSweepSeries, sagSweepSeries, RheoSweepTablePos, SagSweepTablePos] = ...
-                  LPsummary(cellFile, ICsummary, n, params);
-       plotCellProfile(RheoSweepSeries, sagSweepSeries, cellFile,...
-            RheoSweepTablePos, SagSweepTablePos, outDest, params)
+       [cellFile, ICsummary, PlotStruct] = ...
+                            LPsummary(cellFile, ICsummary, n, params);
+       plotCellProfile(cellFile, PlotStruct, outDest, params)
        %SP_summary
        else
-           display([cellID, ' was excluded by cell-wide QC']);
+           display(['         was excluded by cell-wide QC']);
       end              
    else
-       [cellFile, ICsummary, RheoSweepSeries, sagSweepSeries, RheoSweepTablePos, SagSweepTablePos] = ...
-                  LPsummary(cellFile, ICsummary, n, params);
-       plotCellProfile(RheoSweepSeries, sagSweepSeries, cellFile,...
-            RheoSweepTablePos, SagSweepTablePos, outDest, params)
+       [cellFile, ICsummary, PlotStruct] = ...
+                            LPsummary(cellFile, ICsummary, n, params);
+       plotCellProfile(cellFile, PlotStruct, outDest, params)
        %SP_summary
 
    end    
-      
-
-
+   %% Add dendritic type and reporter    
+    ICsummary.dendriticType(n) = ...
+       {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data.load};
+    ICsummary.SomaLayerLoc(n) = ...
+       {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{2}.data.load};
+    
+    if string(cellFile.general_subject.species) == "Mus musculus" && ...
+        string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
    
+       ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};
+    else
+       ICsummary.ReporterTag(n) = {'None'} ;
+    end
    %% Export
    if overwrite == 1
       delete(fullfile(outDest, cellList(n).name)) 
@@ -377,5 +302,5 @@ clear adaptIndex adaptIndex2 burst BwSweepParameter BwSweepPass c CCSeries ...
 Summary_output_files
 QC_plots
 QC_output_files
-
+toc
 

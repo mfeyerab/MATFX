@@ -2,7 +2,15 @@ function [module_spikes, sp, SpQC, QCpass] = ...
     processSpikes(CCSeries, StimOn, StimOff, ...
      params, supraCount, module_spikes, SpQC, QCpass, SweepCount, CurrentName)
 
-supraEvents = find(CCSeries.data.load(StimOn:StimOff)>=params.thresholdV)-1+StimOn;
+ if convertCharsToStrings(CCSeries.data_unit)=="volts" ||...
+        convertCharsToStrings(CCSeries.data_unit)=="Volts"
+    
+    supraEvents = find(...
+        CCSeries.data.load(StimOn:StimOff)>=params.thresholdV/1000)-1+StimOn;
+ else 
+    supraEvents = find(...
+        CCSeries.data.load(StimOn:StimOff)>=params.thresholdV)-1+StimOn;
+ end
 sp = [];
 if ~isempty(supraEvents)
     [int4Peak,startPotSp] = int4APs(supraEvents);

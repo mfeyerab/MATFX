@@ -16,7 +16,7 @@ params.sampleRTdt = 1000/params.sampleRT;                 % sample rate we want
 params.cutoffInitRa = 20;
 params.factorRelaRa = 0.2;
 params.basic_features = 1;
-params.maxRheoSpikes = 5;
+params.maxRheoSpikes = 20;
 
 % swep-wise root mean square quality control parameters
 params.LPqc_samplWind = 100; params.LPqc_recovTime = 850; 

@@ -5,20 +5,28 @@ tempX = [];
 if nargin==1 
     [tempY,tempX] = deal(zeros(SubStatTable.Count,1));
     for i = 1: SubStatTable.Count
-
-     tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data;
-     tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data;
-
+         if isa(SubStatTable.values{i}.vectordata.map('maxSubDeflection').data, 'double')
+          tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data;
+          tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data;         
+         else
+          tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data.load;
+          tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data.load;
+         end
     end
     
 elseif nargin==2 
     
-    for i = 1: SubStatTable.Count
+   for i = 1: SubStatTable.Count
      if ismember(str2num(SubStatTable.keys{i}(end-1:end)), NamesPassedSweeps)
-      tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data;
-      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data;
+        if isa(SubStatTable.values{i}.vectordata.map('maxSubDeflection').data, 'double')
+          tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data;
+          tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data;         
+        else
+          tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data.load;
+          tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data.load;
+        end
      end
-    end
+   end
     
     
 end

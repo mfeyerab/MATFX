@@ -1,5 +1,4 @@
-function [spTrain, ISIs] = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, ISIs)
-
+function [spTrain, ISIs] = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, ISIs, spTrain)
 
 latency = (sp.thresholdTime(1)-StimOn)/round(CCSeries.starting_time_rate/1000);
 % not a firing rate, simply a sum of spikes
@@ -13,7 +12,6 @@ spTrain.meanFR1000(supraCount,1) = sum(sp.thresholdTime<(StimOn+(1000/(1000/CCSe
 if length(sp.thresholdTime) >= 2						% skip this sweep if there was only 1 
     peakAdapt = sp.heightTP(end) / sp.heightTP(1);
     ISI = diff(sp.thresholdTime)*(1000/CCSeries.starting_time_rate);
-	instaRate = 1000./ISI;
 	meanISI = mean(ISI);
 	cvISI = std(ISI) / meanISI;
 	if length(ISI) >= 3
@@ -43,7 +41,6 @@ if length(sp.thresholdTime) >= 2						% skip this sweep if there was only 1
 else
     peakAdapt = NaN;
     ISI = NaN;
-    instaRate = NaN;
 	meanISI = NaN;
 	cvISI = NaN;
 	adaptIndex = NaN;
@@ -56,7 +53,6 @@ end
 spTrain.latency(supraCount,1) = latency;
 spTrain.peakAdapt(supraCount,1) = peakAdapt;
 ISIs{1,supraCount} = ISI;
-instaRateCells{1,supraCount}= instaRate;
 
 spTrain.meanISI(supraCount,1) = meanISI;
 spTrain.cvISI(supraCount,1) = cvISI;

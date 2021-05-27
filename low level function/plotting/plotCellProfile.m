@@ -1,5 +1,4 @@
-function plotCellProfile(RheoSweepSeries, sagSweepSeries, cellFile, ...
-    RheoSweepTablePos, SagSweepTablePos, outDest, params)
+function plotCellProfile(cellFile, PlotStruct, outDest, params)
 
 %{
 plot characterization
@@ -10,6 +9,15 @@ figure('Position',[50 50 750 750]); set(gcf,'color','w');
 subplot(2,2,1)
 hold on
 
+sagSweepSeries = PlotStruct.sagSweepSeries;
+RheoSweepSeries = PlotStruct.RheoSweepSeries;
+HeroSweepSeries = PlotStruct.HeroSweepSeries;
+
+SagSweepTablePos = PlotStruct.SagSweepTablePos;
+RheoSweepTablePos = PlotStruct.RheoSweepTablePos;
+%HeroSweepTablePos = PlotStruct.HeroSweepTablePos;
+
+
 %% Get stimulus onsets and end for plotting first subfigure: rheo and sag sweep
 
 if ~isempty(sagSweepSeries) 
@@ -17,51 +25,78 @@ if ~isempty(sagSweepSeries)
         unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{3}.data(SagSweepTablePos));
     sagSweepOff = ...
             unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{2}.data(SagSweepTablePos));
-    p = plot(sagSweepSeries.data.load(sagSweepOn-0.15*sagSweepSeries.starting_time_rate...
+    p = plot([0:1000/sagSweepSeries.starting_time_rate: ...
+        (sagSweepOff-sagSweepOn+(0.35*sagSweepSeries.starting_time_rate))...
+        /sagSweepSeries.starting_time_rate*1000],...
+        sagSweepSeries.data.load(sagSweepOn-0.15*sagSweepSeries.starting_time_rate...
           :sagSweepOff+0.2*sagSweepSeries.starting_time_rate));
     p.Color = 'black';
-end    
+    if convertCharsToStrings(sagSweepSeries.data_unit)=="volts" ||...
+        convertCharsToStrings(sagSweepSeries.data_unit)=="Volts"
+      ylim([-0.115 0.060])
+      ylabel('Voltage (V)')
+    else
+      ylim([-115 60])
+      ylabel('Voltage (mV)')
+     end
+end
 
 if ~isempty(RheoSweepSeries)
     RheoSweepOn = ...
         unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{3}.data(RheoSweepTablePos));
     RheoSweepOff = ...
         unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{2}.data(RheoSweepTablePos));  
-    p = plot(RheoSweepSeries.data.load(RheoSweepOn-0.15*RheoSweepSeries.starting_time_rate...
+    p = plot([0:1000/RheoSweepSeries.starting_time_rate: ...
+        (RheoSweepOff-RheoSweepOn+(0.35*RheoSweepSeries.starting_time_rate))...
+        /RheoSweepSeries.starting_time_rate*1000],...
+        RheoSweepSeries.data.load(RheoSweepOn-0.15*RheoSweepSeries.starting_time_rate...
           :RheoSweepOff+0.2*RheoSweepSeries.starting_time_rate));
     p.Color = 'black';
+    if convertCharsToStrings(RheoSweepSeries.data_unit)=="volts" ||...
+        convertCharsToStrings(RheoSweepSeries.data_unit)=="Volts"
+      ylim([-0.115 0.060])
+      ylabel('Voltage (V)')
+    else
+      ylim([-115 60])
+      ylabel('Voltage (mV)')
+     end
 end    
-
-  
+ 
 title('LP rheo and sag sweep')
 xlabel('time (ms)')
 box off
-if convertCharsToStrings(RheoSweepSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(RheoSweepSeries.data_unit)=="Volts"
 
-ylim([-0.115 0.060])
-ylabel('Voltage (V)')
-else
-ylim([-115 60])
-ylabel('Voltage (mV)')
-end
+
 %% Plotting second subfigure: hero sweep
  
+subplot(2,2,2)
 
-% subplot(2,2,2)
-% hold on
-% for k = 1:length(a.LP.sweepAmps)
-%   if length(IC.hero_amp) == n && a.LP.sweepAmps(k,1)==IC.hero_amp(n,1)
-%     p = plot(a.LP.acquireRes(1,k):a.LP.acquireRes(1,k):(plot_stop_LP-plot_onset_LP)*a.LP.acquireRes(1,k), ...
-%           a.LP.V{1,k}(plot_onset_LP:plot_stop_LP-1));
-%     p.Color = 'black';
-%   end
-% end
-% title('hero sweep')
-% ylabel('Voltage (mV)')
-% xlabel('time (ms)')
-% box off
-% ylim([-100 60])
+if ~isempty(HeroSweepSeries)
+    RheoSweepOn = ...
+        unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{3}.data(RheoSweepTablePos));
+    RheoSweepOff = ...
+        unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{2}.data(RheoSweepTablePos));  
+    p = plot([0:1000/HeroSweepSeries.starting_time_rate: ...
+        (RheoSweepOff-RheoSweepOn+(0.35*HeroSweepSeries.starting_time_rate))...
+        /HeroSweepSeries.starting_time_rate*1000],...
+        HeroSweepSeries.data.load(RheoSweepOn-0.15*HeroSweepSeries.starting_time_rate...
+          :RheoSweepOff+0.2*HeroSweepSeries.starting_time_rate));
+    p.Color = 'black';
+    if convertCharsToStrings(HeroSweepSeries.data_unit)=="volts" ||...
+        convertCharsToStrings(HeroSweepSeries.data_unit)=="Volts"
+      ylim([-0.115 0.060])
+      ylabel('Voltage (V)')
+    else
+      ylim([-115 60])
+      ylabel('Voltage (mV)')
+     end
+end    
+
+title('hero sweep')
+ylabel('Voltage (mV)')
+xlabel('time (ms)')
+box off
+
 
 %% Plotting third subfigure: AP waveforms
 

@@ -34,8 +34,8 @@ for n = 1:length(cellList)
     else    
       nwb.general_subject = types.core.Subject( ...
         'subject_id', char(T.donor__id(idx)), 'age', num2str(T.donor__age(idx)), ...
-        'sex', char(T.donor__sex(idx)), 'species', char(T.donor__species1(idx)) ...
-         );      
+        'sex', char(T.donor__sex(idx)), 'species', char(T.donor__species1(idx)), ...
+         'genotype', char(T.line_name1(idx)) );      
     end
      nwb.general_institution = 'Allen Institute of Brain Science';
      device_name = 'unknown device';
@@ -53,11 +53,15 @@ for n = 1:length(cellList)
                                );     
      T.Properties.VariableNames{49}= 'SomaLayerLoc';
      T.Properties.VariableNames{54}= 'DendriticType';
+     T.Properties.VariableNames{1} = 'ReporterStatus';
+     T.Properties.VariableNames{44} = 'Hemisphere';
      
-     T.SomaLayerLoc = char(T.SomaLayerLoc);
-     T.DendriticType = char(T.DendriticType);
+     T.SomaLayerLoc = cellstr(T.SomaLayerLoc);
+     T.DendriticType = cellstr(T.DendriticType);
+     T.ReporterStatus = cellstr(T.ReporterStatus);
+     T.Hemisphere = cellstr(T.Hemisphere);
      
-     table = table2nwb(T(idx,[49, 54]));  
+     table = table2nwb(T(idx,[1, 49, 44, 54]));  
      anatomy.dynamictable.set('Anatomical data', table);
      nwb.processing.set('Anatomical data', anatomy);
                            
@@ -193,8 +197,7 @@ for n = 1:length(cellList)
   
     
 %% Sweep table
-            
-
+           
     sweep_nums_vec = [[0:sweepCount-2],[0:sweepCount-2]];
     
     sweep_nums = types.hdmf_common.VectorData('data', sweep_nums_vec, ...
