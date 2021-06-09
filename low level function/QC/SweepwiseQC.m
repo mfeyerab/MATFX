@@ -9,21 +9,18 @@ SweepwiseQC
 %}
 
 %% selecting time windows and determining long-term noise/membrane voltage stability    
-    if convertCharsToStrings(CCSeries.data_unit)=="volts" || ...
-            convertCharsToStrings(CCSeries.data_unit)=="Volts" 
-
+    if checkVolts(CCSeries.data_unit)
+        
             vec_pre = CCSeries.data.load(...
-                     StimOn-0.25*CCSeries.starting_time_rate:StimOn-1).*1000;
+                     StimOn-0.15*CCSeries.starting_time_rate:StimOn-1).*1000;
         vec_post = CCSeries.data.load((end-0.25*CCSeries.starting_time_rate)+1:...
         length(CCSeries.data.load)).*1000;
 
     else
-
         vec_pre = CCSeries.data.load(...
-                     StimOn-0.25*CCSeries.starting_time_rate:StimOn-1) ;
+                     StimOn-0.15*CCSeries.starting_time_rate:StimOn-1) ;
         vec_post = CCSeries.data.load((end-0.25*CCSeries.starting_time_rate)+1:...
         length(CCSeries.data.load));
-
     end
 
     restVPre = mean(vec_pre);

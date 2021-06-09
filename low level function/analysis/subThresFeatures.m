@@ -1,5 +1,5 @@
 function module_subStats = subThresFeatures(CCSeries,StimOn, StimOff, ...
-                                     sweepAmp, CurrentName, module_subStats, params)
+                                     sweepAmp, CurrentName, module_subStats, params, QC_parameter)
 
 subStats.subSweepAmps = sweepAmp;
 
@@ -43,8 +43,23 @@ else
         subStats.tauMin = NaN;
 end
 %% sag & sag ratio
-subStats.subSteadyState = mean(...
-CCSeries.data.load(StimOff-round(0.050*CCSeries.starting_time_rate):StimOff-1));
+sizeSlideWind = 0.075;
+TotalSize = 0.5;
+Increment = 0.025;
+
+for w = 1:round(TotalSize/Increment)
+    vec = ...
+      CCSeries.data.load(StimOff-round((sizeSlideWind + Increment*w) ...
+      *CCSeries.starting_time_rate):StimOff-round(Increment*w*CCSeries.starting_time_rate)-1);
+    PoSS(w,1) = mean(vec);
+    PoSSQ(w,1) = sqrt(mean((vec - PoSS(w,1)).^2));   
+end
+
+if min(PoSSQ) < 0.75*params.RMSElt
+    subStats.subSteadyState = PoSS(find(PoSSQ==min(PoSSQ)));
+else
+    subStats.subSteadyState = NaN;
+end    
 subStats.sag = abs(subStats.subSteadyState-subStats.minV);
 subStats.sagRatio = subStats.minV/subStats.subSteadyState;
 
@@ -59,15 +74,12 @@ subStats.reboundDepolarization = abs(CCSeries.data.load(StimOff+loc)-...
    CCSeries.data.load(StimOff+loc+round(params.reboundFitWindow/CCSeries.starting_time_rate)));
 %%
 
-if convertCharsToStrings(CCSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(CCSeries.data_unit)=="Volts"
+if checkVolts(CCSeries.data_unit)
     
     subStats.minV  = subStats.minV*1000;  
     subStats.sag = subStats.sag*1000;
     subStats.maxSubDeflection = subStats.maxSubDeflection*1000;
 end
-    
-    
 
 %% save subthreshold parameters
 subStats = structfun(@double, subStats, 'UniformOutput', false);

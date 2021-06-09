@@ -17,7 +17,7 @@ if nargin==1
 elseif nargin==2 
     
    for i = 1: SubStatTable.Count
-     if ismember(str2num(SubStatTable.keys{i}(end-1:end)), NamesPassedSweeps)
+     if ismember(str2double(regexp(SubStatTable.keys{i},'\d*','Match')), NamesPassedSweeps)
         if isa(SubStatTable.values{i}.vectordata.map('maxSubDeflection').data, 'double')
           tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data;
           tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data;         

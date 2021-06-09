@@ -5,7 +5,7 @@ processICsweepsParFor
 clear; tic
 
 mainFolder = 'D:\output_MATNWB\';            % main folder (EDIT HERE)
-start = 1;
+start = 2335;
 outDest = 'D:\output_MATNWB\QC\';                                          % general path
 cellList = dir([mainFolder,'*.nwb']);                                      % list of cell data files
 BwSweepMode = 2;                                                           % NeuroNex = 1, Choline macaque = 2
@@ -13,7 +13,7 @@ params = loadParams;                                                       % loa
 
 %% Set to overwrite or delete nwb files from output folder 
 
-overwrite = 0;
+ overwrite = 0;
 if length(mainFolder) == length(outDest) && mainFolder == outDest
     overwrite = 1;
 else    
@@ -41,6 +41,8 @@ QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
 
 QCparameterTotal = struct();
 
+QCcellWide = {};
+
 %% Looping through nwb files
 for n = start:length(cellList)                                             % for all cells in directory
     cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
@@ -51,11 +53,12 @@ for n = start:length(cellList)                                             % for
     initProceModules 
     
     cellFile  = addColumns2SwTabl(cellFile,qc_tags);    
-    %% Setting up two QC tables and initializing Variables for counts and temproray storage
-    QC_parameter = array2table(NaN(...
-               length(cellFile.acquisition.keys), length(qc_tags)-1));            
-    QC_parameter.Properties.VariableNames = ['SweepID', qc_tags(3:end)];    
-    QC_parameter.SweepID = string(QC_parameter.SweepID);
+    %% Setting up two QC tables and initializing Variables for counts and temproray storage    
+    QC_parameter = table();
+    QC_parameter.SweepID = repmat({''},length(cellFile.acquisition.keys),1);
+    QC_parameter(:,2:length(qc_tags(2:end))) = array2table(NaN(...
+               length(cellFile.acquisition.keys), length(qc_tags)-2));            
+    QC_parameter.Properties.VariableNames(2:width(QC_parameter)) = [qc_tags(3:end)];    
     QCpass =  QC_parameter;
     ISIs = {}; SpQC = struct(); spTrain = struct();
     SweepCount = 1;  subCount = 1; supraCount = 1;   
@@ -73,7 +76,7 @@ for n = start:length(cellList)                                             % for
         CurrentName = CurrentPath(find(CurrentPath=='/',1,'last')+1:length(CurrentPath));        
         
         [QC_parameter.SweepID(SweepCount), QCpass.SweepID(SweepCount)] = ...
-          deal(string(CurrentName));
+          deal({CurrentName});
       
         AquiSwTabIdx = getAquisitionIndex(cellFile, CCStimSeries.sweep_number);
                       
@@ -137,7 +140,8 @@ for n = start:length(cellList)                                             % for
                elseif sweepAmp < 0 
                        module_subStats = subThresFeatures(CCSeries,...
                                               StimOn, StimOff, sweepAmp, ...
-                                               CurrentName, module_subStats, params);
+                                               CurrentName, module_subStats, ...
+                                               params, QC_parameter);
                        subCount = subCount +1;
                end
                SweepCount = SweepCount + 1;    
@@ -184,12 +188,10 @@ for n = start:length(cellList)                                             % for
    
    QC_parameter = rmmissing(QC_parameter);
    QCpass = rmmissing(QCpass,'MinNumMissing',2);
-   QCparameterTotal.(['AI_' cellID ]) = QC_parameter;
-   
+   QCparameterTotal.(['AI_' cellID ]) = QC_parameter;  
    QCpass.bad_spikes(isnan(QCpass.bad_spikes)) = 1; 
-   QC_parameter.SweepID = char(QC_parameter.SweepID);
-   table = table2nwb(QC_parameter, 'QC parameter table');  
-   module_QC.dynamictable.set('QC_parameter_table', table);
+   tbl = table2nwb(QC_parameter, 'QC parameter table');  
+   module_QC.dynamictable.set('QC_parameter_table', tbl);
    cellFile.processing.set('QC parameter', module_QC);
     
    for t = 5:cellFile.general_intracellular_ephys_sweep_table.vectordata.Count      %loop trhough QC pass columns in sweep table
@@ -246,16 +248,22 @@ for n = start:length(cellList)                                             % for
                    "has to be entered manually")
       
        if str2double(cellFile.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
-                 <= params.cutoffInitRa && ...
-          str2double(cellFile.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
+                 <= params.cutoffInitRa 
+           if  str2double(cellFile.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
                  <= Ri_preqc*params.factorRelaRa
-       
-       [cellFile, ICsummary, PlotStruct] = ...
+                [cellFile, ICsummary, PlotStruct] = ...
                             LPsummary(cellFile, ICsummary, n, params);
-       plotCellProfile(cellFile, PlotStruct, outDest, params)
-       %SP_summary
+                plotCellProfile(cellFile, PlotStruct, outDest, params)
+                 %SP_summary
+           else
+              display(['    was excluded by cell-wide QC for Ra higher than ', ...
+                  num2str(Ri_preqc*params.factorRelaRa)]);
+                  QCcellWide{end+1} = cellID;
+           end
        else
-           display(['         was excluded by cell-wide QC']);
+              display(['    was excluded by cell-wide QC for Ra higher than ', ...
+                  num2str(params.cutoffInitRa )])
+                  QCcellWide{end+1} = cellID;
       end              
    else
        [cellFile, ICsummary, PlotStruct] = ...
@@ -264,43 +272,59 @@ for n = start:length(cellList)                                             % for
        %SP_summary
 
    end    
-   %% Add dendritic type and reporter    
-    ICsummary.dendriticType(n) = ...
-       {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data.load};
-    ICsummary.SomaLayerLoc(n) = ...
-       {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{2}.data.load};
-    
-    if string(cellFile.general_subject.species) == "Mus musculus" && ...
-        string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
-   
-       ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};
-    else
-       ICsummary.ReporterTag(n) = {'None'} ;
-    end
+   if isnan(ICsummary.thresholdLP(n)) && params.noSupra == 1
+         display('     was excluded by cell-wide QC for no suprathreshold data') 
+         ICsummary(n,1:7) = {NaN};
+         QCcellWide{end+1} = cellID;
+   end
+  
+   %% Add species, dendritic type and reporter    
+   if isempty(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data) 
+       ICsummary.dendriticType(n) = {'NA'};
+       ICsummary.SomaLayerLoc(n) = {'NA'};
+       ICsummary.ReporterTag(n) = {'None'}; 
+       ICsummary.brainOrigin(n) = {'NA'};
+   else
+        ICsummary.dendriticType(n) = ...
+           {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data.load};
+        ICsummary.SomaLayerLoc(n) = ...
+           {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.map('SomaLayerLoc').data.load};
+        ICsummary.brainOrigin(n) = cellFile.general_intracellular_ephys.values{1}.location;
+        
+        if string(cellFile.general_subject.species) == "Mus musculus" && ...
+            string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
+
+           ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};
+        else
+           ICsummary.ReporterTag(n) = {'None'} ;
+        end
+        
+   end
+   ICsummary.species(n) = {cellFile.general_subject.species};
    %% Export
    if overwrite == 1
       delete(fullfile(outDest, cellList(n).name)) 
    end    
-   nwbExport(cellFile, fullfile(outDest, cellList(n).name));
+    nwbExport(cellFile, fullfile(outDest, cellList(n).name));
 end                                                                        % end cell level for loop
 
 %% Cleaning up workspace
 
 clear adaptIndex adaptIndex2 burst BwSweepParameter BwSweepPass c CCSeries ...
     CCStimSeries cell File cellID cvISI data_index data_vector ...
-    delay diffV_b_e f gof holdingI i idx idxPassedSweeps instaRate ...
-    instaRateCells  int4Peak ISI ISI_linVec ISI_table ISIs k key ...
+    delay diffV_b_e f holdingI i idx idxPassedSweeps instaRate ...
+    instaRateCells ISI ISI_linVec ISI_table ISIs k key ...
     latency loc meanISI moduleISIs module_QC module_spike module_subStats ...
     peakAdapt peakAdapt2 QC_parameter QCpass restVPost restVPre RheoSweep ...
     Ri_preqc rmse_post rmse_post_st rmse_pre rmse_pre_st s sagSweep spTrain ...
-    startInt4Peak StimOff StimOn stWin subCount subStats supraCount supraEvents ...
-    sweepAmp SweepCount SweepIDsPassed table tau_vec val vec_pre vec_post ...
-    vecin winCount x y yhat
+    startInt4Peak StimOff StimOn stWin subCount subStats supraCount ...
+    sweepAmp SweepCount SweepIDsPassed table ...
+    
 
 %% Output summary fiels and figures 
 
 Summary_output_files
-QC_plots
-QC_output_files
+% QC_plots
+% QC_output_files
 toc
 
