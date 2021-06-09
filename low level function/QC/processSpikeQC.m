@@ -14,8 +14,7 @@ diffthreshold2peakT = (sp.peakTime-sp.thresholdTime)*1000/CCSeries.starting_time
 idx(5,:) = diffthreshold2peakT > params.maxDiffThreshold2PeakT;
 SpQC.diffthreshold2peakT{supraCount,1} = idx(5,:);
                                 
-if convertCharsToStrings(CCSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(CCSeries.data_unit)=="Volts"
+if checkVolts(CCSeries.data_unit)
 
         idx(3,:) = sp.maxdVdt*1000 < params.mindVdt;
 

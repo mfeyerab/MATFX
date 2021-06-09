@@ -2,8 +2,7 @@ function [module_spikes, sp, SpQC, QCpass] = ...
     processSpikes(CCSeries, StimOn, StimOff, ...
      params, supraCount, module_spikes, SpQC, QCpass, SweepCount, CurrentName)
 
- if convertCharsToStrings(CCSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(CCSeries.data_unit)=="Volts"
+ if checkVolts(CCSeries.data_unit)
     
     supraEvents = find(...
         CCSeries.data.load(StimOn:StimOff)>=params.thresholdV/1000)-1+StimOn;
@@ -36,8 +35,8 @@ if ~isempty(supraEvents)
                  'slow_trough','slow_trough_dur', 'fullWidthTP', ...
                  'heightTP'};
          
-    if convertCharsToStrings(CCSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(CCSeries.data_unit)=="Volts"
+    if checkVolts(CCSeries.data_unit)
+        
         table.peak  = table.peak*1000;  
         table.threshold  = table.threshold*1000;  
         table.trough  = table.through*1000;  

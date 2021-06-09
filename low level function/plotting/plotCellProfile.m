@@ -31,8 +31,7 @@ if ~isempty(sagSweepSeries)
         sagSweepSeries.data.load(sagSweepOn-0.15*sagSweepSeries.starting_time_rate...
           :sagSweepOff+0.2*sagSweepSeries.starting_time_rate));
     p.Color = 'black';
-    if convertCharsToStrings(sagSweepSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(sagSweepSeries.data_unit)=="Volts"
+    if checkVolts(sagSweepSeries.data_unit)
       ylim([-0.115 0.060])
       ylabel('Voltage (V)')
     else
@@ -52,8 +51,7 @@ if ~isempty(RheoSweepSeries)
         RheoSweepSeries.data.load(RheoSweepOn-0.15*RheoSweepSeries.starting_time_rate...
           :RheoSweepOff+0.2*RheoSweepSeries.starting_time_rate));
     p.Color = 'black';
-    if convertCharsToStrings(RheoSweepSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(RheoSweepSeries.data_unit)=="Volts"
+    if checkVolts(RheoSweepSeries.data_unit)
       ylim([-0.115 0.060])
       ylabel('Voltage (V)')
     else
@@ -82,8 +80,7 @@ if ~isempty(HeroSweepSeries)
         HeroSweepSeries.data.load(RheoSweepOn-0.15*HeroSweepSeries.starting_time_rate...
           :RheoSweepOff+0.2*HeroSweepSeries.starting_time_rate));
     p.Color = 'black';
-    if convertCharsToStrings(HeroSweepSeries.data_unit)=="volts" ||...
-        convertCharsToStrings(HeroSweepSeries.data_unit)=="Volts"
+    if checkVolts(HeroSweepSeries.data_unit)
       ylim([-0.115 0.060])
       ylabel('Voltage (V)')
     else
@@ -100,45 +97,73 @@ box off
 
 %% Plotting third subfigure: AP waveforms
 
-% subplot(2,2,3)
-% hold on
-% if size(IC.wfLP,1) == n
-%  p = plot(a.LP.acquireRes(1,k):a.LP.acquireRes(1,k):a.LP.acquireRes(1,k)*226,IC.wfLP(n,:));
-%  p.Color = 'black';
-% end
-% if size(IC.wfSP,1) == n 
-%  p = plot(a.SP.acquireRes(1,1):a.SP.acquireRes(1,1):a.SP.acquireRes(1,1)*226,...
-%      IC.wfSP(n,:));
-%  p.Color = 'red';
-%  legend('boxoff')
-%  legend('LP','SP')
-% end
-% title('Waveform SP vs LP')
-% ylabel('Voltage (mV)')
-% xlabel('time (ms)')
-% box off
-% ylim([-70 60])
+subplot(2,2,3)
+hold on
+if ~isempty(RheoSweepSeries)
+    spStart = PlotStruct.RheoSweep.vectordata.map('thresholdTime').data(1);
+    p = plot([0:1000/RheoSweepSeries.starting_time_rate: ...
+        (0.006*RheoSweepSeries.starting_time_rate)...
+        /RheoSweepSeries.starting_time_rate*1000],...
+        RheoSweepSeries.data.load(round((spStart/1000)*RheoSweepSeries.starting_time_rate) -...
+        1*RheoSweepSeries.starting_time_rate/1000 ...
+          :round((spStart/1000)*RheoSweepSeries.starting_time_rate) +...
+              5*RheoSweepSeries.starting_time_rate/1000));
+    p.Color = 'black';
+    if checkVolts(RheoSweepSeries.data_unit)
+      ylim([-0.070 0.060])
+      ylabel('Voltage (V)')
+      scatter(1,PlotStruct.RheoSweep.vectordata.map('threshold').data(1)/1000,100)
+    else
+      ylim([-70 60])
+      ylabel('Voltage (mV)')
+      scatter(1,PlotStruct.RheoSweep.vectordata.map('threshold').data(1),100)
+    end
+end    
+title('Waveform SP vs LP')
+xlabel('time (ms)')
+box off
 
 %% Plotting third subfigure: AP phaseplots
 
-% subplot(2,2,4)
-% hold on
-% if size(IC.wfLP,1) == n
-%  p = plot(IC.wfLP(n,2:end),diff(IC.wfLP(n,:))/a.LP.acquireRes(1,k));
-%  p.Color = 'black';
-% end
-% if size(IC.wfSP,1) == n 
-%  p = plot(IC.wfSP(n,2:end),diff(IC.wfSP(n,:))/a.SP.acquireRes(1,1));
-%  p.Color = 'red';
-%  legend('boxoff')
-%  legend('LP','SP')
-% end
-% title('Waveform SP vs LP')
-% ylabel('dV/dt (mV/ms)')
-% xlabel('Voltage (mV)')
-% box off
-% xlim([-60 60])
-% ylim([-500 900])
+subplot(2,2,4)
+hold on
+if ~isempty(RheoSweepSeries)
+    spStart = PlotStruct.RheoSweep.vectordata.map('thresholdTime').data(1);
+    p =  plot(RheoSweepSeries.data.load(round((spStart/1000)*RheoSweepSeries.starting_time_rate) -...
+        1*RheoSweepSeries.starting_time_rate/1000 + 1 ...
+          :round((spStart/1000)*RheoSweepSeries.starting_time_rate) +...
+              5*RheoSweepSeries.starting_time_rate/1000),...
+      diff(RheoSweepSeries.data.load(round((spStart/1000)*RheoSweepSeries.starting_time_rate) -...
+        1*RheoSweepSeries.starting_time_rate/1000 ...
+          :round((spStart/1000)*RheoSweepSeries.starting_time_rate) +...
+              5*RheoSweepSeries.starting_time_rate/1000) ...
+          /(1000/RheoSweepSeries.starting_time_rate)));
+      
+    p.Color = 'black';
+    if checkVolts(RheoSweepSeries.data_unit)
+      ylabel('dV/dt (V/ms)')
+      xlabel('Voltage (V)')
+      xlim([-0.060 0.060])
+      ylim([-0.50 0.750])
+      scatter(PlotStruct.RheoSweep.vectordata.map('threshold').data(1)/1000, ...
+       diff(RheoSweepSeries.data.load(spStart/1000*RheoSweepSeries.starting_time_rate-1 ...
+        :spStart/1000*RheoSweepSeries.starting_time_rate))/...
+       (1000/RheoSweepSeries.starting_time_rate),100);
+    else
+      ylabel('dV/dt (mV/ms)')
+      xlabel('Voltage (mV)')
+      xlim([-60 60])
+      ylim([-500 750])
+      scatter(PlotStruct.RheoSweep.vectordata.map('threshold').data(1), ...
+       diff(RheoSweepSeries.data.load(spStart/1000*RheoSweepSeries.starting_time_rate-1 ...
+        :spStart/1000*RheoSweepSeries.starting_time_rate))/...
+       (1000/RheoSweepSeries.starting_time_rate),100);
+    end
+end    
+
+title('Waveform phaseplots SP vs LP')
+box off
+
 
 %% Saving the figure
 
