@@ -1,6 +1,6 @@
 %% Summary analysis output
 
-writetable(ICsummary,[outDest,'ephys_features_', date,'.csv'], 'WriteRowNames',true)
+writetable(ICsummary,['ephys_features_', date,'.csv'], 'WriteRowNames',true)
 
 %% QC parameter
 % access = IC.access_resistance;
@@ -48,7 +48,7 @@ writetable(ICsummary,[outDest,'ephys_features_', date,'.csv'], 'WriteRowNames',t
 %   
 %% QC logic sweeps per class matrix 
 
-writetable(QC_removalsPerTag, [outDest,'QC_sweeps_per_tag_matrix_',date,'.csv']);
+writetable(QC_removalsPerTag, [outDest,'QC_sweeps_per_tag_matrix_',date,'.csv'], 'WriteRowNames',true);
 
 %% ID look up table    
 % varNames = {'new cellID','old cellID'};
