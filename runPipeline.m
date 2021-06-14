@@ -5,7 +5,7 @@ processICsweepsParFor
 clear; tic
 
 mainFolder = 'D:\output_MATNWB\';            % main folder (EDIT HERE)
-start = 2335;
+start = 1;
 outDest = 'D:\output_MATNWB\QC\';                                          % general path
 cellList = dir([mainFolder,'*.nwb']);                                      % list of cell data files
 BwSweepMode = 2;                                                           % NeuroNex = 1, Choline macaque = 2
@@ -118,7 +118,7 @@ for n = start:length(cellList)                                             % for
                     2}.data(AquiSwTabIdx));
                 sweepAmp = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
                     4}.data(AquiSwTabIdx));
-            end
+            end           
 
             [QC_parameter, QCpass]  = SweepwiseQC(CCSeries, StimOn, ...
                                    SweepCount, QC_parameter, QCpass, params);
@@ -278,27 +278,40 @@ for n = start:length(cellList)                                             % for
          QCcellWide{end+1} = cellID;
    end
   
-   %% Add species, dendritic type and reporter    
-   if isempty(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data) 
-       ICsummary.dendriticType(n) = {'NA'};
-       ICsummary.SomaLayerLoc(n) = {'NA'};
-       ICsummary.ReporterTag(n) = {'None'}; 
-       ICsummary.brainOrigin(n) = {'NA'};
-   else
-        ICsummary.dendriticType(n) = ...
-           {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data.load};
-        ICsummary.SomaLayerLoc(n) = ...
-           {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.map('SomaLayerLoc').data.load};
-        ICsummary.brainOrigin(n) = cellFile.general_intracellular_ephys.values{1}.location;
-        
-        if string(cellFile.general_subject.species) == "Mus musculus" && ...
-            string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
-
-           ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};
+   %% Add subject data, dendritic type and reporter status   
+   if ~isempty(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data)     
+    ICsummary.dendriticType(n) = ...
+       {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{1}.data.load};
+    ICsummary.SomaLayerLoc(n) = ...
+       {cellFile.processing.values{4}.dynamictable.values{1}.vectordata.map('SomaLayerLoc').data.load};
+    ICsummary.Weight(n) = {cellFile.general_subject.weight};
+    ICsummary.Sex(n) = {cellFile.general_subject.sex};
+    ICsummary.Age(n) = {cellFile.general_subject.age};  
+    
+    if ~isempty(cellFile.general_intracellular_ephys.values{1}.slice)
+        temperature = regexp(...
+        cellFile.general_intracellular_ephys.values{1}.slice, '(\d+,)*\d+(\.\d*)?', 'match');
+        if isempty(temperature)
+           ICsummary.Temperature(n) = NaN;
         else
-           ICsummary.ReporterTag(n) = {'None'} ;
+            ICsummary.Temperature(n) = str2num(cell2mat(temperature));
         end
-        
+    end
+    
+    if string(cellFile.general_institution) == "Allen Institute of Brain Science" 
+      ICsummary.brainOrigin(n) = {cellFile.general_intracellular_ephys.values{1}.location(...
+          1:find(cellFile.general_intracellular_ephys.values{1}.location==',')-1)};
+    else
+      ICsummary.brainOrigin(n) = {cellFile.general_intracellular_ephys.values{1}.location};
+    end
+    
+    if string(cellFile.general_subject.species) == "Mus musculus" && ...
+        string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
+
+       ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};
+    else
+       ICsummary.ReporterTag(n) = {'None'} ;
+    end       
    end
    ICsummary.species(n) = {cellFile.general_subject.species};
    %% Export
