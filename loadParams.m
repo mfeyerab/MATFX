@@ -13,10 +13,10 @@ params.sampleRT = 5e4;                               % sample rate we want
 params.sampleRTdt = 1000/params.sampleRT;                 % sample rate we want
 
 % cell-wise quality control parameters
-params.cutoffInitRa = 20;
-params.factorRelaRa = 0.2;
-params.basic_features = 1;
-params.maxRheoSpikes = 20;
+params.cutoffInitRa = 25;
+params.factorRelaRa = 0.3;
+params.noSupra = 1;
+params.maxRheoSpikes = 100;
 
 % swep-wise root mean square quality control parameters
 params.LPqc_samplWind = 100; params.LPqc_recovTime = 850; 
@@ -37,7 +37,7 @@ params.reboundFitWindow = 150;                       % window from max rebound p
 params.reboundSpWindow = 50;                         % window to look for rebound spikes (ms)
 
 % spike-wise quality control parameters
-params.pcentMaxdVdt = 0.05;                          % threshold = < % of dVdt
+params.pcentMaxdVdt = 0.1;                          % threshold = < % of dVdt
 params.absdVdt = 2.9;                                  % threshold = absolute value
 params.minRefract = 0.5;                             % min refractory
 params.mindVdt = 5;                                  % minimum amount of dV/dt
