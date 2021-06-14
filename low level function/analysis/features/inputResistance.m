@@ -1,4 +1,4 @@
-function b = inputResistance(SubStatTable, NamesPassedSweeps)
+function [resistance, offset]= inputResistance(SubStatTable, NamesPassedSweeps)
 
 tempX = [];
 
@@ -26,18 +26,16 @@ elseif nargin==2
           tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data.load;
         end
      end
-   end
-    
-    
+   end        
 end
 
-if ~isempty(tempX) && length(tempX) > 1
-    [inputX,~,c] = unique(tempX);
-     inputY = accumarray(c,tempY,[],@mean);
-
+if ~isempty(tempX) && length(nonzeros(tempX)) > 1
+    [inputX,~,c] = unique(nonzeros(tempX));
+     inputY = accumarray(c,nonzeros(tempY),[],@mean);    
     f = polyfit(inputX,inputY,1);
-    b = f(1) * (10^3);
-
+    resistance = f(1) * (10^3);
+    offset = f(2);
+    
     figure 
     hold on
     plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
@@ -47,10 +45,24 @@ if ~isempty(tempX) && length(tempX) > 1
     ylabel('change in membrane potential (mV)')
     title('V/I curve')
     box off
-    axis tight
+    axis tight  
+elseif length(nonzeros(tempX)) == 1
+  
+    f = polyfit([0; tempX],[0; tempY],1);
+    resistance = f(1) * (10^3);
+    offset = 0;
+    
+    figure 
+    hold on
+    plot([0; tempX],(f(1)*[0; tempX]+f(2))','k','LineWidth',1)
+    scatter(tempX,tempY,'r')
+    legend('off')
+    xlabel('input current (pA)')
+    ylabel('change in membrane potential (mV)')
+    title('V/I curve')
+    box off
+    axis tight  
 else
-    b = NaN;   
-    %[filename, pathname] = uiputfile( {'*.pdf'}, 'D:\Documents Michelle\Thesis documents\genpath\resistance plots');
-    %export_fig([ cellID ' resistance_ss'],'-pdf','-r100', 'D:\Documents Michelle\Thesis documents\genpath\resistance plots')
-end    
+    resistance = NaN;
+    offset = NaN;
 end

@@ -9,7 +9,7 @@ spTrain.meanFR500(supraCount,1) = sum(sp.thresholdTime<(StimOn+(500/(1000/CCSeri
 spTrain.meanFR750(supraCount,1) = sum(sp.thresholdTime<(StimOn+(750/(1000/CCSeries.starting_time_rate)))) / 0.75;
 spTrain.meanFR1000(supraCount,1) = sum(sp.thresholdTime<(StimOn+(1000/(1000/CCSeries.starting_time_rate))));
 
-if length(sp.thresholdTime) >= 2						% skip this sweep if there was only 1 
+if length(nonzeros(sp.thresholdTime)) >= 2						% skip this sweep if there was only 1 
     peakAdapt = sp.heightTP(end) / sp.heightTP(1);
     ISI = diff(sp.thresholdTime)*(1000/CCSeries.starting_time_rate);
 	meanISI = mean(ISI);
@@ -55,7 +55,11 @@ spTrain.peakAdapt(supraCount,1) = peakAdapt;
 ISIs{1,supraCount} = ISI;
 
 spTrain.meanISI(supraCount,1) = meanISI;
-spTrain.cvISI(supraCount,1) = cvISI;
+if ~isnan(cvISI) && ~cvISI
+    spTrain.cvISI(supraCount,1) = NaN;
+else
+    spTrain.cvISI(supraCount,1) = cvISI;
+end
 spTrain.adaptIndex(supraCount,1) = adaptIndex;
 spTrain.adaptIndex2(supraCount,1) = adaptIndex2;
 spTrain.peakAdapt2(supraCount,1) = peakAdapt2;
