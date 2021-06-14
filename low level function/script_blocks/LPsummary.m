@@ -21,9 +21,11 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
 
         %% subthreshold summary parameters                              
 
-        ICsummary.resistance(cellNr,1) = inputResistance(...
-                 cellFile.processing.map('subthreshold parameters').dynamictable,NamesPassedSweeps);              % resistance based on steady state
+        [ICsummary.resistanceHD(cellNr,1), ICsummary.resistanceOffset(cellNr,1)] = ...
+            inputResistance(cellFile.processing.map('subthreshold parameters').dynamictable,NamesPassedSweeps);              % resistance based on steady state
         
+        ICsummary.resistanceSS(cellNr,1) = inputResistanceSS(...
+                 cellFile.processing.map('subthreshold parameters').dynamictable,NamesPassedSweeps);   
              
         ICsummary.rectification(cellNr,1) = rectification(...
             cellFile.processing.map('subthreshold parameters').dynamictable,NamesPassedSweeps);
@@ -58,19 +60,33 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
                        cellFile.processing.map('subthreshold parameters').dynamictable.values{s}.vectordata.values{10}.data];
             end
         end    
-
-        ICsummary.tau(cellNr,1) = mean(tau_vec);
-
+        tau_vec = sort(tau_vec);
+        if length(tau_vec) < 3 && ~isempty(tau_vec)
+            ICsummary.tau(cellNr,1) = mean(tau_vec(length(tau_vec)));
+        elseif ~isempty(tau_vec)
+           ICsummary.tau(cellNr,1) = mean(tau_vec(1:3));
+        else
+           ICsummary.tau(cellNr,1) = NaN;
+        end
         %% Maximum firing rate and  median instantanous rate
 
         if cellFile.processing.isKey('All_ISIs') && ...
              ~isempty(cellFile.processing.map('All_ISIs').dynamictable.values{1}.vectorindex.values{1}.data)
-          ICsummary.maxFiringRate(cellNr,1) = max(diff(...
-              cellFile.processing.map('All_ISIs'...
-              ).dynamictable.values{1}.vectorindex.values{1}.data));
-          ICsummary.medInstaRate(cellNr,1) = 1000/nanmedian(...
-              cellFile.processing.map('All_ISIs'...
-              ).dynamictable.values{1}.vectordata.values{1}.data);
+          
+           TrueISIs = cellFile.processing.map('All_ISIs'...
+             ).dynamictable.values{1}.vectorindex.values{1}.data(~isnan(...
+             cellFile.processing.map('All_ISIs').dynamictable.values{1 ...
+                                        }.vectordata.values{1}.data));
+        
+           ICsummary.medInstaRate(cellNr,1) = 1000/nanmedian(...
+                  cellFile.processing.map('All_ISIs'...
+                  ).dynamictable.values{1}.vectordata.values{1}.data);                            
+                                   
+             if length(TrueISIs) == 1
+                 ICsummary.maxFiringRate(cellNr,1) = 2;
+             else
+                 ICsummary.maxFiringRate(cellNr,1) = max(diff(TrueISIs));
+             end
         else  
           ICsummary.maxFiringRate(cellNr,1) = 0;
           ICsummary.medInstaRate(cellNr,1) = 0;
@@ -79,10 +95,10 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
         %% finding sag sweep
         runs = 1;
         sagSweep = []; sagPos = [];
-        PrefeSagAmps = [-90, -70, -110];
+        PrefeSagAmps = [-90, -70, -110, -50];
         PlotStruct.SagSweepTablePos = [];
 
-        while isempty(sagSweep) && runs < 4
+        while isempty(sagSweep) && runs < 5
             for s = 1:cellFile.processing.map('subthreshold parameters').dynamictable.Count 
 
               number = regexp(cellFile.processing.map('subthreshold parameters' ...
@@ -104,9 +120,18 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
         end
 
         if ~isempty(sagSweep)
-            ICsummary.sag(cellNr,1) = sagSweep.vectordata.values{8}.data;
-            ICsummary.sag_ratio(cellNr,1) = sagSweep.vectordata.values{9}.data;
             ICsummary.sagAmp(cellNr,1) = sagSweep.vectordata.values{2}.data;
+            ICsummary.sag(cellNr,1) = sagSweep.vectordata.values{8}.data;
+            ICsummary.sag_ratio(cellNr,1) = sagSweep.vectordata.values{9}.data;    
+            QCIdx = find(strcmp(cellFile.processing.map(...
+                'QC parameter').dynamictable.values{1}.vectordata.values{1}.data, ...
+                         cellFile.processing.map(...
+                          'subthreshold parameters').dynamictable.keys{sagPos}));
+            
+            ICsummary.sagVrest(cellNr,1) = ...
+                 cellFile.processing.map('QC parameter'...
+                 ).dynamictable.values{1}.vectordata.map('Vrest').data(QCIdx);
+             
             PlotStruct.sagSweepSeries = cellFile.resolve(SweepPathsAll(PlotStruct.SagSweepTablePos));
         else
             PlotStruct.sagSweepSeries = [];
@@ -172,52 +197,61 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
         %% Hero sweep selection
         HeroSweep = [];            
         PlotStruct.HeroSweepPos = [];
-        target = ICsummary.Rheo(cellNr,1)*1.5;
-        sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.values{4 ...
-                }.data.load;  
-                   
-        while isempty(HeroSweep) && all(target < max(sweepAmps))
-            
-            target = target(~(target < ICsummary.Rheo(cellNr,1)));
-            
-            diff2target = min(abs(sweepAmps-target));
-            
-            [PlotStruct.HeroSweepPos , ~] = find(any(abs(sweepAmps-target)==diff2target,2));
+        diff2target = [];
+        if ~isnan(ICsummary.Rheo(cellNr,1))
+            target = ICsummary.Rheo(cellNr,1)*1.5;
+            sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.values{4 ...
+                    }.data.load;  
 
-            HeroName = str2double(regexp(cell2mat(SweepPathsAll(PlotStruct.HeroSweepPos(...
-                        contains(SweepPathsAll(PlotStruct.HeroSweepPos),'acquisition')))),'\d*','Match'));
-           
-            for h = 1:length(HeroName)        
-                PosSpTrain = find(cellFile.processing.map('AP Pattern'...
-                    ).dynamictable.values{1}.vectordata.values{1}.data==HeroName(h));
+            if max(sweepAmps(IdxPassedSweeps)) < target
+                target = max(sweepAmps(IdxPassedSweeps));
             end
-            
-            PlotStruct.HeroSweepPos  = PlotStruct.HeroSweepPos(h:h:2*h);
-           
-            if any(ismember(HeroName, NamesPassedSweeps)) && ~isempty(PosSpTrain) 
 
-                      HeroSweep = getRow(cellFile.processing.map('AP Pattern'...
-                                    ).dynamictable.values{1}, PosSpTrain);                                    
+            while isempty(HeroSweep) && all(target <= max(sweepAmps(IdxPassedSweeps))) && ...
+                    length(diff2target) < 100000
+
+                target = target(~(target < ICsummary.Rheo(cellNr,1)));
+
+                diff2target = min(abs(sweepAmps-target));
+
+                [PlotStruct.HeroSweepPos , ~] = find(any(abs(sweepAmps-target)==diff2target,2));
+
+                HeroName = str2double(regexp(cell2mat(SweepPathsAll(PlotStruct.HeroSweepPos(...
+                            contains(SweepPathsAll(PlotStruct.HeroSweepPos),'acquisition')))),'\d*','Match'));
+
+                for h = 1:length(HeroName)        
+                    PosSpTrain = find(cellFile.processing.map('AP Pattern'...
+                        ).dynamictable.values{1}.vectordata.values{1}.data==HeroName(h));
+                end
+
+                PlotStruct.HeroSweepPos  = PlotStruct.HeroSweepPos(h:h:2*h);
+
+                if any(ismember(HeroName, NamesPassedSweeps)) && ~isempty(PosSpTrain) 
+
+                          HeroSweep = getRow(cellFile.processing.map('AP Pattern'...
+                                        ).dynamictable.values{1}, PosSpTrain);                                    
+                else
+                      target = [target - 20, target + 20];
+                end
+            end
+
+            if ~isempty(HeroSweep)
+
+                ICsummary.cvISI(cellNr,1) = HeroSweep.cvISI;
+                ICsummary.HeroRate(cellNr,1) = HeroSweep.meanFR1000;
+                ICsummary.heroLatency(cellNr,1) = HeroSweep.latency;
+                ICsummary.peakAdapt(cellNr,1) = HeroSweep.peakAdapt;
+                ICsummary.adaptIndex(cellNr,1) = HeroSweep.adaptIndex2;
+                ICsummary.burst(cellNr,1) = HeroSweep.burst;           
+
+                PlotStruct.HeroSweepSeries = cellFile.resolve(SweepPathsAll(PlotStruct.HeroSweepPos(...
+                        contains(SweepPathsAll(PlotStruct.HeroSweepPos),'acquisition'))));
             else
-                  target = [target - 20, target + 20];
+                PlotStruct.HeroSweepSeries = [];
             end
-        end
-                       
-        if ~isempty(HeroSweep)
-
-            ICsummary.cvISI(cellNr,1) = HeroSweep.cvISI;
-            ICsummary.HeroRate(cellNr,1) = HeroSweep.meanFR1000;
-            ICsummary.heroLatency(cellNr,1) = HeroSweep.latency;
-            ICsummary.peakAdapt(cellNr,1) = HeroSweep.peakAdapt;
-            ICsummary.adaptIndex(cellNr,1) = HeroSweep.adaptIndex2;
-            ICsummary.burst(cellNr,1) = HeroSweep.burst;           
-            
-            PlotStruct.HeroSweepSeries = cellFile.resolve(SweepPathsAll(PlotStruct.HeroSweepPos(...
-                    contains(SweepPathsAll(PlotStruct.HeroSweepPos),'acquisition'))));
         else
             PlotStruct.HeroSweepSeries = [];
         end
-        
 else
     disp("Under construction")
 
