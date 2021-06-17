@@ -60,6 +60,8 @@ for i = 1:length(sp.peak)  % for each putative spike
         end
     end   
     
+    sp.thresholdTime(i) = round(sp.thresholdTime(i));
+    
 %% Determining Trough    
     if i < length(sp)
 	  [sp.trough(i),temp] = min(CCSeries.data.load(sp.peakTime(i):sp.peakTime(i)));

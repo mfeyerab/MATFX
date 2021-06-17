@@ -29,7 +29,7 @@ params.maximumRestingPot = -50;                      % minimum resting potential
 params.holdingI = 100;                               % maximum holding current
 params.bridge_balance = 20;                          % maximum bridge balance
 params.minGoodSpFra = 0.33;
-params.BwSweepMax = 7;
+params.BwSweepMax = 8;
 
 % rebound slope and spike parameters
 params.reboundWindow = 100;                          % window to find maximum rebound peak

@@ -83,6 +83,15 @@ end
 
 %% save subthreshold parameters
 subStats = structfun(@double, subStats, 'UniformOutput', false);
+
+if sum(structfun(@numel,subStats)>1) > 0                                   % Filters for uneven structures caused by strange traces
+ n=length(fieldnames(subStats));
+ fldnames = fieldnames(subStats);
+ for k=1:n
+   subStats.(fldnames{k})=NaN;
+ end
+end
+
 table =  array2table(cell2mat(struct2cell(subStats))');
 table.Properties.VariableNames = {'SweepAmp','minV','minVTime',...
               'maxSubDeflection','tauMin', 'tauMinGF','SteadyState',...

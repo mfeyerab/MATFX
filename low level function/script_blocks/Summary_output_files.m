@@ -2,58 +2,19 @@
 
 writetable(ICsummary,['ephys_features_', date,'.csv'], 'WriteRowNames',true)
 
-%% QC parameter
-% access = IC.access_resistance;
-% Ra_rela_cut = IC.tp_membrR*params.factorRelaRa;
-% tp_Rm = IC.tp_membrR;
-% preqc_Rm = IC.resistance_preqc;
-% 
-% for n = 1:length(IC.ID)
-% qc_bridgebalance(n,1:qc.LP.nr_sweeps(n,1)+qc.SP.nr_sweeps(n,1)) = ...
-%     [qc.LP.bridg_bala(n,1:qc.LP.nr_sweeps(n,1)), ...
-%       qc.SP.bridg_bala(n,1:qc.SP.nr_sweeps(n,1))];
-% qc_holding_current(n,1:qc.LP.nr_sweeps(n,1)+qc.SP.nr_sweeps(n,1)) = ...
-%     [qc.LP.I_hold(n,1:qc.LP.nr_sweeps(n,1)), ...
-%       qc.SP.I_hold(n,1:qc.SP.nr_sweeps(n,1))];
-% qc_restVdiffpreNpost(n,1:qc.LP.nr_sweeps(n,1)+qc.SP.nr_sweeps(n,1)) = ...
-%     [qc.LP.restVdiffpreNpost(n,1:qc.LP.nr_sweeps(n,1)), ...
-%       qc.SP.restVdiffpreNpost(n,1:qc.SP.nr_sweeps(n,1))];
-% qc_rmse_pre_lt(n,1:qc.LP.nr_sweeps(n,1)+qc.SP.nr_sweeps(n,1)) = ...
-%     [qc.LP.rmse_pre_lt(n,1:qc.LP.nr_sweeps(n,1)), ...
-%       qc.SP.rmse_pre_lt(1:qc.SP.nr_sweeps(n,1))]; 
-% qc_rmse_post_lt(n,1:qc.LP.nr_sweeps(n,1)+qc.SP.nr_sweeps(n,1)) = ...
-%     [qc.LP.rmse_post_lt(n,1:qc.LP.nr_sweeps(n,1)), ...
-%       qc.SP.rmse_post_lt(n,1:qc.SP.nr_sweeps(n,1))];  
-% end
-% 
-% T1 = table(ID,access, tp_Rm,preqc_Rm , Ra_rela_cut);
-% T2 = table(ID,qc_bridgebalance);
-% T3 = table(ID,qc_holding_current);
-% T4 = table(ID,qc_restVdiffpreNpost);
-% T5 = table(ID,qc_rmse_pre_lt);
-% T6 = table(ID,qc_rmse_post_lt);
-% 
-% writetable(T1,[outDest,'qc parameters ',date,'.xlsx'], ...
-%     'Sheet', 'Initial Access','WriteRowNames',true)
-% writetable(T2,[outDest,'qc parameters ',date,'.xlsx'], ...
-%     'Sheet', 'Bridge Balance','WriteRowNames',true)  
-% writetable(T3,[outDest,'qc parameters ',date,'.xlsx'], ...
-%     'Sheet', 'holding current','WriteRowNames',true)
-% writetable(T4,[outDest,'qc parameters ',date,'.xlsx'], ...
-%      'Sheet', 'VoltageDiffpreNpost','WriteRowNames',true)
-% writetable(T5,[outDest,'qc parameters ',date,'.xlsx'], ...
-%      'Sheet', 'lt RMSE pre','WriteRowNames',true)  
-% writetable(T6,[outDest,'qc parameters ',date,'.xlsx'], ...
-%      'Sheet', 'lt RMSE post','WriteRowNames',true)
-%   
+%% QC parameter for each cell
+cells = fieldnames(QCparameterTotal);
+
+for c = 1:length(cells)
+    writetable(QCparameterTotal.(cell2mat(cells(c))), ...
+                  [outDest,cell2mat(cells(c)),'_QC_parameter_',date,'.csv']);  
+    writetable(QCpassTotal.(cell2mat(cells(c))), ...
+                       [outDest,cell2mat(cells(c)),'_QC_pass_',date,'.csv']);  
+end
+
 %% QC logic sweeps per class matrix 
 
-writetable(QC_removalsPerTag, [outDest,'QC_sweeps_per_tag_matrix_',date,'.csv'], 'WriteRowNames',true);
-
-%% ID look up table    
-% varNames = {'new cellID','old cellID'};
-% T= table(IC.ID_new, IC.ID, 'VariableNames',varNames);
-% writetable(T, [outDest,'ID_lookup','.csv'] );   
+writetable(QC_removalsPerTag, [outDest,'QC_sweeps_per_tag_matrix_',date,'.csv'], 'WriteRowNames',true);  
 
 %% procedure doc file
 rowNames = {'Standard';'Cell-wise: initial R_a';'Cell-wise: initial R_a fract'; ...

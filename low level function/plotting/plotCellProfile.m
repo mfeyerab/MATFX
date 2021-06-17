@@ -32,10 +32,10 @@ if ~isempty(sagSweepSeries)
           :sagSweepOff+0.2*sagSweepSeries.starting_time_rate));
     p.Color = 'black';
     if checkVolts(sagSweepSeries.data_unit)
-      ylim([-0.115 0.060])
+      ylim([-0.115 0.070])
       ylabel('Voltage (V)')
     else
-      ylim([-115 60])
+      ylim([-115 70])
       ylabel('Voltage (mV)')
      end
 end
@@ -52,10 +52,10 @@ if ~isempty(RheoSweepSeries)
           :RheoSweepOff+0.2*RheoSweepSeries.starting_time_rate));
     p.Color = 'black';
     if checkVolts(RheoSweepSeries.data_unit)
-      ylim([-0.115 0.060])
+      ylim([-0.115 0.080])
       ylabel('Voltage (V)')
     else
-      ylim([-115 60])
+      ylim([-115 80])
       ylabel('Voltage (mV)')
      end
 end    
@@ -63,8 +63,6 @@ end
 title('LP rheo and sag sweep')
 xlabel('time (ms)')
 box off
-
-
 %% Plotting second subfigure: hero sweep
  
 subplot(2,2,2)
@@ -81,10 +79,10 @@ if ~isempty(HeroSweepSeries)
           :RheoSweepOff+0.2*HeroSweepSeries.starting_time_rate));
     p.Color = 'black';
     if checkVolts(HeroSweepSeries.data_unit)
-      ylim([-0.115 0.060])
+      ylim([-0.115 0.080])
       ylabel('Voltage (V)')
     else
-      ylim([-115 60])
+      ylim([-115 80])
       ylabel('Voltage (mV)')
      end
 end    
@@ -93,8 +91,6 @@ title('hero sweep')
 ylabel('Voltage (mV)')
 xlabel('time (ms)')
 box off
-
-
 %% Plotting third subfigure: AP waveforms
 
 subplot(2,2,3)
@@ -110,11 +106,11 @@ if ~isempty(RheoSweepSeries)
               5*RheoSweepSeries.starting_time_rate/1000));
     p.Color = 'black';
     if checkVolts(RheoSweepSeries.data_unit)
-      ylim([-0.070 0.060])
+      ylim([-0.075 0.080])
       ylabel('Voltage (V)')
       scatter(1,PlotStruct.RheoSweep.vectordata.map('threshold').data(1)/1000,100)
     else
-      ylim([-70 60])
+      ylim([-75 80])
       ylabel('Voltage (mV)')
       scatter(1,PlotStruct.RheoSweep.vectordata.map('threshold').data(1),100)
     end
@@ -143,8 +139,8 @@ if ~isempty(RheoSweepSeries)
     if checkVolts(RheoSweepSeries.data_unit)
       ylabel('dV/dt (V/ms)')
       xlabel('Voltage (V)')
-      xlim([-0.060 0.060])
-      ylim([-0.50 0.750])
+      xlim([-0.075 0.080])
+      ylim([-0.80 1])
       scatter(PlotStruct.RheoSweep.vectordata.map('threshold').data(1)/1000, ...
        diff(RheoSweepSeries.data.load(spStart/1000*RheoSweepSeries.starting_time_rate-1 ...
         :spStart/1000*RheoSweepSeries.starting_time_rate))/...
@@ -152,8 +148,8 @@ if ~isempty(RheoSweepSeries)
     else
       ylabel('dV/dt (mV/ms)')
       xlabel('Voltage (mV)')
-      xlim([-60 60])
-      ylim([-500 750])
+      xlim([-75 80])
+      ylim([-800 1000])
       scatter(PlotStruct.RheoSweep.vectordata.map('threshold').data(1), ...
        diff(RheoSweepSeries.data.load(spStart/1000*RheoSweepSeries.starting_time_rate-1 ...
         :spStart/1000*RheoSweepSeries.starting_time_rate))/...

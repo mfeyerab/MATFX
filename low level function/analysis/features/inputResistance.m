@@ -31,7 +31,9 @@ end
 
 if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     [inputX,~,c] = unique(nonzeros(tempX));
-     inputY = accumarray(c,nonzeros(tempY),[],@mean);    
+    inputY = accumarray(c,nonzeros(tempY),[],@mean);  
+    inputX(isnan(inputX)) = [];
+    inputY(isnan(inputY)) = [];        
     f = polyfit(inputX,inputY,1);
     resistance = f(1) * (10^3);
     offset = f(2);
