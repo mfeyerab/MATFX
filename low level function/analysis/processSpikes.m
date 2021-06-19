@@ -5,10 +5,10 @@ function [module_spikes, sp, SpQC, QCpass] = ...
  if checkVolts(CCSeries.data_unit)
     
     supraEvents = find(...
-        CCSeries.data.load(StimOn:StimOff)>=params.thresholdV/1000)-1+StimOn;
+        CCSeries.data.load(StimOn:StimOff+round(CCSeries.starting_time_rate*0.005))>=params.thresholdV/1000)-1+StimOn;
  else 
     supraEvents = find(...
-        CCSeries.data.load(StimOn:StimOff)>=params.thresholdV)-1+StimOn;
+        CCSeries.data.load(StimOn:StimOff+round(CCSeries.starting_time_rate*0.005))>=params.thresholdV)-1+StimOn;
  end
 sp = [];
 if ~isempty(supraEvents)

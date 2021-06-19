@@ -51,7 +51,7 @@ for i = 1:length(sp.peak)  % for each putative spike
             if ~isempty(find(vec < 5, 1, 'last'))
                 sp.thresholdTime(i) = find(vec < 5, 1, 'last');                % absolute criterium dV/dt
                 sp.thresholdTime(i) = sp.thresholdTime(i) + sp.peakTime(i) - ...
-                    (params.maxDiffThreshold2PeakT/(1000/CCSeries.starting_time_rate)) - 1;      % adjust threshold time for window
+                    round(params.maxDiffThreshold2PeakT/(1000/CCSeries.starting_time_rate)) - 1;      % adjust threshold time for window
                 sp.threshold(i) = CCSeries.data.load(sp.thresholdTime(i));                 % store threshold for spike
             else
                 sp.thresholdTime(i) = 0;

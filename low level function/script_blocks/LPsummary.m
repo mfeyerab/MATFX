@@ -1,19 +1,14 @@
 function [cellFile, ICsummary, PlotStruct] = ...
-    LPsummary(cellFile, ICsummary, cellNr, params)
-
-%{
-summary LP analysis
-%}
-
-%% 
+    LPsummary(cellFile, BinLP, ICsummary, cellNr, params)
 
 SweepPathsAll = {cellFile.general_intracellular_ephys_sweep_table.series.data.path};
 
 if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data, 'double')
     
-        IdxPassedSweeps = find(...
-            cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data);  
-
+        IdxPassedSweeps = find(all(...
+            [cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data, ...
+            BinLP'],2));  
+        
         Sweepnames = cellfun(@(a) str2double(a), regexp(SweepPathsAll,'\d*','Match'));
 
         NamesPassedSweeps = unique(Sweepnames(IdxPassedSweeps));
@@ -131,7 +126,7 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
             ICsummary.sag(cellNr,1) = sagSweep.vectordata.values{8}.data;
             ICsummary.sag_ratio(cellNr,1) = sagSweep.vectordata.values{9}.data;    
             QCIdx = find(strcmp(cellFile.processing.map(...
-                'QC parameter').dynamictable.values{1}.vectordata.values{1}.data, ...
+                'QC parameter').dynamictable.values{1}.vectordata.map('SweepID').data, ...
                          cellFile.processing.map(...
                           'subthreshold parameters').dynamictable.keys{sagPos}));
             
@@ -172,12 +167,13 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
                 SweepPathsAll,cellFile.processing.map('AP wave').dynamictable.keys{RheoPos}));
 
             ICsummary.Rheo(cellNr,1) = ...
-                nanmean(unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                4}.data(PlotStruct.RheoSweepTablePos)));
+                nanmean(unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
+                'SweepAmp').data(PlotStruct.RheoSweepTablePos)));
 
             ICsummary.latency(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('thresholdTime').data(1) - ...
-                nanmean(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{3}.data(PlotStruct.RheoSweepTablePos))...
-                *1000/cellFile.resolve(SweepPathsAll(PlotStruct.RheoSweepTablePos( ...
+                nanmean(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
+                'StimOn').data(PlotStruct.RheoSweepTablePos))*1000/cellFile.resolve(...
+                SweepPathsAll(PlotStruct.RheoSweepTablePos( ...
                 contains(SweepPathsAll(PlotStruct.RheoSweepTablePos),'acquisition')))).starting_time_rate;
 
             ICsummary.widthTP_LP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('fullWidthTP').data(1);
@@ -189,7 +185,7 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
             ICsummary.peakUpStrokeLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peakUpStroke').data(1);
             ICsummary.peakDownStrokeLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peakDownStroke').data(1);
             ICsummary.peakStrokeRatioLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peakStrokeRatio').data(1);   
-            ICsummary.heightTP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('heightTP').data(1);
+            ICsummary.heightTP_LP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('heightTP').data(1);
 
             PlotStruct.RheoSweepSeries =  cellFile.resolve(SweepPathsAll(PlotStruct.RheoSweepTablePos(...
                     contains(SweepPathsAll(PlotStruct.RheoSweepTablePos),'acquisition'))));
@@ -204,18 +200,17 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
         %% Hero sweep selection
         HeroSweep = [];            
         PlotStruct.HeroSweepPos = [];
+        PlotStruct.HeroSweepTablePos = [];
         diff2target = [];
         if ~isnan(ICsummary.Rheo(cellNr,1))
             target = ICsummary.Rheo(cellNr,1)*1.5;
            
             if isa(...
-                cellFile.general_intracellular_ephys_sweep_table.vectordata.values{4}.data, 'double')
+                cellFile.general_intracellular_ephys_sweep_table.vectordata.map('SweepAmp').data, 'double')
             
-               sweepAmps =  cellFile.general_intracellular_ephys_sweep_table.vectordata.values{4 ...
-                    }.data;
+               sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.map('SweepAmp').data;
             else  
-               sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.values{4 ...
-                    }.data.load;  
+               sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.map('SweepAmp').data.load;  
             end
             while isempty(HeroSweep) && all(target <= max(sweepAmps(IdxPassedSweeps))) && ...
                     length(diff2target) < 100000
@@ -240,7 +235,7 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
                 end
 
                 %PlotStruct.HeroSweepPos  = PlotStruct.HeroSweepPos(h:h:2*h);
-                if ~isempty(PosSpTrain)
+                if ~isempty(PosSpTrain) && ~isempty(PosSpTrain(~isnan(PosSpTrain)))
                     PosSpTrain = PosSpTrain(~isnan(PosSpTrain));
                     mem = 10000;
                     for i = 1:length(PosSpTrain)
@@ -254,6 +249,9 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
                             mem = dist;            
                         end
                     end
+                    if isempty(HeroSweep)
+                        target = [target - 20, target + 20];
+                    end
                 else
                       target = [target - 20, target + 20];
                 end
@@ -261,14 +259,15 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
 
             if ~isempty(HeroSweep)
                 
-              PosHeroSweep =  find(endsWith(...
+                
+              PlotStruct.HeroSweepTablePos =  find(endsWith(...
                 SweepPathsAll,num2str(HeroSweep.SweepIDs)));
             
-              PosHeroSweep = PosHeroSweep(contains(...
-                  SweepPathsAll(PosHeroSweep), 'acquisition'));
+              PlotStruct.HeroSweepTablePos = PlotStruct.HeroSweepTablePos(contains(...
+                  SweepPathsAll(PlotStruct.HeroSweepTablePos), 'acquisition'));
               
               PlotStruct.HeroSweepSeries = cellFile.resolve(...
-                                        SweepPathsAll(PosHeroSweep));
+                                        SweepPathsAll(PlotStruct.HeroSweepTablePos));
 
                 ICsummary.cvISI(cellNr,1) = HeroSweep.cvISI;
                 ICsummary.HeroRate(cellNr,1) = HeroSweep.meanFR1000;
@@ -285,9 +284,11 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
             
             else
                 PlotStruct.HeroSweepSeries = [];
+                PlotStruct.HeroSweepTablePos = [];
             end
         else
             PlotStruct.HeroSweepSeries = [];
+            PlotStruct.HeroSweepTablePos = [];
         end
 else
     disp("Under construction")

@@ -1,22 +1,32 @@
 function [StimOn, StimOff] = GetSquarePulse(CCStimSeries) 
-            temp = highpass(CCStimSeries.data.load,10,250);
-            temp = temp(1:length(temp)-round(CCStimSeries.starting_time_rate)*0.02);
-            if std(temp) > 1
-                 temp(abs(temp)<std(temp)*4) = 0;
-            else
-                temp(abs(temp)<max(temp)/3.5) = 0;
-            end            
-            StimOff = round(find(diff(temp>=0),1, 'last'),-2);
-            if contains(CCStimSeries.stimulus_description, 'Short') 
-              StimOn = StimOff - round(CCStimSeries.starting_time_rate*0.003);
+            if contains(CCStimSeries.stimulus_description, 'Short')
+             temp =  CCStimSeries.data.load;
+             temp(abs(temp)<std(temp)*4) = 0;  
+             temp = (diff(temp));  
+             temp(abs(temp)<std(temp)*20) = 0; 
+             StimOff = find(diff(temp>=0),1, 'last');
+            else    
+                temp = highpass(CCStimSeries.data.load,10,250);
+                temp = temp(1:length(temp)-round(CCStimSeries.starting_time_rate)*0.02);
+                if std(temp) > 1
+                     temp(abs(temp)<std(temp)*4) = 0;
+                else
+                    temp(abs(temp)<max(temp)/3.5) = 0;
+                end            
+                StimOff = round(find(diff(temp>=0),1, 'last'),-1);
+            end
+            if StimOff < 5000
+                StimOn = NaN;
             elseif contains(CCStimSeries.stimulus_description, 'Long') 
               StimOn = StimOff - round(CCStimSeries.starting_time_rate);
-            elseif StimOff < 5000
-                StimOn = Nan;
+            elseif contains(CCStimSeries.stimulus_description, 'Short') 
+              StimOn = StimOff - round(CCStimSeries.starting_time_rate*0.003);
             else
                disp("unknown stimulus type")    
             end
-            if StimOn < 0
-                StimOn = NaN;
-            end              
+            if ~isempty(StimOff)
+                if StimOn < 0 || StimOn==StimOff
+                    StimOn = NaN;
+                end
+            end             
 end

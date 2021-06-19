@@ -64,14 +64,15 @@ for n = start:length(cellList)                                             % for
     %% Setting up two QC tables and initializing Variables for counts and temproray storage    
     QC_parameter = table();
     QC_parameter.SweepID = repmat({''},length(cellFile.acquisition.keys),1);
-    QC_parameter(:,2:length(qc_tags(2:end))) = array2table(NaN(...
-               length(cellFile.acquisition.keys), length(qc_tags)-2));            
-    QC_parameter.Properties.VariableNames(2:width(QC_parameter)) = [qc_tags(3:end)];    
-    QCpass =  QC_parameter;
+    QC_parameter.Protocol = repmat({''},length(cellFile.acquisition.keys),1);
+    QC_parameter(:,3:length(qc_tags(2:end))+1) = array2table(NaN(...
+               length(cellFile.acquisition.keys), length(qc_tags)-2));  
+    QC_parameter.Properties.VariableNames(3:width(QC_parameter)) = [qc_tags(3:end)];  
+    QCpass = QC_parameter;     
     ISIs = {}; SpQC = struct(); spTrain = struct();
     SweepCount = 1;  subCount = 1; supraCount = 1;   
     sagSweep= []; RheoSweep = []; spTrainIDs = {};
-    
+    BinLP  = []; BinSP = [];
     %% Looping through sweeps 
     SweepPathsAll = {cellFile.general_intracellular_ephys_sweep_table.series.data.path};
     SweepPathsStim = {SweepPathsAll{find(contains(SweepPathsAll,'stimulus'))}};
@@ -82,8 +83,7 @@ for n = start:length(cellList)                                             % for
         CCStimSeries = cellFile.resolve(SweepPathsStim(s)); 
         
         if length(CCStimSeries.data.load)/CCStimSeries.starting_time_rate > 0.25 &&...
-            ~contains(CCStimSeries.stimulus_description, 'Ramp') &&...
-             ~contains(CCStimSeries.stimulus_description, 'Short') 
+            ~contains(CCStimSeries.stimulus_description, 'Ramp') 
         
         CurrentStimPath = cell2mat(SweepPathsStim(s));
         CurrentStimName = CurrentStimPath(find(CurrentStimPath=='/',1,'last')+1:length(CurrentStimPath));        
@@ -105,32 +105,58 @@ for n = start:length(cellList)                                             % for
                   A=(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('StimOn'...
                       ).data(~isnan(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('StimOn').data)));
                  StimOn = A(length(A));
-                 disp(['No input current detected in ', char(SweepPathsStim(s)),...
-                     ' taking StimOn from last available sweep'])
-    %                    StimOn = CCStimSeries.data.dims/3;
-    %                    StimOffset = 2*CCStimSeries.data.dims/3;  
-                 if isempty(StimOff)
-                     A=(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('StimOff'...
+                 A=(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('StimOff'...
                       ).data(~isnan(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('StimOff').data)));
-                     StimOff = A(length(A));
-                 end 
-            end
-              sweepAmp = round(mean(CCStimSeries.data.load(StimOn:StimOff)),-1);            
-              cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    4}.data(SwTabIdxAll) = sweepAmp;
-              cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    3}.data(SwTabIdxAll) = StimOn;
-              cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                    2}.data(SwTabIdxAll) = StimOff;
+                 StimOff = A(length(A));
+                 disp(['No input current detected in ', char(SweepPathsStim(s)),...
+                     ' taking StimOn: ', num2str(StimOn),' and StimOff: ', num2str(StimOff),...
+                     ' from last available sweep']);
+            end 
+        
+            sweepAmp = round(mean(CCStimSeries.data.load(StimOn:StimOff)),-1);            
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
+                find(contains(cellFile.general_intracellular_ephys_sweep_table.vectordata.keys(),...
+                'SweepAmp'))}.data(SwTabIdxAll) = sweepAmp;
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
+                find(contains(cellFile.general_intracellular_ephys_sweep_table.vectordata.keys(),...
+                'StimOn'))}.data(SwTabIdxAll) = StimOn;
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
+                find(contains(cellFile.general_intracellular_ephys_sweep_table.vectordata.keys(),...
+                'StimOff'))}.data(SwTabIdxAll) = StimOff;
+            StimLength = StimOff-StimOn;
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
+                find(contains(cellFile.general_intracellular_ephys_sweep_table.vectordata.keys(),...
+                'StimLength'))}.data(SwTabIdxAll) = StimLength;
         else
-            StimOn = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                3}.data(SwTabIdxAll));
-            StimOff = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                2}.data(SwTabIdxAll));
-            sweepAmp = unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.values{...
-                4}.data(SwTabIdxAll));
+         StimOn = unique(...
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
+            'StimOn').data.load(SwTabIdxAll));
+         StimOff = unique(...
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
+            'StimOff').data.load(SwTabIdxAll));
+         sweepAmp = unique(...
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
+            'SweepAmp').data.load(SwTabIdxAll));
+         StimLength = unique(...
+            cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
+            'StimLength').data.load(SwTabIdxAll));
         end           
 
+        %% Determining Stimulus Protocol and saving it
+         if StimLength == round(CCSeries.starting_time_rate) 
+            QC_parameter.Protocol(SweepCount) = {'LP'};
+            QCpass.Protocol(SweepCount) = {'LP'};
+            BinLP(SwTabIdxAll) = true;
+            BinSP(SwTabIdxAll) = false;
+         elseif StimLength == round(CCSeries.starting_time_rate)*0.003 
+            QC_parameter.Protocol(SweepCount) = {'SP'};
+            QCpass.Protocol(SweepCount) = {'SP'};
+            BinSP(SwTabIdxAll) = true;
+            BinLP(SwTabIdxAll) = false;
+         else
+             disp(['Unknown stimulus type with duration of '...
+                        , num2str(stimLength/CCSeries.starting_time_rate ), ' s'])
+         end         
             %% Analysis
             [QC_parameter, QCpass]  = SweepwiseQC(CCSeries, StimOn, ...
                                    SweepCount, QC_parameter, QCpass, params);
@@ -142,7 +168,7 @@ for n = start:length(cellList)                                             % for
                                          supraCount, module_spikes, SpQC, ...
                                            QCpass, SweepCount, CurrentName);
 
-                       if ~isempty(sp)
+                       if ~isempty(sp) && length(sp.peak) > 1
                            [spTrain, ISIs] = estimateAPTrainParams(...
                                sp,StimOn,CCSeries, supraCount, ISIs, spTrain);
                            spTrainIDs(supraCount,1) = {CurrentName};
@@ -153,7 +179,7 @@ for n = start:length(cellList)                                             % for
                        module_subStats = subThresFeatures(CCSeries,...
                                               StimOn, StimOff, sweepAmp, ...
                                                CurrentName, module_subStats, ...
-                                               params, QC_parameter);
+                                               params);
                        subCount = subCount +1;
                end
                SweepCount = SweepCount + 1;    
@@ -209,7 +235,7 @@ for n = start:length(cellList)                                             % for
    module_QC.dynamictable.set('QC_parameter_table', tbl);
    cellFile.processing.set('QC parameter', module_QC);
     
-   for t = 5:cellFile.general_intracellular_ephys_sweep_table.vectordata.Count      %loop trhough QC pass columns in sweep table
+   for t = 6:cellFile.general_intracellular_ephys_sweep_table.vectordata.Count      %loop trhough QC pass columns in sweep table
      key = cellFile.general_intracellular_ephys_sweep_table.vectordata.keys{t};     
      cellFile.general_intracellular_ephys_sweep_table.vectordata.values{t}.data =  ...
        QCpass.(key);                                                                    % fill with the respective value   
@@ -217,10 +243,9 @@ for n = start:length(cellList)                                             % for
    
    for s = 1:height(QCpass)
               
-        SweepPos = endsWith(SweepPathsAll,QCpass.SweepID(s));            
+        SweepPos = find(endsWith(SweepPathsAll,QCpass.SweepID(s)));            
         
-        if sum(table2array(getRow(...
-            cellFile.general_intracellular_ephys_sweep_table,...
+        if sum(table2array(getRow(cellFile.general_intracellular_ephys_sweep_table,...
               s,'columns', qc_tags(3:end)))) == 11
 
            cellFile.general_intracellular_ephys_sweep_table.vectordata.values{1}.data(SweepPos) = true; 
@@ -229,7 +254,7 @@ for n = start:length(cellList)                                             % for
         end 
    end
    
-   temp = varfun(@sum, QCpass(:,2:end));
+   temp = varfun(@sum, QCpass(:,3:end));
    QC_removalsPerTag(n,3:end) = num2cell(-(temp{:,:}-height(QCpass)));
    QC_removalsPerTag(n,2) = {sum(...
      cellFile.general_intracellular_ephys_sweep_table.vectordata.values{1}.data(...
@@ -267,9 +292,10 @@ for n = start:length(cellList)                                             % for
            if  str2double(cellFile.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
                  <= Ri_preqc*params.factorRelaRa
                 [cellFile, ICsummary, PlotStruct] = ...
-                            LPsummary(cellFile, ICsummary, n, params);
+                            LPsummary(cellFile, BinLP, ICsummary, n, params);
+                [cellFile, ICsummary, PlotStruct] = ...
+                            SPsummary(cellFile, BinSP, ICsummary, n, params, PlotStruct);
                 plotCellProfile(cellFile, PlotStruct, outDest, params)
-                 %SP_summary
            else
               display(['    was excluded by cell-wide QC for Ra higher than ', ...
                   num2str(Ri_preqc*params.factorRelaRa)]);
@@ -282,13 +308,13 @@ for n = start:length(cellList)                                             % for
       end              
    else
        [cellFile, ICsummary, PlotStruct] = ...
-                            LPsummary(cellFile, ICsummary, n, params);
+                            LPsummary(cellFile, BinLP, ICsummary, n, params);
+       [cellFile, ICsummary, PlotStruct] = ...
+                            SPsummary(cellFile, BinSP, ICsummary, n, params, PlotStruct);
        plotCellProfile(cellFile, PlotStruct, outDest, params)
-       %SP_summary
-
    end    
    if isnan(ICsummary.thresholdLP(n)) && params.noSupra == 1
-         display('     was excluded by cell-wide QC for no suprathreshold data') 
+         disp('     was excluded by cell-wide QC for no suprathreshold data') 
          ICsummary(n,1:7) = {NaN};
          QCcellWide{end+1} = cellID;
    end
@@ -302,17 +328,17 @@ for n = start:length(cellList)                                             % for
 %     ICsummary.Weight(n) = {cellFile.general_subject.weight};
 %     ICsummary.Sex(n) = {cellFile.general_subject.sex};
 %     ICsummary.Age(n) = {cellFile.general_subject.age};  
-%     
-%     if ~isempty(cellFile.general_intracellular_ephys.values{1}.slice)
-%         temperature = regexp(...
-%         cellFile.general_intracellular_ephys.values{1}.slice, '(\d+,)*\d+(\.\d*)?', 'match');
-%         if isempty(temperature)
-%            ICsummary.Temperature(n) = NaN;
-%         else
-%             ICsummary.Temperature(n) = str2num(cell2mat(temperature));
-%         end
-%     end
-%     
+    
+    if ~isempty(cellFile.general_intracellular_ephys.values{1}.slice)
+        temperature = regexp(...
+        cellFile.general_intracellular_ephys.values{1}.slice, '(\d+,)*\d+(\.\d*)?', 'match');
+        if isempty(temperature)
+           ICsummary.Temperature(n) = NaN;
+        else
+            ICsummary.Temperature(n) = str2num(cell2mat(temperature));
+        end
+    end
+    
 %     if string(cellFile.general_institution) == "Allen Institute of Brain Science" 
 %       ICsummary.brainOrigin(n) = {cellFile.general_intracellular_ephys.values{1}.location(...
 %           1:find(cellFile.general_intracellular_ephys.values{1}.location==',')-1)};
@@ -333,7 +359,7 @@ for n = start:length(cellList)                                             % for
    if overwrite == 1
       delete(fullfile(outDest, cellList(n).name)) 
    end    
-   % nwbExport(cellFile, fullfile(outDest, cellList(n).name));
+   nwbExport(cellFile, fullfile(outDest, cellList(n).name));
 end                                                                        % end cell level for loop
 
 %% Cleaning up workspace

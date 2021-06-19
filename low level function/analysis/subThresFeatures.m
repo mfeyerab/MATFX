@@ -1,5 +1,5 @@
 function module_subStats = subThresFeatures(CCSeries,StimOn, StimOff, ...
-                                     sweepAmp, CurrentName, module_subStats, params, QC_parameter)
+                                     sweepAmp, CurrentName, module_subStats, params)
 
 subStats.subSweepAmps = sweepAmp;
 
