@@ -1,16 +1,27 @@
-%{
-processICsweepsParFor
-- analysis of intracellular hyperpolarizing and depolarizing sweeps
-%}
-clear; tic
+function ICsummary = runPipeline(varargin) %{
 
-mainFolder = 'D:\output_marm\';            % main folder (EDIT HERE)
-start = 1;
-outDest = 'D:\output_ressource\QC\';                                          % general path
+check = 0;
+
+for v = 1:nargin
+    if check == 0 && (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
+        mainFolder = varargin{v};
+        check = 1;
+    elseif (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
+        outDest = varargin{v};
+    elseif isa(varargin{v}, 'double') 
+        BwSweepMode = varargin{v};    
+        if BwSweepMode == 1
+            disp('Between Sweep QC with a set target value')
+        elseif BwSweepMode == 2
+            disp('Between Sweep QC without a set target value')
+        else
+            error('Please use Between Sweep Mode 1 or 2')
+        end
+    end
+end
+% general path
 cellList = dir([mainFolder,'*.nwb']);                                      % list of cell data files
-BwSweepMode = 1;                                                           % NeuroNex = 1, Choline macaque = 2
 params = loadParams;                                                       % load parameters to workspace
-overwrite = 0;
 
 %% Set to overwrite or delete nwb files from output folder 
 
@@ -46,7 +57,7 @@ QCpassTotal = struct();
 QCcellWide = {};
 
 %% Looping through nwb files
-for n = start:length(cellList)                                             % for all cells in directory
+for n = 1:length(cellList)                                             % for all cells in directory
     cellFile = nwbRead([mainFolder,cellList(n).name]);                     % load nwb file    
     cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)   
     
@@ -382,18 +393,6 @@ for n = start:length(cellList)                                             % for
    end    
    nwbExport(cellFile, fullfile(outDest, cellList(n).name));
 end                                                                        % end cell level for loop
-
-%% Cleaning up workspace
-
-clear adaptIndex adaptIndex2 burst BwSweepParameter BwSweepPass c CCSeries ...
-    CCStimSeries cell File cellID cvISI data_index data_vector ...
-    delay diffV_b_e f holdingI i idx idxPassedSweeps instaRate ...
-    instaRateCells ISI ISI_linVec ISI_table ISIs k key ...
-    latency loc meanISI moduleISIs module_QC module_spike module_subStats ...
-    peakAdapt peakAdapt2 QC_parameter QCpass restVPost restVPre RheoSweep ...
-    Ri_preqc rmse_post rmse_post_st rmse_pre rmse_pre_st s sagSweep spTrain ...
-    startInt4Peak StimOff StimOn stWin subCount subStats supraCount ...
-    sweepAmp SweepCount SweepIDsPassed table
 
 %% Output summary fiels and figures 
 
