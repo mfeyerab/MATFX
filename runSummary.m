@@ -2,7 +2,7 @@
 clear
 
 start = 1;
-mainFolder = 'D:\output_MATNWB\QC\';            % main folder (EDIT HERE)
+mainFolder = 'D:\output_ressource\QC\';            % main folder (EDIT HERE)
 cellList = dir([mainFolder,'*.nwb']);  
 params = loadParams;                                                       % load parameters to workspace
 ICsummary = initICSummary(cellList); 

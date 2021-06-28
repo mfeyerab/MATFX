@@ -247,12 +247,16 @@ if ~isempty(SPSweepSeries)
          p.Color = 'red';  
 end
 title('Waveform phaseplots SP vs LP')
-PipCompLP = RheoSweepSeries.capacitance_compensation*10^12;
-PipCompSP = SPSweepSeries.capacitance_compensation*10^12;
-if PipCompSP==PipCompLP
-subtitle(['Temperature = ' ,num2str(round(Temperature,1)), '°C ,CapaComp = ', num2str(round(PipCompLP,2)), 'pF'])
-box off
-end
+% if ~isempty(RheoSweepSeries)
+% PipCompLP = RheoSweepSeries.capacitance_compensation*10^12;
+% end
+% if ~isempty(PlotStruct.SPSweepSeries)
+% PipCompSP = SPSweepSeries.capacitance_compensation*10^12;
+% end
+% if ~isempty(PlotStruct.SPSweepSeries) && PipCompSP==PipCompLP
+% subtitle(['Temperature = ' ,num2str(round(Temperature,1)), '°C ,CapaComp = ', num2str(round(PipCompLP,2)), 'pF'])
+% box off
+% end
 %% Saving the figure
 
 export_fig([outDest, cellFile.identifier,' Cell profile', date],params.plot_format,'-r100');

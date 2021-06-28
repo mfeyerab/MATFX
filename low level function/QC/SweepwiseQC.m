@@ -1,4 +1,4 @@
-function [QC_parameter, QC_pass]  = SweepwiseQC(CCSeries, StimOn, SweepCount, QC_parameter, QC_pass, params)
+function [QC_parameter, QC_pass]  = SweepwiseQC(CCSeries, StimOn, StimOff, SweepCount, QC_parameter, QC_pass, params)
 
 %{
 SweepwiseQC
@@ -17,10 +17,16 @@ SweepwiseQC
         length(CCSeries.data.load)).*1000;
 
     else
+        if StimOn < 0.15*CCSeries.starting_time_rate
+            disp(['Sweep Nr ', num2str(CCSeries.sweep_number), ' has peristimulus lengths shorter than desired'])
+            vec_pre = CCSeries.data.load(1:StimOn);
+            vec_post = CCSeries.data.load(StimOff:end);
+        else
         vec_pre = CCSeries.data.load(...
                      StimOn-0.15*CCSeries.starting_time_rate:StimOn-1) ;
         vec_post = CCSeries.data.load((end-0.25*CCSeries.starting_time_rate)+1:...
         length(CCSeries.data.load));
+        end
     end
 
     restVPre = mean(vec_pre);
