@@ -1,31 +1,47 @@
 function ICsummary = runPipeline(varargin) %{
 
-check = 0;
+%{ 
+Runs analysis pipeline on all nwb file in the path indicated as first input argument.
+Second input argument is the path at which nwb files with additional processing moduls are saved. 
+If only one input argument is used nwb files will be overwritten.
+In addition there are two different modes of between Sweep QC: Mode 1, in
+which the cell has a target membrane potential which is the average of the
+prestimulus membrane potential of the first three sweeps. And Mode 2, in
+which there is no set membrane potential and the between sweep QC is assessed 
+by deviations from the grand average. To set the between sweep mode also add
+a 1 or 2 as input argument.
+%}
 
+check1 = 0;
+check2 = 0;
 for v = 1:nargin
-    if check == 0 && (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
+    if check1 == 0 && (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
         mainFolder = varargin{v};
-        check = 1;
+        check1 = 1;
     elseif (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
         outDest = varargin{v};
+        disp('No overwrite mode')
     elseif isa(varargin{v}, 'double') 
         BwSweepMode = varargin{v};    
+        check2 = 1;
         if BwSweepMode == 1
-            disp('Between Sweep QC with a set target value')
+            disp('between sweep QC with a set target value')
         elseif BwSweepMode == 2
-            disp('Between Sweep QC without a set target value')
+            disp('between sweep QC without a set target value')
         else
-            error('Please use Between Sweep Mode 1 or 2')
+            error('Please use 1 or 2 as input for respective between sweep mode ')
         end
     end
+    if check2 == 0
+        error('No number inputed for between sweep QC')
+    end
 end
-% general path
 cellList = dir([mainFolder,'*.nwb']);                                      % list of cell data files
 params = loadParams;                                                       % load parameters to workspace
-
+tic
 %% Set to overwrite or delete nwb files from output folder 
 
- overwrite = 0;
+overwrite = 0;
 if length(mainFolder) == length(outDest) && mainFolder == outDest
     overwrite = 1;
 else    
