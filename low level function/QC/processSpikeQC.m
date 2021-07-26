@@ -4,6 +4,8 @@ function [SpQC, QCpass] = processSpikeQC(CCSeries, sp, params, ...
 if contains(CCSeries.stimulus_description, 'Short')
    QCpass.bad_spikes(SweepCount,1) = 1;
    disp(['No Spike QC for Sweep Nr. ', num2str(CCSeries.sweep_number)])
+elseif isempty(sp.peak)
+   QCpass.bad_spikes(SweepCount,1) = 0;
 else   
     idx(1,:) = boolean(zeros(1,length(sp.threshold)));
     temp = find(isnan(sp.maxdVdt));                                            % number of times interval rule is broken
@@ -37,7 +39,7 @@ else
                 idx(7,:) = abs(sp.peak-sp.threshold)*1000< ...
                               params.minDiffThreshold2PeakB;
             end
-    else   
+    elseif ~isempty(sp.peak)  
 
             idx(3,:) = sp.maxdVdt < params.mindVdt;
             idx(4,:) = sp.threshold > params.maxThreshold;    

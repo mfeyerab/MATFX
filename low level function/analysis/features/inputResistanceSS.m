@@ -1,4 +1,4 @@
-function b = inputResistanceSS(SubStatTable, NamesPassedSweeps)
+function b = inputResistanceSS(SubStatTable, NamesPassedSweeps, params)
 
 tempX = [];
     
@@ -22,7 +22,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     f = polyfit(inputX,inputY,1);
     b = f(1) * (10^3);
 
-    figure 
+    if params.plot_all == 1
+    figure('visible','off') 
     hold on
     plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
     scatter(inputX,inputY,'r')
@@ -32,9 +33,11 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     title('V/I curve')
     box off
     axis tight
+    export_fig([params.outDest, '\', ...
+        params.cellID, ' resistance_ss'],params.plot_format,'-r100');
+    end
 else
     b = NaN;   
-    %[filename, pathname] = uiputfile( {'*.pdf'}, 'D:\Documents Michelle\Thesis documents\genpath\resistance plots');
-    %export_fig([ cellID ' resistance_ss'],'-pdf','-r100', 'D:\Documents Michelle\Thesis documents\genpath\resistance plots')
-end    
+end  
+
 end

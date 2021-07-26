@@ -135,3 +135,23 @@ for i = 1:length(sp.peak)  % for each putative spike
 
     end
 end
+
+sp.threshold(sp.thresholdTime==0) = [];
+sp.peak(sp.thresholdTime==0) = [];
+sp.peakTime(sp.thresholdTime==0) = [];
+sp.maxdVdt(sp.thresholdTime==0) = [];
+sp.maxdVdtTime(sp.thresholdTime==0) = [];
+sp.trough(sp.thresholdTime==0) = [];
+sp.troughTime(sp.thresholdTime==0) = [];
+sp.heightPT(sp.thresholdTime==0) = [];
+sp.fullWidthPT(sp.thresholdTime==0) = [];
+sp.peakDownStroke(sp.thresholdTime==0) = [];
+sp.peakUpStroke(sp.thresholdTime==0) = [];
+sp.peakStrokeRatio(sp.thresholdTime==0) = [];
+sp.fast_trough(sp.thresholdTime==0) = [];
+sp.fast_trough_dur(sp.thresholdTime==0) = [];
+sp.slow_trough(sp.thresholdTime==0) = [];
+sp.slow_trough_dur(sp.thresholdTime==0) = [];
+sp.fullWidthTP(sp.thresholdTime==0) = [];
+sp.heightTP(sp.thresholdTime==0) = [];
+sp.thresholdTime(sp.thresholdTime==0) = [];

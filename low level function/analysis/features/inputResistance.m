@@ -1,8 +1,8 @@
-function [resistance, offset]= inputResistance(SubStatTable, NamesPassedSweeps)
+function [resistance, offset]= inputResistance(SubStatTable, params, NamesPassedSweeps)
 
 tempX = [];
 
-if nargin==1 
+if nargin==2 
     [tempY,tempX] = deal(zeros(SubStatTable.Count,1));
     for i = 1: SubStatTable.Count
          if isa(SubStatTable.values{i}.vectordata.map('maxSubDeflection').data, 'double')
@@ -13,8 +13,8 @@ if nargin==1
           tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data.load;
          end
     end
-    
-elseif nargin==2 
+    check = 0;
+elseif nargin==3 
     
    for i = 1: SubStatTable.Count
      if ismember(str2double(regexp(SubStatTable.keys{i},'\d*','Match')), NamesPassedSweeps)
@@ -26,7 +26,8 @@ elseif nargin==2
           tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data.load;
         end
      end
-   end        
+   end  
+   check = 1;
 end
 
 if ~isempty(tempX) && length(nonzeros(tempX)) > 1
@@ -37,33 +38,41 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     f = polyfit(inputX,inputY,1);
     resistance = f(1) * (10^3);
     offset = f(2);
-    
-    figure 
-    hold on
-    plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
-    scatter(inputX,inputY,'r')
-    legend('off')
-    xlabel('input current (pA)')
-    ylabel('change in membrane potential (mV)')
-    title('V/I curve')
-    box off
-    axis tight  
+    if params.plot_all == 1 && check == 1
+        figure('visible','off'); 
+        hold on
+        plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
+        scatter(inputX,inputY,'r')
+        legend('off')
+        xlabel('input current (pA)')
+        ylabel('change in membrane potential (mV)')
+        title('V/I curve')
+        box off
+        axis tight 
+        export_fig([params.outDest, '\', ...
+             params.cellID, ' input resistance'],params.plot_format,'-r100'); 
+        close
+    end
 elseif length(nonzeros(tempX)) == 1
   
     f = polyfit([0; tempX],[0; tempY],1);
     resistance = f(1) * (10^3);
     offset = 0;
-    
-    figure 
-    hold on
-    plot([0; tempX],(f(1)*[0; tempX]+f(2))','k','LineWidth',1)
-    scatter(tempX,tempY,'r')
-    legend('off')
-    xlabel('input current (pA)')
-    ylabel('change in membrane potential (mV)')
-    title('V/I curve')
-    box off
-    axis tight  
+    if params.plot_all == 1 && check == 1
+        figure('visible','off'); 
+        hold on
+        plot([0; tempX],(f(1)*[0; tempX]+f(2))','k','LineWidth',1)
+        scatter(tempX,tempY,'r')
+        legend('off')
+        xlabel('input current (pA)')
+        ylabel('change in membrane potential (mV)')
+        title('V/I curve')
+        box off
+        axis tight  
+        export_fig([params.outDest, '\', ...
+             params.cellID, 'input resistance'],params.plot_format,'-r100');
+        close
+    end
 else
     resistance = NaN;
     offset = NaN;

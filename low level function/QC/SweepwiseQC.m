@@ -62,7 +62,13 @@ SweepwiseQC
      holdingI = 0;
      bridgBal = 0;
     end 
-      
+    
+    if isempty(CCSeries.capacitance_compensation)
+      CaComp = NaN;
+    else 
+        CaComp = CCSeries.capacitance_compensation;
+    end
+    
     QC_parameter(SweepCount,3:end) = array2table([...
         rmse_pre_st, ...
         rmse_post_st, ...
@@ -74,7 +80,8 @@ SweepwiseQC
         0,...
         bridgBal,...
         0,...
-        0]);
+        0, ...
+        CaComp]);
 
     %% determine pass binaries
 
@@ -104,7 +111,7 @@ SweepwiseQC
 
     %% Plotting visualizations (Optional)
     if params.plot_all == 1
-        figure('Position',[50 50 250 250]); set(gcf,'color','w');
+        figure('Position',[50 50 250 250],'visible','off'); set(gcf,'color','w');
         hold on
         plot(vec_pre)
         plot(vec_post)
@@ -113,7 +120,8 @@ SweepwiseQC
         axis tight
         ylim([-100 -30])
         legend({'pre-stim','post-stim'})
-        %export_fig([folder(1:length(folder)-8),cellID,' ',int2str(sweepIDcount),' RMS noise vectors'],params.plot_format,'-r100');
+        export_fig([params.outDest, '\',params.cellID,' ',int2str(SweepCount),...
+            ' RMS noise vectors'],params.plot_format,'-r100');
         close
     end
 end

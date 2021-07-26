@@ -5,7 +5,7 @@ params.plot_all = 1;
 params.plot_format = '-jpg';
 
 % spike detection
-params.thresholdV = -20;                             % detection threshold for V-based spikes
+params.thresholdV = -15;                             % detection threshold for V-based spikes
 params.thresholdDVDT = 20;                           % detection threshold for dV/dt-based spikes
 
 % target sampling parameters
@@ -23,9 +23,10 @@ params.LPqc_samplWind = 100; params.LPqc_recovTime = 850;
 params.SPqc_samplWind = 100; params.SPqc_recovTime = 600;
 params.preAIBS_samplWind = 199;
 params.RMSEst = 0.3;                                 % maximum RMSE measure short term
-params.RMSElt = 0.75;                                % maximum RMSE measure long term
-params.maxDiffBwBeginEnd = 4.5;                        % maximum difference between beginning and end of sweep
-params.maximumRestingPot = -50;                      % minimum resting potential
+params.RMSElt = 0.8;                                 % maximum RMSE measure long term
+params.RMSEdiff = 0.2; 
+params.maxDiffBwBeginEnd = 5;                        % maximum difference between beginning and end of sweep
+params.maximumRestingPot = -47;                      % minimum resting potential
 params.holdingI = 100;                               % maximum holding current
 params.bridge_balance = 20;                          % maximum bridge balance
 params.minGoodSpFra = 0.33;

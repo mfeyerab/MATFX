@@ -1,11 +1,11 @@
-function plotCellProfile(cellFile, PlotStruct, outDest, params)
+function plotCellProfile(cellFile, PlotStruct, params)
 
 %{
 plot characterization
 %}
 
 %% Initialize plot
-figure('Position',[50 50 750 750]); set(gcf,'color','w');
+figure('Position',[50 50 750 750],'visible','off'); set(gcf,'color','w');
 subplot(2,2,1)
 hold on
 
@@ -259,6 +259,6 @@ title('Waveform phaseplots SP vs LP')
 % end
 %% Saving the figure
 
-export_fig([outDest, cellFile.identifier,' Cell profile', date],params.plot_format,'-r100');
+export_fig([params.outDest, '/', cellFile.identifier,' Cell profile', date],params.plot_format,'-r100');
 close
 

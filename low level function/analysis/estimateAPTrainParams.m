@@ -1,13 +1,20 @@
-function [spTrain, ISIs] = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, ISIs, spTrain)
+function SpPattrn = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, SpPattrn)
+
+
+%[spTrain, ISIs] = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, SpPattrn)
 
 latency = (sp.thresholdTime(1)-StimOn)/round(CCSeries.starting_time_rate/1000);
-% not a firing rate, simply a sum of spikes
-spTrain.meanFR50(supraCount,1) = sum(sp.thresholdTime<(StimOn+(50/(1000/CCSeries.starting_time_rate)))) / 0.05;
-spTrain.meanFR100(supraCount,1) = sum(sp.thresholdTime<(StimOn+(100/(1000/CCSeries.starting_time_rate)))) / 0.1;
-spTrain.meanFR250(supraCount,1) = sum(sp.thresholdTime<(StimOn+(250/(1000/CCSeries.starting_time_rate)))) / 0.25;
-spTrain.meanFR500(supraCount,1) = sum(sp.thresholdTime<(StimOn+(500/(1000/CCSeries.starting_time_rate)))) / 0.5;
-spTrain.meanFR750(supraCount,1) = sum(sp.thresholdTime<(StimOn+(750/(1000/CCSeries.starting_time_rate)))) / 0.75;
-spTrain.meanFR1000(supraCount,1) = sum(sp.thresholdTime<(StimOn+(1000/(1000/CCSeries.starting_time_rate))));
+
+TblIdx = sum(~cellfun(@isempty,SpPattrn.spTrainIDs));
+
+for b = 1:20
+SpPattrn.BinTbl(TblIdx,b) = sum(...
+    50*(b-1)/(1000/CCSeries.starting_time_rate) < sp.thresholdTime - StimOn ...
+    & sp.thresholdTime - StimOn < 50*b/(1000/CCSeries.starting_time_rate));
+end
+
+SpPattrn.spTrain.firingRate(supraCount,1) = sum(sp.thresholdTime<(StimOn+(1000/(1000/CCSeries.starting_time_rate))));
+SpPattrn.RowNames{TblIdx} = char(SpPattrn.spTrainIDs(supraCount));
 
 if length(nonzeros(sp.thresholdTime)) >= 2						% skip this sweep if there was only 1 
     peakAdapt = sp.heightTP(end) / sp.heightTP(1);
@@ -50,18 +57,21 @@ else
     peakAdapt2 = NaN;
 end
 
-spTrain.latency(supraCount,1) = latency;
-spTrain.peakAdapt(supraCount,1) = peakAdapt;
-ISIs{1,supraCount} = ISI;
+SpPattrn.spTrain.latency(supraCount,1) = latency;
+SpPattrn.spTrain.peakAdapt(supraCount,1) = peakAdapt;
+SpPattrn.ISIs{1,supraCount} = ISI;
 
-spTrain.meanISI(supraCount,1) = meanISI;
+SpPattrn.spTrain.meanISI(supraCount,1) = meanISI;
 if ~isnan(cvISI) && ~cvISI
-    spTrain.cvISI(supraCount,1) = NaN;
+    SpPattrn.spTrain.cvISI(supraCount,1) = NaN;
 else
-    spTrain.cvISI(supraCount,1) = cvISI;
+    SpPattrn.spTrain.cvISI(supraCount,1) = cvISI;
 end
-spTrain.adaptIndex(supraCount,1) = adaptIndex;
-spTrain.adaptIndex2(supraCount,1) = adaptIndex2;
-spTrain.peakAdapt2(supraCount,1) = peakAdapt2;
-spTrain.delay(supraCount,1) = delay;
-spTrain.burst(supraCount,1) = burst;
+SpPattrn.spTrain.adaptIndex(supraCount,1) = adaptIndex;
+SpPattrn.spTrain.adaptIndex2(supraCount,1) = adaptIndex2;
+SpPattrn.spTrain.peakAdapt2(supraCount,1) = peakAdapt2;
+SpPattrn.spTrain.delay(supraCount,1) = delay;
+SpPattrn.spTrain.burst(supraCount,1) = burst;
+SpPattrn.spTrain.LastQuiesence(supraCount,1) = ...
+   (StimOn + CCSeries.starting_time_rate - sp.thresholdTime(...
+   length(sp.thresholdTime)))*1000/CCSeries.starting_time_rate;
