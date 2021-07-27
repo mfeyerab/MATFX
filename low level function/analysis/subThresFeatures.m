@@ -3,13 +3,16 @@ function module_subStats = subThresFeatures(CCSeries,StimOn, StimOff, ...
 
 subStats.subSweepAmps = sweepAmp;
 
+subStats.baselineVm = mean(CCSeries.data.load(1:StimOn)); 
+
 [subStats.minV,subStats.minVt] = min(...
    CCSeries.data.load(StimOn:StimOff));
 
 %% estimate minimum voltage
 
 subStats.maxSubDeflection = subStats.minV -...
-                                 mean(CCSeries.data.load(1:StimOn)) ;
+                                 subStats.baselineVm ;
+                             
 subStats.minVt = subStats.minVt+StimOn;
 
 %% time constant (rest to minimum V)
@@ -93,7 +96,7 @@ if sum(structfun(@numel,subStats)>1) > 0                                   % Fil
 end
 
 table =  array2table(cell2mat(struct2cell(subStats))');
-table.Properties.VariableNames = {'SweepAmp','minV','minVTime',...
+table.Properties.VariableNames = {'SweepAmp','baseVm','minV','minVTime',...
               'maxSubDeflection','tauMin', 'tauMinGF','SteadyState',...
              'sag','sagRatio','reboundSlope','reboundDepolarization'};
 
