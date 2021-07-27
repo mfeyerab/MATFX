@@ -4,7 +4,9 @@ MATFX
 Additional Requirements:
 -------
 -MATLAB toolboxes:  curve fitting and statistics
+
 -MATNWB repository: Code has been written for Release v2.3.0.1, you find it [here](https://github.com/NeurodataWithoutBorders/matnwb)
+
 -export_fig:  you find it [here](https://www.mathworks.com/matlabcentral/fileexchange/23629-export_fig)
 
 Functionality
