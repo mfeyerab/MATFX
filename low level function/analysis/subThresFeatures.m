@@ -64,7 +64,7 @@ else
     subStats.subSteadyState = NaN;
 end    
 subStats.sag = abs(subStats.subSteadyState-subStats.minV);
-subStats.sagRatio = subStats.minV/subStats.subSteadyState;
+subStats.sagRatio = (subStats.minV-subStats.baselineVm)/(subStats.subSteadyState-subStats.baselineVm);
 
 %% rebound slope
 [val,loc] = max(CCSeries.data.load(StimOff:...
