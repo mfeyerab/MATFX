@@ -1,7 +1,16 @@
 function params = loadParams
 
+
+% Definitions LP and SP tags  (stimulus description giving away the stim length)
+params.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long Pulse"];
+params.SPtags = ["SP","C1SS"];
+params.LPlength = 1;
+params.SPlength = 0.003;
+params.SkipTags = ["Ramp",...
+    "Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND", "I-V"];
+
 % plotting functions
-params.plot_all = 1;
+params.plot_all = 0;
 params.plot_format = '-jpg';
 
 % spike detection
@@ -13,8 +22,8 @@ params.sampleRT = 5e4;                               % sample rate we want
 params.sampleRTdt = 1000/params.sampleRT;                 % sample rate we want
 
 % cell-wise quality control parameters
-params.cutoffInitRa = 25;
-params.factorRelaRa = 0.3;
+params.cutoffInitRa = 24;
+params.factorRelaRa = 0.2;
 params.noSupra = 1;
 params.maxRheoSpikes = 100;
 
@@ -23,14 +32,14 @@ params.LPqc_samplWind = 100; params.LPqc_recovTime = 850;
 params.SPqc_samplWind = 100; params.SPqc_recovTime = 600;
 params.preAIBS_samplWind = 199;
 params.RMSEst = 0.3;                                 % maximum RMSE measure short term
-params.RMSElt = 0.8;                                 % maximum RMSE measure long term
+params.RMSElt = 0.75;                                 % maximum RMSE measure long term
 params.RMSEdiff = 0.2; 
-params.maxDiffBwBeginEnd = 5;                        % maximum difference between beginning and end of sweep
-params.maximumRestingPot = -47;                      % minimum resting potential
+params.maxDiffBwBeginEnd = 8;                        % maximum difference between beginning and end of sweep
+params.maximumRestingPot = -49;                      % minimum resting potential
 params.holdingI = 100;                               % maximum holding current
 params.bridge_balance = 20;                          % maximum bridge balance
 params.minGoodSpFra = 0.33;
-params.BwSweepMax = 8;
+params.BwSweepMax = 5;
 
 % rebound slope and spike parameters
 params.reboundWindow = 100;                          % window to find maximum rebound peak

@@ -20,7 +20,7 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     [inputX,~,c] = unique(nonzeros(tempX));
      inputY = accumarray(c,nonzeros(tempY),[],@mean);    
     f = polyfit(inputX,inputY,1);
-    b = f(1) * (10^3);
+    b = round(f(1) * (10^3),2);
 
     if params.plot_all == 1
     figure('visible','off') 
@@ -33,7 +33,7 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     title('V/I curve')
     box off
     axis tight
-    export_fig([params.outDest, '\', ...
+    export_fig([params.outDest, '\resistance\', ...
         params.cellID, ' resistance_ss'],params.plot_format,'-r100');
     end
 else

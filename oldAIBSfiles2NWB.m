@@ -1,7 +1,7 @@
 clear
 
 mainfolder = 'D:\conversion\Allen\First_release\cell_types\'; %fullfile(cd, '\test_cell\');
-outputfolder = 'D:\output_ressource\'; %[cd, '\'];
+outputfolder = 'D:\output_test\'; %[cd, '\'];
 cellList = dir([mainfolder,'*.nwb']);
 T = struct2table(load('cell_types_specimen_details.mat'));
 alignSamplingMode = 1;

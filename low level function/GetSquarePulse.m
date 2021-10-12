@@ -1,5 +1,5 @@
-function [StimOn, StimOff] = GetSquarePulse(CCStimSeries) 
-            if contains(CCStimSeries.stimulus_description, 'Short')
+function [StimOn, StimOff] = GetSquarePulse(CCStimSeries, params) 
+            if contains(CCStimSeries.stimulus_description, params.SPtags)
              temp =  CCStimSeries.data.load;
              temp(abs(temp)<std(temp)*4) = 0;  
              temp = (diff(temp));  
@@ -17,12 +17,12 @@ function [StimOn, StimOff] = GetSquarePulse(CCStimSeries)
             end
             if StimOff < 5000
                 StimOn = NaN;
-            elseif contains(CCStimSeries.stimulus_description, 'Long') 
+            elseif contains(CCStimSeries.stimulus_description, params.LPtags) 
               StimOn = StimOff - round(CCStimSeries.starting_time_rate);
-            elseif contains(CCStimSeries.stimulus_description, 'Short') 
+            elseif contains(CCStimSeries.stimulus_description, params.SPtags) 
               StimOn = StimOff - round(CCStimSeries.starting_time_rate*0.003);
             else
-               disp("unknown stimulus type")    
+               disp(['unknown stimulus type: ',CCStimSeries.stimulus_description])    
             end
             if ~isempty(StimOff)
                 if StimOn < 0 || StimOn==StimOff

@@ -2,19 +2,92 @@
 
 writetable(ICsummary,[params.outDest, '\','ephys_features_', date,'.csv'], 'WriteRowNames',true)
 
+ICsummary = rmmissing(ICsummary,'DataVariables',{'heightTP_LP','tau'}); %prune cells without spikes and time constant
+
 %% QC parameter for each cell
 cells = fieldnames(QCparameterTotal);
+MaxSweepNr = 0;
 
 for c = 1:length(cells)
-    writetable(QCparameterTotal.(cell2mat(cells(c))), ...
-                  [params.outDest, '\', cell2mat(cells(c)),'_QC_parameter_',date,'.csv']);  
-    writetable(QCpassTotal.(cell2mat(cells(c))), ...
-                       [params.outDest, '\',cell2mat(cells(c)),'_QC_pass_',date,'.csv']);  
+  if MaxSweepNr < height(QCparameterTotal.(cell2mat(cells(c))))
+     MaxSweepNr = height(QCparameterTotal.(cell2mat(cells(c))));
+  end
 end
+
+sweepBinary = array2table(NaN(length(cells),MaxSweepNr));
+ColumnNames = regexp(cellstr(sprintf('Sweep_%d ',0:MaxSweepNr-1)),' ','split');
+sweepBinary.Properties.VariableNames  = ColumnNames{:};
+sweepBinary.Properties.RowNames  = cells;
+
+for c = 1:length(cells)
+  count = 1;
+  for s = 1:MaxSweepNr     
+     if s <= height(QCpassTotal.(cell2mat(cells(c)))) && ...
+             string(sweepBinary.Properties.VariableNames{s}) == ...
+          string(cell2mat(table2array(QCpassTotal.(cell2mat(cells(c)))(count,1))))
+              
+          QC_temp = table2array(QCpassTotal.(cell2mat(cells(c)))(count,3:13)); 
+          QC_temp(isnan(QC_temp)) = 1;
+          if sum(QC_temp) == length(QC_temp)
+              sweepBinary(c,s) = {1};
+          else
+              sweepBinary(c,s) = {0};
+          end    
+          count = count + 1;
+     end
+  end
+    writetable(QCparameterTotal.(cell2mat(cells(c))), ...
+                  [params.outDest, '\QC\', cell2mat(cells(c)),'_QC_parameter_',date,'.csv']);  
+    writetable(QCpassTotal.(cell2mat(cells(c))), ...
+                       [params.outDest, '\QC\',cell2mat(cells(c)),'_QC_pass_',date,'.csv']);  
+end
+
+writetable(sweepBinary, fullfile(params.outDest, ['binary_selection_',date,'.csv']), ...
+    'WriteRowNames',true)  
 
 %% QC logic sweeps per class matrix 
 
-writetable(QC_removalsPerTag, [outDest,'\','QC_sweeps_per_tag_matrix_',date,'.csv'], 'WriteRowNames',true);  
+writetable(QC_removalsPerTag, [...
+    outDest,'\','QC_sweeps_per_tag_matrix_',date,'.csv'], 'WriteRowNames',true);  
+%% Website: Look up table,
+
+for i = 1:length(ICsummary.Properties.RowNames)
+   ID_new{i,1} =  NHP_ID_conversion(ICsummary.Properties.RowNames{i});
+   SubjID{i,1} =  NHP_SubjID_conversion(ICsummary.Properties.RowNames{i});
+end
+T= table(ID_new, ICsummary.Properties.RowNames);
+T.Properties.VariableNames{2} = 'ID_old';
+writetable(T,  fullfile(params.outDest, ['ID_lookup_',date,'.csv']) );   
+
+%% Website:Box1
+
+val = [ID_new ICsummary.Species ICsummary.Sex ICsummary.brainOrigin ...
+        SubjID ICsummary.dendriticType ICsummary.SomaLayerLoc ...
+           ICsummary.Properties.RowNames]; 
+
+colName = {'cellID' 'Species' 'Sex' ...
+     'Cortical area' 'Subject ID' 'Dendrite type' 'Cortical layer' ...
+     'internalID'};
+
+T = cell2table(val, 'VariableNames', colName);
+
+writetable(T,[params.outDest, '\','box1','.csv'])
+
+%% Website:Box2
+val =[ICsummary.widthTP_LP ICsummary.heightTP_LP ...
+    ICsummary.Vrest ICsummary.Rheo  ICsummary.resistanceHD ICsummary.tau ...
+    ICsummary.maxFiringRate ICsummary.medInstaRate];
+
+colName = {'cellID' 'AP halfwidth' 'AP amplitude' ...
+    'Resting potential' 'Rheobase' 'Resistance' 'Time Constant' ...
+    'Maximum firing rate' 'Median instantanous frequency' 'internalID'};
+
+T = array2table(NaN(size(val)+ [0 2]), 'VariableNames', colName);
+T.cellID = ID_new;
+T.internalID = ICsummary.Properties.RowNames;
+T(:,2:9) = array2table(val);
+
+writetable(T,[params.outDest, '\','box2_ephys','.csv'])
 
 %% procedure doc file
 rowNames = {'Standard';'Cell-wise: initial R_a';'Cell-wise: initial R_a fract'; ...
@@ -30,8 +103,8 @@ rowNames = {'Standard';'Cell-wise: initial R_a';'Cell-wise: initial R_a fract'; 
     'Sweep-wise: start window post from stim onset stim SP'; ...
     'Sweep-wise: min Frac good Sp'; ...
     'Spike-wise: min SpAmp narrow'; 'Spike-wise: min SpAmp broad'; ...
-    'Spike-wise: max threshold'; 'No Suprathreshold'...
-    'time'; 'path'; 'computer'; 'Matlab'   
+    'Spike-wise: max threshold'; 'No Suprathreshold';...
+    'time'; 'path'; 'computer'; 'Matlab'  ... 
     };
 T= array2table([["Current Run", "Allen White Paper"];...
     [params.cutoffInitRa, 20];...
@@ -62,4 +135,4 @@ T= array2table([["Current Run", "Allen White Paper"];...
   );
 
 writetable(T, [outDest,'\','procedure_doc_', date,'.csv'],'WriteRowNames',true, ...
-    'WriteVariableNames', false);   
+    'WriteVariableNames', false);

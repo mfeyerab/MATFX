@@ -25,4 +25,5 @@ ICsummary.brainOrigin(:) = {'NA'};
 ICsummary.Weight(:) = {'NA'};
 ICsummary.Sex(:) = {'NA'};
 ICsummary.Age(:) = {'NA'};
+ICsummary.Species(:) = {'NA'};
 end

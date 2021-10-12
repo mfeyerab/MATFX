@@ -11,8 +11,7 @@ subStats.baselineVm = mean(CCSeries.data.load(1:StimOn));
 %% estimate minimum voltage
 
 subStats.maxSubDeflection = subStats.minV -...
-                                 subStats.baselineVm ;
-                             
+                                 subStats.baselineVm ;                             
 subStats.minVt = subStats.minVt+StimOn;
 
 %% time constant (rest to minimum V)
@@ -58,12 +57,14 @@ for w = 1:round(TotalSize/Increment)
     PoSSQ(w,1) = sqrt(mean((vec - PoSS(w,1)).^2));   
 end
 
-if min(PoSSQ) < 0.75*params.RMSElt
+if all(PoSSQ) && min(PoSSQ) < 0.75*params.RMSElt
     subStats.subSteadyState = PoSS(find(PoSSQ==min(PoSSQ)));
 else
     subStats.subSteadyState = NaN;
 end    
+
 subStats.sag = abs(subStats.subSteadyState-subStats.minV);
+
 subStats.sagRatio = (subStats.minV-subStats.baselineVm)/(subStats.subSteadyState-subStats.baselineVm);
 
 %% rebound slope
@@ -77,7 +78,7 @@ subStats.reboundDepolarization = abs(CCSeries.data.load(StimOff+loc)-...
    CCSeries.data.load(StimOff+loc+round(params.reboundFitWindow/CCSeries.starting_time_rate)));
 %%
 
-if checkVolts(CCSeries.data_unit)
+if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
     
     subStats.minV  = subStats.minV*1000;  
     subStats.sag = subStats.sag*1000;
@@ -100,9 +101,9 @@ table.Properties.VariableNames = {'SweepAmp','baseVm','minV','minVTime',...
               'maxSubDeflection','tauMin', 'tauMinGF','SteadyState',...
              'sag','sagRatio','reboundSlope','reboundDepolarization'};
 
-table = table2nwb(table, 'subthreshold parameters');
+temp_table = util.table2nwb(table, 'subthreshold parameters');
 
-module_subStats.dynamictable.set(CurrentName, table);
+module_subStats.dynamictable.set(CurrentName, temp_table);
 
 %%
 

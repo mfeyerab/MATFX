@@ -2,7 +2,7 @@ function [module_spikes, sp, SpQC, QCpass] = ...
     processSpikes(CCSeries, StimOn, StimOff, ...
      params, supraCount, module_spikes, SpQC, QCpass, SweepCount, CurrentName)
 
- if checkVolts(CCSeries.data_unit)
+ if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
     
     supraEvents = find(...
         CCSeries.data.load(StimOn:StimOff+round(CCSeries.starting_time_rate*0.005))>=params.thresholdV/1000)-1+StimOn;
@@ -35,7 +35,7 @@ if ~isempty(supraEvents)
                  'slow_trough','slow_trough_dur', 'fullWidthTP', ...
                  'heightTP'};
          
-    if checkVolts(CCSeries.data_unit)
+    if checkVolts(CCSeries.data_unit)&& string(CCSeries.description) ~= "PLACEHOLDER"
         
         table.peak  = table.peak*1000;  
         table.threshold  = table.threshold*1000;  
@@ -57,7 +57,7 @@ if ~isempty(supraEvents)
     table.throughTime = ...
         table.throughTime*1000/round(CCSeries.starting_time_rate);
 
-    table = table2nwb(table, 'AP processing results');
+    table = util.table2nwb(table, 'AP processing results');
 
 %% save in dynamic table
 

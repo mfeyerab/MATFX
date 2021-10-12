@@ -2,7 +2,7 @@ function [resistance, offset]= inputResistance(SubStatTable, params, NamesPassed
 
 tempX = [];
 
-if nargin==2 
+if nargin==2 %without QC
     [tempY,tempX] = deal(zeros(SubStatTable.Count,1));
     for i = 1: SubStatTable.Count
          if isa(SubStatTable.values{i}.vectordata.map('maxSubDeflection').data, 'double')
@@ -14,7 +14,7 @@ if nargin==2
          end
     end
     check = 0;
-elseif nargin==3 
+elseif nargin==3 % with QC
     
    for i = 1: SubStatTable.Count
      if ismember(str2double(regexp(SubStatTable.keys{i},'\d*','Match')), NamesPassedSweeps)
@@ -36,8 +36,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     inputX(isnan(inputX)) = [];
     inputY(isnan(inputY)) = [];        
     f = polyfit(inputX,inputY,1);
-    resistance = f(1) * (10^3);
-    offset = f(2);
+    resistance = round(f(1) * (10^3),2);
+    offset = round(f(2),2);
     if params.plot_all == 1 && check == 1
         figure('visible','off'); 
         hold on
@@ -49,14 +49,14 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
         title('V/I curve')
         box off
         axis tight 
-        export_fig([params.outDest, '\', ...
+        export_fig([params.outDest, '\resistance\', ...
              params.cellID, ' input resistance'],params.plot_format,'-r100'); 
         close
     end
 elseif length(nonzeros(tempX)) == 1
   
     f = polyfit([0; tempX],[0; tempY],1);
-    resistance = f(1) * (10^3);
+    resistance = round(f(1) * (10^3));
     offset = 0;
     if params.plot_all == 1 && check == 1
         figure('visible','off'); 
@@ -69,7 +69,7 @@ elseif length(nonzeros(tempX)) == 1
         title('V/I curve')
         box off
         axis tight  
-        export_fig([params.outDest, '\', ...
+        export_fig([params.outDest, '\resistance\', ...
              params.cellID, 'input resistance'],params.plot_format,'-r100');
         close
     end

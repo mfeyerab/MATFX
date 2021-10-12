@@ -12,6 +12,7 @@ by deviations from the grand average. To set the between sweep mode also add
 a 1 or 2 as input argument.
 %}
 
+
 check1 = 0;
 check2 = 0;
 for v = 1:nargin
@@ -43,9 +44,26 @@ if check2 == 0
    error('No number inputed for between sweep QC')
 end
 cellList = dir([mainFolder,'\','*.nwb']);                                      % list of cell data files
+cellList = cellList(~[cellList.isdir]);
 params = loadParams;   
 params.outDest = outDest; % load parameters to workspace
 tic
+
+delete(fullfile(params.outDest, '\peristim\*'))
+delete(fullfile(params.outDest, '\resistance\*'))
+delete(fullfile(params.outDest, '\profiles\*'))
+delete(fullfile(params.outDest, '\firingPattern\*'))
+delete(fullfile(params.outDest, '\QC\*'))
+delete(fullfile(params.outDest, '\traces\*'))
+delete(fullfile(params.outDest, '\betweenSweeps\*'))
+mkdir(fullfile(params.outDest, '\peristim'))
+mkdir(fullfile(params.outDest, '\resistance'))
+mkdir(fullfile(params.outDest, '\profiles'))
+mkdir(fullfile(params.outDest, '\firingPattern'))
+mkdir(fullfile(params.outDest, '\QC'))
+mkdir(fullfile(params.outDest, '\traces'))
+mkdir(fullfile(params.outDest, '\betweenSweeps'))
+
 %% Set to overwrite or delete nwb files from output folder 
 
 overwrite = 0;
@@ -78,7 +96,7 @@ QCparameterTotal = struct(); QCpassTotal = struct(); QCcellWide = {};
 
 %% Looping through nwb files
 for n = 1:length(cellList)                                                 % for all cells in directory
-    cellFile = nwbRead([mainFolder,'\',cellList(n).name]);                 % load nwb file    
+    cellFile = nwbRead(fullfile(cellList(n).folder,cellList(n).name));                 % load nwb file    
     params.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)   
     
     if ~isempty(cellFile.general_experiment_description) &&...
@@ -88,6 +106,7 @@ for n = 1:length(cellList)                                                 % for
       cellFile.identifier = params.cellID ;
     end
     disp(params.cellID)                                                           % display ID number
+    params.cellID(params.cellID=='-') = '_';
     %% Initialize processing moduls and new columns for Sweep table 
     initProceModules 
     cellFile  = addColumns2SwTabl(cellFile,qc_tags);    
@@ -106,6 +125,8 @@ for n = 1:length(cellList)                                                 % for
     SpPattrn.ISIs = {}; SpPattrn.spTrain = struct(); SpQC = struct(); 
     SweepCount = 1;  subCount = 1; supraCount = 1;   
     SpPattrn.spTrainIDs = {}; SpPattrn.BinTbl = zeros(0,20); SpPattrn.RowNames = {};
+    LP_TracesExport = table();
+     
     %% Looping through sweeps 
     SweepPathsAll = {cellFile.general_intracellular_ephys_sweep_table.series.data.path};
     SweepPathsStim = SweepPathsAll(contains(SweepPathsAll,'stimulus'));
@@ -114,8 +135,9 @@ for n = 1:length(cellList)                                                 % for
     for s = 1:length(SweepPathsStim)                      % loop through sweeps        
 
         CCStimSeries = cellFile.resolve(SweepPathsStim(s)); 
-        
-        if ~contains(CCStimSeries.stimulus_description, 'Ramp') 
+               
+        if isa(CCStimSeries, 'types.core.CurrentClampStimulusSeries') && ...
+                ~contains(CCStimSeries.stimulus_description, params.SkipTags) 
         
         %CurrentStimPath = cell2mat(SweepPathsStim(s));
         %CurrentStimName = CurrentStimPath(find(CurrentStimPath=='/',1,'last')+1:length(CurrentStimPath));        
@@ -134,9 +156,15 @@ for n = 1:length(cellList)                                                 % for
         
         if ~strcmp(QCpass.Protocol(SweepCount),'NA')
         %% Analysis
-           [QC_parameter, QCpass]  = SweepwiseQC(CCSeries, StimOn, StimOff, ...
-                                   SweepCount, QC_parameter, QCpass, params);
-
+           if contains(CCStimSeries.stimulus_description, params.LPtags)           
+               LP_TracesExport = ...
+                   exportSweep4web(CCSeries, StimOn, StimOff, sweepAmp, ...
+                                     CurrentName, SweepCount, LP_TracesExport);     
+           end
+           
+          [QC_parameter, QCpass]  = SweepwiseQC(CCSeries, StimOn, StimOff, ...
+                                   SweepCount, QC_parameter, QCpass, params);                                     
+                               
            if sweepAmp > 0                                                                % if current input > 0
 
               [module_spikes, sp, SpQC, QCpass] = ...
@@ -162,7 +190,8 @@ for n = 1:length(cellList)                                                 % for
         end
     end
    %% save AP wave and subthreshold parameters
-   module_APP = fillAPP_Mod(module_APP,SpPattrn); 
+   
+   module_APP = fillAPP_Mod(module_APP,SpPattrn,cellFile.nwb_version); 
    cellFile.processing.set('AP Pattern', module_APP); 
    cellFile.processing.set('subthreshold parameters', module_subStats);
    cellFile.processing.set('AP wave', module_spikes);
@@ -186,7 +215,7 @@ for n = 1:length(cellList)                                                 % for
    QCparameterTotal.(['ID_' params.cellID ]) = QC_parameter;  
    QCpassTotal.(['ID_' params.cellID  ]) = QCpass;  
    QCpass.bad_spikes(isnan(QCpass.bad_spikes)) = 1; 
-   tbl = table2nwb(QC_parameter, 'QC parameter table');  
+   tbl = util.table2nwb(QC_parameter, 'QC parameter table');  
    module_QC.dynamictable.set('QC_parameter_table', tbl);
    cellFile.processing.set('QC parameter', module_QC);
     
@@ -287,20 +316,34 @@ for n = 1:length(cellList)                                                 % for
           1:find(cellFile.general_intracellular_ephys.values{1}.location==',')-1)};
    else
       ICsummary.brainOrigin(n) = {cellFile.general_intracellular_ephys.values{1}.location};
+      ICsummary.Species(n) = {cellFile.general_subject.species};
    end
     
-   if cellFile.general.Count ~= 0 && string(cellFile.general_subject.species) == "Mus musculus" && ...
-        string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
-
-       ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};
+   if cellFile.general.Count ~= 0 && string(cellFile.general_subject.species) == "Mus musculus"
+        
+      ICsummary.ReporterTag(n) = {cellFile.general_subject.genotype};       
+   %string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
    else
        ICsummary.ReporterTag(n) = {'None'} ;
    end       
-   %% Export
+   %% Export Traces and NWB file
+   
+  if ~isempty(LP_TracesExport)
+       prndRow = [];
+        for r = 1:height(LP_TracesExport)    
+            if sum(LP_TracesExport{r,3}) == 0
+                prndRow = [prndRow; r]; 
+            end
+        end
+       LP_TracesExport(prndRow,:) = [];     % pruning empty sweeps
+
+       writetable(LP_TracesExport, ...
+           fullfile(params.outDest, '\traces\', [cellFile.identifier, '.csv']))
+   end
    if overwrite == 1
       delete(fullfile(params.outDest, '\', cellList(n).name)) 
    end    
-   nwbExport(cellFile, fullfile(params.outDest, '\', cellList(n).name));
+  % nwbExport(cellFile, fullfile(params.outDest, '\', cellList(n).name));
 end                                                                        % end cell level for loop
 
 %% Output summary fiels and figures 

@@ -14,7 +14,7 @@ tempY = nonzeros(tempY);
 tempX = nonzeros(tempX);
 
 if ~isempty(tempY)
-    output = min(tempY)/max(tempY)/(min(tempX)/max(tempX));
+    output = round(min(tempY)/max(tempY)/(min(tempX)/max(tempX)),2);
 else
     output = NaN;
 end

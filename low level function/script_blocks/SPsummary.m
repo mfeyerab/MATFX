@@ -15,8 +15,9 @@ if isa(cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total
             cellFile.general_intracellular_ephys_sweep_table.vectordata.map('BinarySP').data.load],2));  
         end
         
-        Sweepnames = cellfun(@(a) str2double(a), regexp(SweepPathsAll,'\d*','Match'));
-
+        Sweepnames = cellfun(@(a) str2double(a), ...
+            cellfun(@(v)v(1),regexp(SweepPathsAll,'\d*','Match')));   
+        
         NamesPassedSweeps = unique(Sweepnames(IdxPassedSweeps));
         IdxPassedSweeps = IdxPassedSweeps(1:length(NamesPassedSweeps));    
     

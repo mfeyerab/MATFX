@@ -53,7 +53,7 @@ if ~isempty(sagSweepSeries)
         sagSweepSeries.data.load(sagSweepOn-0.15*sagSweepSeries.starting_time_rate...
           :sagSweepOff+0.2*sagSweepSeries.starting_time_rate));
     p.Color = 'black';
-    if checkVolts(sagSweepSeries.data_unit)
+    if checkVolts(sagSweepSeries.data_unit) && string(sagSweepSeries.description) ~= "PLACEHOLDER"
       ylim([-0.115 0.070])
       ylabel('Voltage (V)')
     else
@@ -84,7 +84,7 @@ if ~isempty(RheoSweepSeries)
         RheoSweepSeries.data.load(RheoSweepOn-0.15*RheoSweepSeries.starting_time_rate...
           :RheoSweepOff+0.2*RheoSweepSeries.starting_time_rate));
     p.Color = 'black';
-    if checkVolts(RheoSweepSeries.data_unit)
+    if checkVolts(RheoSweepSeries.data_unit) &&  string(RheoSweepSeries.description) ~= "PLACEHOLDER"
       ylim([-0.115 0.080])
       ylabel('Voltage (V)')
     else
@@ -120,7 +120,7 @@ if ~isempty(HeroSweepSeries)
         HeroSweepSeries.data.load(RheoSweepOn-0.15*HeroSweepSeries.starting_time_rate...
           :RheoSweepOff+0.2*HeroSweepSeries.starting_time_rate));
     p.Color = 'black';
-    if checkVolts(HeroSweepSeries.data_unit)
+    if checkVolts(HeroSweepSeries.data_unit) && string(HeroSweepSeries.description) ~= "PLACEHOLDER"
       ylim([-0.115 0.080])
       ylabel('Voltage (V)')
     else
@@ -157,7 +157,7 @@ if ~isempty(RheoSweepSeries)
           :round((spStart/1000)*RheoSweepSeries.starting_time_rate) +...
               5*RheoSweepSeries.starting_time_rate/1000));
     p.Color = 'black';
-    if checkVolts(RheoSweepSeries.data_unit)
+    if checkVolts(RheoSweepSeries.data_unit) && string(RheoSweepSeries.description) ~= "PLACEHOLDER"
       ylim([-0.075 0.080])
       ylabel('Voltage (V)')
       scatter(1,PlotStruct.RheoSweep.vectordata.map('threshold').data(1)/1000,100)
@@ -189,9 +189,6 @@ else
         cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
           'SweepAmp').data.load(PlotStruct.SPSweepTablePos)));
 end
-
-
-
 
 title(['Waveform SP (', SPAmp,'pA) vs LP (', RheoAmp ,'pA)'])
 xlabel('time (ms)')
@@ -259,6 +256,6 @@ title('Waveform phaseplots SP vs LP')
 % end
 %% Saving the figure
 
-export_fig([params.outDest, '/', cellFile.identifier,' Cell profile', date],params.plot_format,'-r100');
+export_fig([params.outDest, '/profiles/', params.cellID,' Cell profile', date],params.plot_format,'-r100');
 close
 
