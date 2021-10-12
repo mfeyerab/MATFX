@@ -1,8 +1,5 @@
 function SpPattrn = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, SpPattrn)
 
-
-%[spTrain, ISIs] = estimateAPTrainParams(sp,StimOn,CCSeries,supraCount, SpPattrn)
-
 latency = (sp.thresholdTime(1)-StimOn)/round(CCSeries.starting_time_rate/1000);
 
 TblIdx = sum(~cellfun(@isempty,SpPattrn.spTrainIDs));
@@ -75,3 +72,6 @@ SpPattrn.spTrain.burst(supraCount,1) = burst;
 SpPattrn.spTrain.LastQuiesence(supraCount,1) = ...
    (StimOn + CCSeries.starting_time_rate - sp.thresholdTime(...
    length(sp.thresholdTime)))*1000/CCSeries.starting_time_rate;
+if SpPattrn.spTrain.LastQuiesence(supraCount,1) < 0
+  SpPattrn.spTrain.LastQuiesence(supraCount,1) = 0;
+end
