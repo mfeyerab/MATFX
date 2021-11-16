@@ -6,81 +6,51 @@ dbstop if error
 %{ 
 Runs analysis pipeline on all nwb file in the path indicated as first input argument.
 Second input argument is the path at which nwb files with additional processing moduls are saved. 
-If only one input argument is used nwb files will be overwritten.
-In addition there are two different modes of between Sweep QC: Mode 1, in
-which the cell has a target membrane potential which is the average of the
-prestimulus membrane potential of the first three sweeps. And Mode 2, in
-which there is no set membrane potential and the between sweep QC is assessed 
-by deviations from the grand average. To set the between sweep mode also add
-a 1 or 2 as input argument.
+If only one input argument is used nwb files will be overwritten. An additional input argument 
+is necessary to set the betweenSweepQCmode (either 1 or 2): Mode 1, with a target membrane potential,
+which is the average of the prestimulus interval of the first three sweeps. Mode 2, in
+which betweenSweep QC is assessed by deviations from the grand average. 
 %}
 
-check1 = 0;
-check2 = 0;
-for v = 1:nargin
-    if check1 == 0 && (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
-        mainFolder = varargin{v};
-        if endsWith(mainFolder, '\') || endsWith(mainFolder, '/')
-          mainFolder(length(mainFolder)) = [];
-        end
-        check1 = 1;
-    elseif (isa(varargin{v}, 'char') || isa(varargin{v}, 'string'))
-        outDest = varargin{v};
-        if endsWith(outDest, '\') || endsWith(outDest, '/')
-          outDest(length(outDest)) = [];
-        end      
-        disp('No overwrite mode')
-    elseif isa(varargin{v}, 'double') 
-        BwSweepMode = varargin{v};    
-        check2 = 1;
+if length(varargin) > 2                                                 
+          disp('No overwrite mode') 
+          overwrite = 0;
+          mainFolder = varargin{1};
+          outDest = varargin{2};
+else
+     [outDest, mainFolder] = deal(varargin{1});
+     overwrite = 1;
+end    
+
+if isa(varargin{length(varargin)}, 'double') 
+        BwSweepMode = varargin{length(varargin)};    
         if BwSweepMode == 1
             disp('between sweep QC with a set target value')
         elseif BwSweepMode == 2
             disp('between sweep QC without a set target value')
         else
-            error('Please use 1 or 2 as input for respective between sweep mode ')
+            error('Please use int 1 or 2 as for respective between sweep QC')
         end
-    end
-end
-if check2 == 0
+else
    error('No number inputed for between sweep QC')
 end
+
 cellList = dir([mainFolder,'\','*.nwb']);                                  % list of cell data files
 cellList = cellList(~[cellList.isdir]);
 params = loadParams;   
-params.outDest = outDest; % load parameters to workspace
+params.outDest = outDest;                                                  % save parameters to workspace structure
 tic
 
-delete(fullfile(params.outDest, '\peristim\*'))
-delete(fullfile(params.outDest, '\resistance\*'))
-delete(fullfile(params.outDest, '\profiles\*'))
-delete(fullfile(params.outDest, '\firingPattern\*'))
-delete(fullfile(params.outDest, '\QC\*'))
-delete(fullfile(params.outDest, '\traces\*'))
-delete(fullfile(params.outDest, '\betweenSweeps\*'))
-mkdir(fullfile(params.outDest, '\peristim'))
-mkdir(fullfile(params.outDest, '\resistance'))
-mkdir(fullfile(params.outDest, '\profiles'))
-mkdir(fullfile(params.outDest, '\firingPattern'))
-mkdir(fullfile(params.outDest, '\QC'))
-mkdir(fullfile(params.outDest, '\traces'))
-mkdir(fullfile(params.outDest, '\betweenSweeps'))
-mkdir(fullfile(params.outDest, '\AP_Waveforms'))
-
-%% Set to overwrite or delete nwb files from output folder 
-
-overwrite = 0;
-if length(mainFolder) == length(outDest) && mainFolder == outDest
-    overwrite = 1;
-else    
-    for k = 1 : length(cellList)
-      baseFileName = cellList(k).name;
-      fullFileName = fullfile(outDest, baseFileName);
-      fprintf(1, 'Now deleting %s\n', fullFileName);
-      delete(fullFileName);
-    end
-    clear fullFileName baseFileName
-end    
+if ~exist(fullfile(params.outDest, '\peristim'), 'dir')
+    mkdir(fullfile(params.outDest, '\peristim'))
+    mkdir(fullfile(params.outDest, '\resistance'))
+    mkdir(fullfile(params.outDest, '\profiles'))
+    mkdir(fullfile(params.outDest, '\firingPattern'))
+    mkdir(fullfile(params.outDest, '\QC'))
+    mkdir(fullfile(params.outDest, '\traces'))
+    mkdir(fullfile(params.outDest, '\betweenSweeps'))
+    mkdir(fullfile(params.outDest, '\AP_Waveforms'))
+end
 
 %% Initialize feature and QC summary tables
 
@@ -101,94 +71,89 @@ QCparameterTotal = struct(); QCpassTotal = struct(); QCcellWide = {};
 for n = 1:length(cellList)                                                 % for all cells in directory
   nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));            % load nwb file
   params.cellID = cellList(n).name(1:length(cellList(n).name)-4);          % cell ID (used for saving data)
-    
-  if ~isempty(nwb.general_experiment_description) &&...
-            contains(nwb.general_experiment_description,'PatchMaster')
-        params.cellID  =  params.cellID (1:31);
-        params.cellID(params.cellID =='-') = '_';
-        nwb.identifier = params.cellID ;
-  end
-  disp(params.cellID)                                                      % display ID number
-  params.cellID(params.cellID=='-') = '_';
 %% Initialize processing moduls and new columns for Sweep table
-  initProceModules
-  nwb  = addColumns2SwTabl(nwb,qc_tags);
-%% Setting up two QC tables and initializing Variables for counts and temproray storage
-
-  QC_parameter = table();
-  QC_parameter.SweepID = repmat({''},length(nwb.acquisition.keys),1);
-  QC_parameter.Protocol = repmat({''},length(nwb.acquisition.keys),1);
-  QC_parameter(:,3:length(qc_tags(2:end))+2) = array2table(NaN(...
-    length(nwb.acquisition.keys), length(qc_tags)-1));
-  QC_parameter.Properties.VariableNames(3:width(QC_parameter)) = ...
-      [qc_tags(3:end), {'CapaComp'}];
-  QCpass = table();
-  QCpass.SweepID = repmat({''},length(nwb.acquisition.keys),1);
-  QCpass.Protocol = repmat({''},length(nwb.acquisition.keys),1);
+  initProceModules                                                         % initialize processing modules
+  nwb  = addColumns2SwTabl(nwb,qc_tags);                                   % add initialized QC to sweep table
+%% Setting up QC tables and initializing variables
+  QC_parameter = table();                                                  % creating empty MATLAB table for QC paramters
+  QC_parameter.SweepID = repmat({''},length(nwb.acquisition.keys),1);      % initializing SweepID column of QC paramters table
+  QC_parameter.Protocol = repmat({''},length(nwb.acquisition.keys),1);     % initializing Protocol column of QC paramters table
+  QC_parameter(:,3:length(qc_tags(2:end))+2) = array2table(NaN(...         
+    length(nwb.acquisition.keys), length(qc_tags)-1));                     % initializing actual parameter variables with NaNs
+  QC_parameter.Properties.VariableNames(3:width(QC_parameter)) = ...        
+      [qc_tags(3:end), {'CapaComp'}];                                      % naming parameter variables
+  
+  QCpass = table();                                                        % creating empty MATLAB table for QC passing logic 
+  QCpass.SweepID = repmat({''},length(nwb.acquisition.keys),1);            % initializing SweepID column of QC passing table 
+  QCpass.Protocol = repmat({''},length(nwb.acquisition.keys),1);           % initializing Protocol column of QC passing table
   QCpass(:,3:length(qc_tags)+1) = ...
-      array2table(NaN(length(nwb.acquisition.keys), length(qc_tags)-1));
-  QCpass.Properties.VariableNames(3:width(QCpass)) = qc_tags(2:end);
-  SpPattrn.ISIs = {}; SpPattrn.spTrain = struct(); SpQC = struct();
-  subCount = 1; supraCount = 1;
-  SpPattrn.spTrainIDs = {}; SpPattrn.BinTbl = zeros(0,20); SpPattrn.RowNames = {};
-  LP_TracesExport = table();
+      array2table(NaN(length(nwb.acquisition.keys), length(qc_tags)-1));   % initializing logic values for passing table
+  QCpass.Properties.VariableNames(3:width(QCpass)) = qc_tags(2:end);       % naming passing parameters variables
+  
+  SpPattrn.ISIs = {}; SpPattrn.spTrain = struct(); SpQC = struct();        % initializing variables for interspike intervals, spike train parameters, spike QC 
+  subCount = 1; supraCount = 1;                                            % starting counting variables for sub- and suprathreshold variables
+  SpPattrn.spTrainIDs = {}; SpPattrn.BinTbl = zeros(0,20);                 % initializing variables to save spike train sweep IDs and bined spike train table
+  SpPattrn.RowNames = {};                                                  %
+  LP_TracesExport = table();                                               % initializing table for exporting raw data traces as csv 
   
 %% Looping through sweeps
     
-  ResponseTbl = ...
-nwb.general_intracellular_ephys_intracellular_recordings.responses.response.data.load;
+  IcepysTab = nwb.general_intracellular_ephys_intracellular_recordings;    % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
+  ResponseTbl = IcepysTab.responses.response.data.load;                    % loading all sweep response from IntracellularRecordingsTable
     
-  for SweepCount = 1:nwb.general_intracellular_ephys_intracellular_recordings.id.data.dims                    % loop through sweeps        
+  for SweepCount = 1:IcepysTab.id.data.dims                                % loop through sweeps of IntracellularRecordinsTable        
+     
+    SwData = struct();                                                     % initialize  structure for variabels containing sweep specific Data  
       
-    CurrentPath = table2array(ResponseTbl(SweepCount,3)).path;
-        
-    CurrentName = CurrentPath(find(CurrentPath=='/',1,'last')+1:length(CurrentPath));
+    SwData.CurrentPath = table2array(ResponseTbl(SweepCount,3)).path;      % get path to sweep within nwb file 
+    SwData.CurrentName = ...
+      SwData.CurrentPath(find(SwData.CurrentPath=='/',1,'last') ...
+          +1:length(SwData.CurrentPath));                                  % extracts name of the sweep
                 
-    [QC_parameter.SweepID(SweepCount), QCpass.SweepID(SweepCount)] = deal({CurrentName});
-      
-    [QC_parameter.Protocol(SweepCount), QCpass.Protocol(SweepCount)] = deal(...
-     nwb.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-       'protocol_type').vectordata.values{1}.data.load(SweepCount));   
+    [QC_parameter.SweepID(SweepCount), QCpass.SweepID(SweepCount)] = ...
+        deal({SwData.CurrentName});                                        % saves the sweep name in QC tables        
+    [QC_parameter.Protocol(SweepCount), QCpass.Protocol(SweepCount)] = ...
+           deal(IcepysTab.dynamictable.map('protocol_type' ...
+                ).vectordata.values{1}.data.load(SweepCount));             % saves the protocol name/type in QC tables   
    
-    if ~contains(...
-nwb.general_intracellular_ephys_intracellular_recordings.dynamictable.values{...
-           1}.vectordata.values{1}.data.load(SweepCount), params.SkipTags) 
+    if ~contains(IcepysTab.dynamictable.values{...
+           1}.vectordata.values{1}.data.load(SweepCount), params.SkipTags) % only continues if protocol name is not on the list in params.SkipTags
                 
-       CCSeries = nwb.resolve(CurrentPath);
+       CCSeries = nwb.resolve(SwData.CurrentPath);                                % load the CurrentClampSeries of the respective sweep
                        
-       StimOn = double(table2array(ResponseTbl(SweepCount,1))); 
-       StimOff = double(StimOn + table2array(ResponseTbl(SweepCount,2))); 
+       SwData.StimOn = double(table2array(ResponseTbl(SweepCount,1)));     % gets stimulus onset from response table 
+       SwData.StimOff = double(SwData.StimOn + ...
+                                 table2array(ResponseTbl(SweepCount,2)));  % gets end of stimulus from response table 
        
-       sweepAmp = double(...
-  nwb.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-         1}.data.load(SweepCount));
+       SwData.sweepAmp = double(IcepysTab.stimuli.vectordata.values{...
+                         1}.data.load(SweepCount));                        % gets current amplitude from IntracellularRecordingsTable
        
        %% Sweep-wise analysis
-       if contains(CCSeries.stimulus_description, params.LPtags)           
-           LP_TracesExport = exportSweep4web(CCSeries, StimOn, ...
-               StimOff, sweepAmp, CurrentName, SweepCount, LP_TracesExport);     
+       if contains(CCSeries.stimulus_description, params.LPtags)           % if sweep is a long pulse protocol 
+           
+           LP_TracesExport = exportSweepCSV(...
+               CCSeries, SwData, SweepCount, LP_TracesExport);             % a certain section of the trace is exported as csv  
        end
            
-       [QC_parameter, QCpass]  = SweepwiseQC(CCSeries, StimOn, StimOff, ...
-                                   SweepCount, QC_parameter, QCpass, params);                                     
+       [QC_parameter, QCpass] = SweepwiseQC(CCSeries, SwData, SweepCount, ...
+                                        QC_parameter, QCpass, params);     % Sweep QC of the CurrentClampSeries                              
                                
-       if sweepAmp > 0                                                                % if current input > 0
+       if SwData.sweepAmp > 0                                              % if current input is depolarizing
 
           [module_spikes, sp, SpQC, QCpass] = ...
-                 processSpikes(CCSeries, StimOn, StimOff, params, ...
-                                 supraCount, module_spikes, SpQC, ...
-                                   QCpass, SweepCount, CurrentName);
+                 processSpikes(CCSeries, SwData, params, supraCount, ...
+                                 module_spikes, SpQC, QCpass, SweepCount); % detection and processing of spikes 
 
-            if ~isempty(sp) && length(sp.peak) > 1
-                 SpPattrn.spTrainIDs(supraCount,1) = {CurrentName};
-                 SpPattrn = estimateAPTrainParams(...
-                       sp,StimOn,CCSeries, supraCount, SpPattrn);
+            if ~isempty(sp) && length(sp.peak) > 1                         % if sweep has more than one spike
+                 SpPattrn.spTrainIDs(supraCount,1) = {SwData.CurrentName}; % sweep name is saved under spike train IDs
+                 SpPattrn = estimateAPTrainParams(... 
+                       sp,SwData.StimOn,CCSeries, supraCount, SpPattrn);   % getting spike train parameters
             end
-            supraCount = supraCount + 1;
+            supraCount = supraCount + 1;                         
 
-            elseif sweepAmp < 0 
-               module_subStats = subThresFeatures(CCSeries, StimOn, StimOff, ...
-                              sweepAmp, CurrentName, module_subStats, params);                          
+            elseif SwData.sweepAmp < 0                                     % if current input is hyperpolarizing
+               module_subStats = subThresFeatures(CCSeries, SwData, ...
+                                                  module_subStats, params);% getting subthreshold parameters                          
                subCount = subCount +1;
        end
      SweepCount = SweepCount + 1;    
@@ -196,32 +161,32 @@ nwb.general_intracellular_ephys_intracellular_recordings.dynamictable.values{...
   end
    %% save AP wave and subthreshold parameters
    
-   module_APP = fillAPP_Mod(module_APP,SpPattrn,nwb.nwb_version); 
-   nwb.processing.set('AP Pattern', module_APP); 
-   nwb.processing.set('subthreshold parameters', module_subStats);
-   nwb.processing.set('AP wave', module_spikes);
+   module_APP = fillAPP_Mod(module_APP,SpPattrn,nwb.nwb_version);          % make AP pattern processing module  
+   nwb.processing.set('AP Pattern', module_APP);                           % add AP pattern processing module to nwb obejct
+   nwb.processing.set('subthreshold parameters', module_subStats);         % add subthreshold parameters processing module to nwb obejct 
+   nwb.processing.set('AP wave', module_spikes);                           % add AP wave from processing module to nwb obejct
 
    %% QC bridge balance relative to input resistance
    Ri_preqc = inputResistance(...
-       nwb.processing.get('subthreshold parameters').dynamictable, params);
+       nwb.processing.get('subthreshold parameters').dynamictable, params);% calculate input resistance before QC 
    QCpass.bridge_balance_rela = ...
-       QC_parameter.bridge_balance_rela < Ri_preqc*params.factorRelaRa;
+       QC_parameter.bridge_balance_rela < Ri_preqc*params.factorRelaRa;    % check if input resistance meets relatice bridge balance criterium
    
    %% Between Sweep QC
    [QCpass.betweenSweep, QC_parameter.betweenSweep ] = ...
-       BetweenSweepQC(QC_parameter, BwSweepMode, params);
+       BetweenSweepQC(QC_parameter, BwSweepMode, params);                  % execute betweenSweep QC 
    
    %% save SpikeQC in ragged array    
       
    %% Save QC results in Sweeptable and external   
-   QCpass.bad_spikes(isnan(QCpass.bad_spikes)) = 1; 
-   QCparameterTotal.(['ID_' params.cellID ]) = QC_parameter;  
-   QCpassTotal.(['ID_' params.cellID  ]) = QCpass;  
-   tbl = util.table2nwb(QC_parameter, 'QC parameter table');  
-   module_QC.dynamictable.set('QC_parameter_table', tbl);
-   nwb.processing.set('QC parameter', module_QC);
-   keys = nwb.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-    'quality_control_pass').vectordata.keys;
+   QCpass.bad_spikes(isnan(QCpass.bad_spikes)) = 1;                        % replace nans with 1s for pass in the bad spike column these are from sweeps without sweeps
+   QCparameterTotal.(['ID_' params.cellID ]) = QC_parameter;               % add QC parameter table of the cell to structure for saving those  
+   QCpassTotal.(['ID_' params.cellID  ]) = QCpass;                         % add QC pass table of the cell to structure for saving those  
+   tbl = util.table2nwb(QC_parameter, 'QC parameter table');               % convert QC parameter to DynamicTable
+   module_QC.dynamictable.set('QC_parameter_table', tbl);                  % add DynamicTable to QC processing module
+   nwb.processing.set('QC parameter', module_QC);                          % add QC processing module to nwb object
+   keys = IcepysTab.dynamictable.map(...
+    'quality_control_pass').vectordata.keys;                               % Get columns of quality control section of IntracellularRecordingTable
    
   for s = 1:height(QCpass)                                                 % loop through sweeps/rows of QC pass table
       if  sum(isnan(QCpass{s,4:14})) == 0 && sum(QCpass{s,4:14}) == 11     % Condition 1: QC pass columns do not contain NaN. Condition 2: All columns have to contain 1
@@ -232,126 +197,135 @@ nwb.general_intracellular_ephys_intracellular_recordings.dynamictable.values{...
          QCpass(s,3) = {0};                                                % sweep has not passed the total QC
       end
   end
-  for t = 1:length(keys)                                                   %loop trhough QC pass 
+  for t = 1:length(keys)                                                   %loop columns of QC pass 
     if any(contains(fieldnames(QCpass),keys(t)))
-        nwb.general_intracellular_ephys_intracellular_recordings.dynamictable.values{...
+        IcepysTab.dynamictable.values{...
           2}.vectordata.values{t}.data = ...
                   QCpass.(char(keys(t)))';   
     end
   end
   
-  totalSweeps = height(QCpass)-sum(isnan(QCpass.QC_total_pass));
-  QC_removalsPerTag(n,1) = {totalSweeps};
-  QC_removalsPerTag(n,2) = varfun(@sum, rmmissing(QCpass(:,3)));
+  totalSweeps = height(QCpass)-sum(isnan(QCpass.QC_total_pass));           % calculates the number of sweeps being considered during the analysis
+  QC_removalsPerTag(n,1) = {totalSweeps};                                  % adding total number of sweeps to the removals-per-tag table
+  QC_removalsPerTag(n,2) = varfun(@sum, rmmissing(QCpass(:,3)));           % adding the number of passed sweeps to the removals-per-tag table
   QC_removalsPerTag(n,3:end) = num2cell(abs(table2array(...
-      varfun(@sum, rmmissing(QCpass(:,4:end))))-totalSweeps));
+      varfun(@sum, rmmissing(QCpass(:,4:end))))-totalSweeps));             % adding the number of failed sweeps per QC criterium to the removals-per-tag table
  
    %% Feature Extraction and Summary
-   if  ~isempty(nwb.general_intracellular_ephys.values{...
-           1}.('initial_access_resistance')) && ...
-           (string(nwb.general_intracellular_ephys.values{1}.('initial_access_resistance')) ~= "NaN" && ...
-               string(nwb.general_intracellular_ephys.values{1}.('initial_access_resistance')) ~= ...
-                   "has to be entered manually")
+   info = nwb.general_intracellular_ephys;
+   
+   if ~isempty(info.values{1}.('initial_access_resistance')) && ...
+              length(info.values{1}.('initial_access_resistance')) < 3     % if ini access resistance is non empty and smaller than 3 characters
       
-       if str2double(nwb.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
-                 <= params.cutoffInitRa 
-           if  str2double(nwb.general_intracellular_ephys.values{1}.('initial_access_resistance')) ...
+       if str2double(info.values{1}.('initial_access_resistance')) ...
+                <= params.cutoffInitRa  && ...                             % if ini access resistance is below absolute and relative threshold
+          str2double(info.values{1}.('initial_access_resistance')) ...
                  <= Ri_preqc*params.factorRelaRa
-                [nwb, ICsummary, PlotStruct] = ...
-                            LPsummary(nwb, ICsummary, n, params);
-                [nwb, ICsummary, PlotStruct] = ...
-                            SPsummary(nwb, ICsummary, n, params, PlotStruct);
-                plotCellProfile(nwb, PlotStruct, params)
-           else
-              display(['    was excluded by cell-wide QC for Ra higher than ', ...
-                  num2str(Ri_preqc*params.factorRelaRa)]);
-                  QCcellWide{end+1} = params.cellID ;
-           end
+
+           [nwb, ICsummary, PlotStruct] = LPsummary(nwb, ICsummary, n,...
+                                                       params);            % extract features from long pulse stimulus
+           [nwb, ICsummary, PlotStruct] =  SPsummary(nwb, ICsummary, n,...
+                                            params, PlotStruct);           % extract features from short pulse stimulus
+
+           plotCellProfile(nwb, PlotStruct, params)                        % plot cell profile 
        else
-              display(['    was excluded by cell-wide QC for Ra higher than ', ...
-                  num2str(params.cutoffInitRa )])
-                  QCcellWide{end+1} = params.cellID ;
-      end              
+           display(['excluded by cell-wide QC for Ra higher than ', ...
+                  num2str(Ri_preqc*params.factorRelaRa), ' or ',...
+                   num2str(params.cutoffInitRa )]);
+           QCcellWide{end+1} = params.cellID ;                             % save cellID for failing cell-wide QC
+       end  
+       
    else
-       [nwb, ICsummary, PlotStruct] = ...
-                            LPsummary(nwb, ICsummary, n, params);
-       [nwb, ICsummary, PlotStruct] = ...
-                            SPsummary(nwb, ICsummary, n, params, PlotStruct);
-       plotCellProfile(nwb, PlotStruct, params)
+       [nwb, ICsummary, PlotStruct] = LPsummary(nwb, ICsummary, n, params);% extract features from long pulse stimulus 
+       [nwb, ICsummary, PlotStruct] = SPsummary(nwb, ICsummary, ...
+                                                   n, params, PlotStruct); % extract features from short pulse stimulus 
+       plotCellProfile(nwb, PlotStruct, params)                            % plot cell profile
+       disp('No initial access resistance available') 
    end    
-   if isnan(ICsummary.thresholdLP(n)) && params.noSupra == 1
-         disp('     was excluded by cell-wide QC for no suprathreshold data') 
-         ICsummary(n,1:7) = {NaN};
-         QCcellWide{end+1} = params.cellID ;
+   if isnan(ICsummary.thresholdLP(n)) && params.noSupra == 1               % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
+         disp('excluded by cell-wide QC for no suprathreshold data') 
+         ICsummary(n,1:7) = {NaN};                                         % replace subthreshold features with NaNs
+         QCcellWide{end+1} = params.cellID ;                               % save cellID for failing cell-wide QC
    end
-  
    %% Add subject data, dendritic type and reporter status   
-   if nwb.processing.isKey('Anatomical data') && ~isempty(...
-           nwb.processing.values{3}.dynamictable.values{...
-                        1}.vectordata.values{1}.data)   
+   if nwb.processing.isKey('Anatomical data') && ~isempty(...              
+           nwb.processing.values{3}.dynamictable.values{...                % if there is an anatomical data processing module
+                        1}.vectordata.values{1}.data)                      % and there is data on dendritic type of the cell
                     
     ICsummary.dendriticType(n) = ...
        {nwb.processing.values{3}.dynamictable.values{1}.vectordata.map(...
-               'DendriticType').data.load};
+               'DendriticType').data.load};                                % assigning dendritic type to summary table
     ICsummary.SomaLayerLoc(n) = ...
        {nwb.processing.values{3}.dynamictable.values{1}.vectordata.map(...
-               'SomaLayerLoc').data.load};
+               'SomaLayerLoc').data.load};                                 % assigning soma layer location to summary table
    else
        [ICsummary.dendriticType(n),ICsummary.SomaLayerLoc(n)] = ...
-           deal({'NA'});
+           deal({'NA'});                                                   % NA for soma layer location and dendritic type of cells without entries 
    end
-   if nwb.general.Count ~= 0
+   if nwb.general.Count ~= 0                                               % if  
        ICsummary.Weight(n) = {nwb.general_subject.weight};
        ICsummary.Sex(n) = {nwb.general_subject.sex};
        ICsummary.Age(n) = {nwb.general_subject.age};  
        ICsummary.species(n) = {nwb.general_subject.species};
    end 
-   if ~isempty(nwb.general_intracellular_ephys.values{1}.slice)
-        temperature = regexp(nwb.general_intracellular_ephys.values{...
-                                  1}.slice, '(\d+,)*\d+(\.\d*)?', 'match');
-        if isempty(temperature)
+   if ~isempty(info.values{1}.slice)                                       % if there is information on brain slice of experiment
+        temperature = regexp(info.values{...
+                                  1}.slice, '(\d+,)*\d+(\.\d*)?', 'match');% extracting values for temperature
+        if isempty(temperature)                                            % if there is no temperature values
            ICsummary.Temperature(n) = NaN;
         else
-            ICsummary.Temperature(n) = str2double(cell2mat(temperature));
+            ICsummary.Temperature(n) = str2double(cell2mat(temperature));  % assign temperature values to summary table
         end
    end 
-   if string(nwb.general_institution) == "Allen Institute of Brain Science" 
-      ICsummary.brainOrigin(n) = {nwb.general_intracellular_ephys.values{...
-        1}.location(1:find(nwb.general_intracellular_ephys.values{...
-           1}.location==',')-1)};
+   if string(nwb.general_institution) == "Allen Institute of Brain Science"% if the cell is from the AIBS 
+      ICsummary.brainOrigin(n) = {info.values{...
+        1}.location(1:find(info.values{...
+           1}.location==',')-1)};                                          % assign part of the description of as brain area to summary table 
    else
-      ICsummary.brainOrigin(n) = {nwb.general_intracellular_ephys.values{1}.location};
-      ICsummary.Species(n) = {nwb.general_subject.species};
+      ICsummary.brainOrigin(n) = {info.values{1}.location};                % assign brain area to summary table          
+      ICsummary.Species(n) = {nwb.general_subject.species};                % assign species to summary table    
    end
     
    if nwb.general.Count ~= 0 && ...
-           string(nwb.general_subject.species)== "Mus musculus"
-        
-      ICsummary.ReporterTag(n) = {nwb.general_subject.genotype};       
-      %string(cellFile.processing.values{4}.dynamictable.values{1}.vectordata.values{3}.data.load) == "positive"
-   else
-       ICsummary.ReporterTag(n) = {'None'} ;
+           string(nwb.general_subject.species)== "Mus musculus" 
+       if string(cellFile.processing.values{4}.dynamictable.values{1 ...
+                           }.vectordata.values{3}.data.load) == "positive"
+         ICsummary.ReporterTag(n) = {nwb.general_subject.genotype};        % assigning genotype to summary table  
+       else
+         ICsummary.ReporterTag(n) = {'None'} ;
+       end
    end       
    %% Export Traces and NWB file
    
-  if ~isempty(LP_TracesExport)
-      prndRow = [];
-      for r = 1:height(LP_TracesExport)    
-          if sum(LP_TracesExport{r,3}) == 0
-               prndRow = [prndRow; r]; 
+  if ~isempty(LP_TracesExport)                                             % if there raw traces in the table for export
+      prndRow = [];                                                        % initialize variable to prune rows
+      for r = 1:height(LP_TracesExport)                                    % loop through rows of the table
+          if sum(LP_TracesExport{r,3}) == 0                                % if the sweep is zero 
+               prndRow = [prndRow; r];                                     % save values in variables
           end
       end
-      LP_TracesExport(prndRow,:) = [];     % pruning empty sweeps
+      LP_TracesExport(prndRow,:) = [];                                     % pruning empty sweeps
 
       writetable(LP_TracesExport, ...
-           fullfile(params.outDest, '\traces\', [nwb.identifier, '.csv']))
+           fullfile(params.outDest, '\traces\', [nwb.identifier, '.csv'])) % export table of raw sweep data as csv
   end
-  if overwrite == 1
-      delete(fullfile(params.outDest, '\', cellList(n).name)) 
-  end    
-  nwbExport(nwb, fullfile(params.outDest, '\', cellList(n).name));                                                                        % end cell level for loop
+  
+  if  ~any(contains(QCcellWide,params.cellID))                             % if the cell is not excluded by cell wide QC
+      if overwrite == 1
+          disp(['Overwriting file ', cellList(n).name])
+          nwbExport(nwb, fullfile(params.outDest, '\', cellList(n).name))  % export nwb object as file
+      elseif isfile(fullfile(params.outDest, '\', cellList(n).name))      
+          delete(fullfile(params.outDest, '\', cellList(n).name));
+          disp(['Overwriting file ', cellList(n).name, ' in output folder'])
+          nwbExport(nwb, fullfile(params.outDest, '\', cellList(n).name))  % export nwb object as file 
+      else
+          nwbExport(nwb, fullfile(params.outDest, '\', cellList(n).name))  % export nwb object as file
+      end
+  else
+      disp([ cellList(n).name, ' not saved for failing cell-wide QC'])
+  end
   toc
-end
+end                                                                        % end cell level for loop
 %% Output summary fiels and figures 
 % QC_plots
 Summary_output_files

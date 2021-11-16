@@ -1,23 +1,23 @@
 function [module_spikes, sp, SpQC, QCpass] = ...
-    processSpikes(CCSeries, StimOn, StimOff, ...
-     params, supraCount, module_spikes, SpQC, QCpass, SweepCount, CurrentName)
+    processSpikes(CCSeries, SwData, params, supraCount, ...
+           module_spikes, SpQC, QCpass, SweepCount)
 
  if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
     
     supraEvents = find(...
-        CCSeries.data.load(StimOn:StimOff+round(...
-        CCSeries.starting_time_rate*0.005))>=params.thresholdV/1000)-1+StimOn;
+        CCSeries.data.load(SwData.StimOn:SwData.StimOff+round(...
+        CCSeries.starting_time_rate*0.005))>=params.thresholdV/1000)-1+SwData.StimOn;
  else 
     supraEvents = find(...
-        CCSeries.data.load(StimOn:StimOff+round(...
-        CCSeries.starting_time_rate*0.005))>=params.thresholdV)-1+StimOn;
+        CCSeries.data.load(SwData.StimOn:SwData.StimOff+round(...
+        CCSeries.starting_time_rate*0.005))>=params.thresholdV)-1+SwData.StimOn;
  end
 sp = [];
 if ~isempty(supraEvents)
     [int4Peak,startPotSp] = int4APs(supraEvents);
     sp = estimatePeak(startPotSp,int4Peak,CCSeries);
     if ~isempty(sp)
-     sp = getSpikeParameter(CCSeries, sp, params, StimOff);
+     sp = getSpikeParameter(CCSeries, sp, params, SwData.StimOff);
      [SpQC, QCpass] = processSpikeQC(CCSeries, sp, params, ...
                                    supraCount, SpQC, QCpass, SweepCount);
                                
@@ -63,7 +63,7 @@ if ~isempty(supraEvents)
 
 %% save in dynamic table
 
-    module_spikes.dynamictable.set(CurrentName, table);
+    module_spikes.dynamictable.set(SwData.CurrentName, table);
   
     end
  end
