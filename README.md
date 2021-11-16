@@ -1,11 +1,14 @@
 MATFX
 ======
 
+A MATLAB-based pipeline for feature extraction and quality control of intracellular electrophysiology recordings in the NWB format. 
+
+
 Additional Requirements:
 -------
 -MATLAB toolboxes:  curve fitting and statistics
 
--MATNWB repository: Code has been written using Release v2.3.0.1, you find it [here](https://github.com/NeurodataWithoutBorders/matnwb) and should be compatabile with v2.2.5 and v2.3.0; for analysis of NWB 1.0 files a transcription is necessary.
+-MATNWB repository: Code has been written using Release v2.4, you find it [here](https://github.com/NeurodataWithoutBorders/matnwb) and should be compatabile with  v2.4.0; for analysis of NWB 1.0 files a transcription is necessary.
 
 -export_fig:  you find it [here](https://www.mathworks.com/matlabcentral/fileexchange/23629-export_fig)
 
