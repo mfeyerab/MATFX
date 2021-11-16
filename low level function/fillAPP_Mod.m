@@ -62,8 +62,8 @@ function module_APP = fillAPP_Mod(module_APP, SpPattrn, version)
    if isa(SpPattrn.spTrainIDs, 'double') && isnan(SpPattrn.spTrainIDs)
        T.SweepIDs = SpPattrn.spTrainIDs;
    else
-       T.SweepIDs = string(cellfun(@(v)v(1),...
-          regexp(SpPattrn.spTrainIDs,'\d*','Match')));
+       T.SweepIDs = cellfun(@(v)v(1),...
+          regexp(SpPattrn.spTrainIDs,'\d*','Match'));
    end
    
    DynTbl = util.table2nwb(T, 'AP Pattern results');

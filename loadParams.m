@@ -7,7 +7,7 @@ params.SPtags = ["SP","C1SS"];
 params.LPlength = 1;
 params.SPlength = 0.003;
 params.SkipTags = ["Ramp",...
-    "Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND", "I-V"];
+    "Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND", "I-V", "unknown"];
 
 % plotting functions
 params.plot_all = 0;
@@ -37,9 +37,9 @@ params.RMSEdiff = 0.2;
 params.maxDiffBwBeginEnd = 8;                        % maximum difference between beginning and end of sweep
 params.maximumRestingPot = -49;                      % minimum resting potential
 params.holdingI = 100;                               % maximum holding current
-params.bridge_balance = 20;                          % maximum bridge balance
-params.minGoodSpFra = 0.33;
-params.BwSweepMax = 5;
+params.bridge_balance = 24;                          % maximum bridge balance
+params.minGoodSpFra = 0.5;
+params.BwSweepMax = 4.5;
 
 % rebound slope and spike parameters
 params.reboundWindow = 100;                          % window to find maximum rebound peak

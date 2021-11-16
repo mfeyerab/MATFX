@@ -15,8 +15,8 @@ subStats.maxSubDeflection = subStats.minV -...
 subStats.minVt = subStats.minVt+StimOn;
 
 %% time constant (rest to minimum V)
-y = double(CCSeries.data.load(StimOn:subStats.minVt)');
-x = double(linspace(1,subStats.minVt-StimOn,length(y))');
+y = CCSeries.data.load(StimOn:subStats.minVt)';
+x = linspace(1,subStats.minVt-StimOn,length(y))';
 if length(y)>=4
     [f,gof] = fit(x,y,'exp2');
     if gof.rsquare > 0.75          % Label NaN if rsquared < 0
