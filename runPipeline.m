@@ -320,6 +320,7 @@ for n = 1:length(cellList)                                                 % for
           nwbExport(nwb, fullfile(params.outDest, '\', cellList(n).name))  % export nwb object as file 
       else
           nwbExport(nwb, fullfile(params.outDest, '\', cellList(n).name))  % export nwb object as file
+          disp(['saving file ', cellList(n).name, ' in output folder'])
       end
   else
       disp([ cellList(n).name, ' not saved for failing cell-wide QC'])
