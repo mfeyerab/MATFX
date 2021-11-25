@@ -203,10 +203,10 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
     %% finding sag sweep
     runs = 1;
     sagSweep = []; sagPos = [];
-    PrefeSagAmps = [-90, -70, -110, -50, -30];
+    PrefeSagAmps = [-90, -105, -70, -110, -50, -30];
     PlotStruct.SagSweepTablePos = [];
 
-    while isempty(sagSweep) && runs < 6
+    while isempty(sagSweep) && runs < length(PrefeSagAmps)+1
         for s = 1:cellFile.processing.map('subthreshold parameters').dynamictable.Count 
 
           number =  string(regexp(cellFile.processing.map('subthreshold parameters' ...
