@@ -7,7 +7,7 @@ if contains(CCSeries.stimulus_description, 'Short')
 elseif isempty(sp.peak)
    QCpass.bad_spikes(SweepCount,1) = 0;
 else   
-    idx(1,:) = boolean(zeros(1,length(sp.threshold)));
+    idx(1,:) = logical(zeros(1,length(sp.threshold)));
     temp = find(isnan(sp.maxdVdt));                                            % number of times interval rule is broken
     idx(1,temp) = true;
     SpQC.BrokenInterval{supraCount,1} = idx(1,:);
@@ -29,7 +29,7 @@ else
                 idx(6,:) = sp.heightTP*1000<...
                         params.percentRheobaseHeight*sp.heightTP(1)*1000;
             else
-                idx(6,:) = boolean(zeros(1,length(sp.threshold)));
+                idx(6,:) = logical(zeros(1,length(sp.threshold)));
             end
 
             if sp.fullWidthTP(1) <= 0.7        % narrow spiking
@@ -47,7 +47,7 @@ else
             if length(sp.heightTP)>1
                 idx(6,:) = sp.heightTP<params.percentRheobaseHeight*sp.heightTP(1);
             else
-                idx(6,:) = boolean(zeros(1,length(sp.threshold)));
+                idx(6,:) = logical(zeros(1,length(sp.threshold)));
             end
 
             if sp.fullWidthTP(1) <= 0.7        % narrow spiking
