@@ -257,6 +257,6 @@ if ~isempty(RheoSweepSeries)
         end
     p.Color = 'black'; 
     set(gca,'visible','off')
-    export_fig([params.outDest, '/AP_Waveforms/', params.cellID],'-nocrop', '-transparent','-png','-r50');
+    export_fig(fullfile(params.outDest, '/AP_Waveforms/', params.cellID),'-nocrop', '-transparent','-png','-r50');
 end
 

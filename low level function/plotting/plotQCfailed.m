@@ -7,6 +7,6 @@ if params.plot_all == 1
     ylabel('voltage (mV)')
     title(num2str(qc.logicVec))
     axis tight
-    export_fig([folder(1:length(folder)-8),cellID,' ',int2str(sweepIDcount),' qc fail ',num2str(qc.logicVec)],params.plot_format,'-r100');
+    export_fig(fullfile(folder(1:length(folder)-8), [cellID,' ',int2str(sweepIDcount),' qc fail ',num2str(qc.logicVec)]),params.plot_format,'-r100');
     close
 end

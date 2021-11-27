@@ -40,6 +40,6 @@ if params.plot_all == 1
     xlim([sp.peakTime(1)-(2/protocol.acquireRes) sp.troughTime(1)+(2/protocol.acquireRes)])
 
     % save figure
-    export_fig([folder(1:length(folder)-8),cellID,' ',int2str(sweepIDcount),' spiking parameters'],params.plot_format,'-r100');
+    export_fig(fullfile(folder(1:length(folder)-8),[cellID,' ',int2str(sweepIDcount),' spiking parameters']),params.plot_format,'-r100');
     close
 end

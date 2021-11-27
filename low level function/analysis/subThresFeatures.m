@@ -111,7 +111,7 @@ if params.plot_all == 1
     scatter(loc+SwData.StimOff,val,'g','filled')
     scatter(round(params.reboundFitWindow/CCSeries.starting_time_rate)...
         +loc+SwData.StimOff,mean(CCSeries.data.load(end-(3/CCSeries.starting_time_rate):end)),'g','filled')
-  export_fig([folder(1:length(folder)-8),cellID,' ',int2str(sweepIDcount),...
-      ' hyperpolarizing parameters'],params.plot_format,'-r100');
+  export_fig(fullfile(folder(1:length(folder)-8),[cellID,' ',int2str(sweepIDcount),...
+      ' hyperpolarizing parameters']),params.plot_format,'-r100');
     close
 end

@@ -24,7 +24,7 @@
             ylabel('current input (pA)')
             yticks(1:length(k_len_spID))
             yticklabels({k_len_spID})
-            export_fig([save_path,cellID,' spike QC (sweeps by spike binary)'],plot_format,'-r100');
+            export_fig(fullfile(save_path, [cellID,' spike QC (sweeps by spike binary)']),plot_format,'-r100');
             close
             clear spqcmatnbinaryid spqcmatnbinary k_len_spID
         end

@@ -131,8 +131,8 @@ end
         axis tight
         ylim([-100 -30])
         legend({'pre-stim','post-stim'})
-        export_fig([params.outDest, '\peristim\',params.cellID,' ',int2str(SweepCount),...
-            ' RMS noise vectors'],params.plot_format,'-r100');
+        export_fig(fullfile(params.outDest, 'peristim',[params.cellID,' ',int2str(SweepCount),...
+            ' RMS noise vectors']),params.plot_format,'-r100');
         close
     end
 end

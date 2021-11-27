@@ -33,8 +33,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     title('V/I curve')
     box off
     axis tight
-    export_fig([params.outDest, '\resistance\', ...
-        params.cellID, ' resistance_ss'],params.plot_format,'-r100');
+    export_fig(fullfile(params.outDest, 'resistance', [...
+        params.cellID, ' resistance_ss']),params.plot_format,'-r100');
     end
 else
     b = NaN;   

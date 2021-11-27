@@ -137,8 +137,8 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
        title('Dynamic frequency range')
        xlim([0 200])
        box off
-       export_fig([params.outDest, '\firingPattern\', ...
-           params.cellID , '_DFR'],params.plot_format,'-r100');
+       export_fig(fullfile(params.outDest, 'firingPattern', ...
+           [params.cellID , '_DFR']),params.plot_format,'-r100');
      end            
     ICsummary.AdaptRatioB1B2(cellNr,1) = ...
     round(sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B2').data)/ ...
@@ -195,8 +195,8 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
            title('f/I curve')
            box off
            axis tight 
-           export_fig([params.outDest, '\firingPattern\', ...
-               params.cellID , ' fI_curve'],params.plot_format,'-r100');
+           export_fig(fullfile(params.outDest, 'firingPattern', ...
+               [params.cellID , ' fI_curve']),params.plot_format,'-r100');
       end
      end
     end

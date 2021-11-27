@@ -49,8 +49,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
         title('V/I curve')
         box off
         axis tight 
-        export_fig([params.outDest, '\resistance\', ...
-             params.cellID, ' input resistance'],params.plot_format,'-r100'); 
+        export_fig(fullfile(params.outDest, 'resistance', ...
+             [params.cellID, ' input resistance']),params.plot_format,'-r100'); 
         close
     end
 elseif length(nonzeros(tempX)) == 1
@@ -69,8 +69,8 @@ elseif length(nonzeros(tempX)) == 1
         title('V/I curve')
         box off
         axis tight  
-        export_fig([params.outDest, '\resistance\', ...
-             params.cellID, 'input resistance'],params.plot_format,'-r100');
+        export_fig(fullfile(params.outDest, 'resistance', ...
+             [params.cellID, 'input resistance']),params.plot_format,'-r100');
         close
     end
 else

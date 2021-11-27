@@ -43,8 +43,8 @@ if exist('OrigV')
         ylabel('resting V (mV)')
         axis tight
         ylim([-80 -45])
-        export_fig([params.outDest, '\betweenSweeps\', ...
-            params.cellID, ' rmp w outliers'],params.plot_format,'-r100');                            % save figure
+        export_fig(fullfile(params.outDest, 'betweenSweeps', ...
+            [params.cellID, ' rmp w outliers']),params.plot_format,'-r100');                            % save figure
         close
     end
 end
