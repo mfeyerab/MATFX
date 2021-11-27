@@ -57,7 +57,7 @@ params.maxDiffThreshold2PeakT = 2;                   % max diff in t bw threshol
 % params.minDiffPeak2Trough = 30;                      % max diff in V bw peak and trough
 % params.maxDiffPeak2TroughT = 10;                     % max diff in t bw peak and trough
 params.percentRheobaseHeight = .3;                   % APs must be X percent of Rheobase height
-params.maxThreshold = -25;                           % above this value APs are eliminated (mV)
+params.maxThreshold = -18;                           % above this value APs are eliminated (mV)
 params.minTrough = -30;                              % above this value APs are eliminated (mV)
 
 % check params.minTrough (any removals) params.minTrough adjusted to threshold
