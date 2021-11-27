@@ -195,7 +195,7 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
            title('f/I curve')
            box off
            axis tight 
-           export_fig(fullfile(params.outDest, 'firingPattern', ...
+           export_fig(fullfileparams.outDest, 'firingPattern', ...
                [params.cellID , ' fI_curve']),params.plot_format,'-r100');
       end
      end
@@ -203,26 +203,37 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
     %% finding sag sweep
     runs = 1;
     sagSweep = []; sagPos = [];
-    PrefeSagAmps = [-90, -105, -70, -110, -50, -30];
     PlotStruct.SagSweepTablePos = [];
+    sweepAmps = cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{1}.data.load;
+    sweepAmps(sweepAmps>-45) = [];
+    if ICsummary.resistanceHD(cellNr,1) < 100
+       sweepAmps(sweepAmps>-65) = []; 
+    end
+    sweepAmps = sort(sweepAmps);
+    
+    while isempty(sagSweep) && runs < length(sweepAmps)+1
+        
+        SweepPos = find( ...
+            cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{1}.data.load == ...
+                     sweepAmps(runs));
+        
+        Path2Sweep = cellFile.general_intracellular_ephys_intracellular_recordings.responses.response.data.load.timeseries(...
+                       SweepPos).path;
+        
+        Pathparts = regexp(Path2Sweep,'/','split');  
+              
+        SweepName = char(Pathparts(length(Pathparts)));   
+        
+        if ismember(str2double(regexp(SweepName,'\d*','Match')), NamesPassedSweeps)
+        
+            sagPos = find(contains(cellFile.processing.map('subthreshold parameters' ...
+                     ).dynamictable.keys, SweepName));
 
-    while isempty(sagSweep) && runs < length(PrefeSagAmps)+1
-        for s = 1:cellFile.processing.map('subthreshold parameters').dynamictable.Count 
+            sagSweep = cellFile.processing.map('subthreshold parameters').dynamictable.values{sagPos};
 
-          number =  string(regexp(cellFile.processing.map('subthreshold parameters' ...
-                 ).dynamictable.keys{s},'\d*','Match'));
-
-          if ismember(str2double(cell2mat(number(:,1))), NamesPassedSweeps) && ...
-               round(cellFile.processing.map('subthreshold parameters'...
-               ).dynamictable.values{s}.vectordata.values{2}.data) == PrefeSagAmps(runs)  
-             sagSweep = cellFile.processing.map('subthreshold parameters').dynamictable.values{s};
-             sagPos = s;
-          end    
-        end
-        if ~isempty(sagPos)
-          PlotStruct.SagSweepTablePos = find(strcmp(SweepPaths,...
-                    ['/acquisition/',cellFile.processing.map(...
-                      'subthreshold parameters').dynamictable.keys{sagPos}]));
+            PlotStruct.SagSweepTablePos = find(strcmp(SweepPaths,...
+                     ['/acquisition/',cellFile.processing.map(...
+                     'subthreshold parameters').dynamictable.keys{sagPos}]));          
         end
         runs= runs +1;
     end
