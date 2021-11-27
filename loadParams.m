@@ -38,7 +38,7 @@ params.maxDiffBwBeginEnd = 8;                        % maximum difference betwee
 params.maximumRestingPot = -49;                      % minimum resting potential
 params.holdingI = 100;                               % maximum holding current
 params.bridge_balance = 24;                          % maximum bridge balance
-params.minGoodSpFra = 0.5;
+params.minGoodSpFra = 0.25;
 params.BwSweepMax = 4.5;
 
 % rebound slope and spike parameters
