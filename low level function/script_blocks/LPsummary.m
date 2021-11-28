@@ -195,7 +195,7 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
            title('f/I curve')
            box off
            axis tight 
-           export_fig(fullfileparams.outDest, 'firingPattern', ...
+           export_fig(fullfile(params.outDest, 'firingPattern', ...
                [params.cellID , ' fI_curve']),params.plot_format,'-r100');
       end
      end
