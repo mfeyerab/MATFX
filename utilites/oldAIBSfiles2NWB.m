@@ -63,8 +63,8 @@ for n = 1:length(cellList)
      T.ReporterStatus = cellstr(T.ReporterStatus);
      T.Hemisphere = cellstr(T.Hemisphere);
      
-     table = table2nwb(T(idx,[1, 49, 44, 54]));  
-     anatomy.dynamictable.set('Anatomical data', table);
+     AnaTab = table2nwb(T(idx,[1, 49, 44, 54]));  
+     anatomy.dynamictable.set('Anatomical data', AnaTab);
      nwb.processing.set('Anatomical data', anatomy);
                            
     %% Getting start date from 1st recording of cell and checking for new session start 
