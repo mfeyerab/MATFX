@@ -30,34 +30,34 @@ if ~isempty(supraEvents)
     sp = structfun(@double, sp, 'UniformOutput', false);
 
     table = array2table(cell2mat(struct2cell(sp))');
-    table.Properties.VariableNames = {'peak','peakTime','threshold', ...
-                 'thresholdTime', 'through','throughTime','heightPT', ...
-                 'fullWidthPT','peakUpStroke','peakDownStroke', ...
-                 'peakStrokeRatio','fast_trough','fast_trough_dur',...
-                 'slow_trough','slow_trough_dur', 'fullWidthTP', ...
-                 'heightTP'};
+    table.Properties.VariableNames = {'peak','peakTi','thres', ...
+                 'thresTi', 'trgh','trghTi','htPT', ...
+                 'wiPT','peakUpStrk','peakDwStrk', ...
+                 'peakStrkRat','fTrgh','fTrghDur',...
+                 'sTrgh','sTrghDur', 'wiTP', ...
+                 'htTP'};
          
     if checkVolts(CCSeries.data_unit)&& string(CCSeries.description) ~= "PLACEHOLDER"
         
         table.peak  = table.peak*1000;  
-        table.threshold  = table.threshold*1000;  
-        table.trough  = table.through*1000;  
-        table.heightPT  = table.heightPT*1000;  
-        table.heightTP  = table.heightTP*1000;  
-        table.fast_trough  = table.fast_trough*1000;  
-        table.slow_trough  = table.slow_trough*1000;  
-        table.peakUpStroke = table.peakUpStroke*1000;
-        table.peakDownStroke = table.peakDownStroke*1000;
+        table.thres  = table.thres*1000;  
+        table.trgh  = table.trgh*1000;  
+        table.htPT  = table.htPT*1000;  
+        table.htTP  = table.htTP*1000;  
+        table.fTrgh  = table.fTrgh*1000;  
+        table.sTrgh  = table.sTrgh*1000;  
+        table.peakUpStrk = table.peakUpStrk*1000;
+        table.peakDwStrk = table.peakDwStrk*1000;
     end     
 
-    table.thresholdTime = ...
-        table.thresholdTime*1000/round(CCSeries.starting_time_rate);
+    table.thresTi = ...
+        table.thresTi*1000/round(CCSeries.starting_time_rate);
 
-    table.peakTime = ...
-        table.peakTime*1000/round(CCSeries.starting_time_rate);
+    table.peakTi = ...
+        table.peakTi*1000/round(CCSeries.starting_time_rate);
 
-    table.throughTime = ...
-        table.throughTime*1000/round(CCSeries.starting_time_rate);
+    table.trghTi = ...
+        table.trghTi*1000/round(CCSeries.starting_time_rate);
 
     table = util.table2nwb(table, 'AP processing results');
 

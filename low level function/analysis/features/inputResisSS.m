@@ -1,4 +1,4 @@
-function b = inputResistanceSS(SubStatTable, NamesPassedSweeps, params)
+function b = inputResisSS(SubStatTable, NamesPassedSweeps, params)
 
 tempX = [];
     
@@ -7,11 +7,11 @@ for i = 1: SubStatTable.Count
      if isa(SubStatTable.values{i}.vectordata.map('SteadyState').data, 'double')
       tempY(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data ...
                        +SubStatTable.values{i}.vectordata.map('sag').data;
-      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data;         
+      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SwpAmp').data;         
      else
       tempY(i,1) = SubStatTable.values{i}.vectordata.map('SteadyState').data.load + ...
          SubStatTable.values{i}.vectordata.map('sag').data.load ;
-      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SweepAmp').data.load;
+      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SwpAmp').data.load;
      end
  end
 end

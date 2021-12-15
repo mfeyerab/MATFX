@@ -39,8 +39,7 @@ function module_APP = fillAPP_Mod(module_APP, SpPattrn, version)
    
    T = array2table(SpPattrn.BinTbl);
    T.Properties.VariableNames = {...
-        'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10' ...
-        'B11','B12','B13','B14','B15','B16','B17','B18','B19','B20'};
+     'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12','B13'};
    T.Properties.RowNames = SpPattrn.RowNames;
    BinnedSpCountsTbl =  util.table2nwb(T, 'Binned Spike Counts');
    module_APP.dynamictable.set('Binned Spike Counts', BinnedSpCountsTbl); 
@@ -56,13 +55,13 @@ function module_APP = fillAPP_Mod(module_APP, SpPattrn, version)
        SpPattrn.spTrainIDs = NaN;
    end    
    T.Properties.VariableNames = {
-                     'firingRate', 'latency','peakAdapt', 'meanISI','cvISI',...
-                     'adaptIndex', 'adaptIndex2','peakAdapt2',...
-                     'delay','burst', 'LastQuiesence'};
+                     'firRt', 'lat','peakAdapt', 'meanISI','cvISI',...
+                     'adaptIdx', 'adaptIdx2','peakAdapt2',...
+                     'delay','burst', 'lastQuisc'};
    if isa(SpPattrn.spTrainIDs, 'double') && isnan(SpPattrn.spTrainIDs)
-       T.SweepIDs = SpPattrn.spTrainIDs;
+       T.SwpID = SpPattrn.spTrainIDs;
    else
-       T.SweepIDs = cellfun(@(v)v(1),...
+       T.SwpID = cellfun(@(v)v(1),...
           regexp(SpPattrn.spTrainIDs,'\d*','Match'));
    end
    

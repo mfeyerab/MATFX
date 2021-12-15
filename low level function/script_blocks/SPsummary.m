@@ -59,27 +59,27 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
                   cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
              1}.data(PlotStruct.SPSweepTablePos);
 
-            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresholdTime').data(1) - ...
+            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresTi').data(1) - ...
                 table2array(SweepResponseTbl(PlotStruct.SPSweepTablePos,1))*1000/cellFile.resolve(...
                 SweepPaths(PlotStruct.SPSweepTablePos( ...
                 contains(SweepPaths(PlotStruct.SPSweepTablePos),'acquisition')))).starting_time_rate;        
 
-            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresholdTime').data(1) - ...
+            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresTi').data(1) - ...
                 table2array(SweepResponseTbl(PlotStruct.SPSweepTablePos,1))*1000/cellFile.resolve(...
                SweepPaths(PlotStruct.SPSweepTablePos(contains(...
                SweepPaths(PlotStruct.SPSweepTablePos),'acquisition')))).starting_time_rate;
 
             
-            ICsummary.widthTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('fullWidthTP').data(1);
+            ICsummary.widthTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('wiTP').data(1);
             ICsummary.peakSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peak').data(1);
             
-            ICsummary.thresholdSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('threshold').data(1) ;
-            ICsummary.fastTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('fast_trough').data(1);
-            ICsummary.slowTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('slow_trough').data(1);
-            ICsummary.peakUpStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakUpStroke').data(1);
-            ICsummary.peakDownStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakDownStroke').data(1);
-            ICsummary.peakStrokeRatioSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakStrokeRatio').data(1);   
-            ICsummary.heightTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('heightTP').data(1);
+            ICsummary.thresholdSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thres').data(1) ;
+            ICsummary.fastTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('fTrgh').data(1);
+            ICsummary.slowTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('sTrgh').data(1);
+            ICsummary.peakUpStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakUpStrk').data(1);
+            ICsummary.peakDownStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakDwStrk').data(1);
+            ICsummary.peakStrokeRatioSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakStrkRat').data(1);   
+            ICsummary.heightTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('htTP').data(1);
 
             PlotStruct.SPSweepSeries =  cellFile.resolve(SweepPaths(PlotStruct.SPSweepTablePos(...
                     contains(SweepPaths(PlotStruct.SPSweepTablePos),'acquisition'))));

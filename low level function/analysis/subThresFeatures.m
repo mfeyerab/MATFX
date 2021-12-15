@@ -18,31 +18,24 @@ y = CCSeries.data.load(SwData.StimOn:subStats.minVt)';
 x = linspace(1,subStats.minVt-SwData.StimOn,length(y))';
 if length(y)>=4
     [f,gof] = fit(x,y,'exp2');
-    if gof.rsquare > 0.75          % Label NaN if rsquared < 0
+    if params.plot_all == 1
+        plot(x+SwData.StimOn*1000/CCSeries.starting_time_rate,f(x),'r-.','LineWidth',2)
+        hold on
+    end
+    temp = .63*(abs(f(1)-f(length(x))));
+    vecin = find(f(1:length(x))<(f(1)-temp), 1, 'first');
+    if ~isempty(vecin)
         if params.plot_all == 1
-            plot(x+SwData.StimOn*1000/CCSeries.starting_time_rate,f(x),'r-.','LineWidth',2)
-            hold on
+            scatter(vecin(1)+1+SwData.StimOn,CCSeries.data.load(SwData.StimOn)-temp,'r','filled')
         end
-        temp = .63*(abs(f(1)-f(length(x))));
-        vecin = find(f(1:length(x))<(f(1)-temp), 1, 'first');
-        if ~isempty(vecin)
-            if params.plot_all == 1
-                scatter(vecin(1)+1+SwData.StimOn,CCSeries.data.load(SwData.StimOn)-temp,'r','filled')
-            end
-            subStats.tauMin = round(vecin(1)*1000/CCSeries.starting_time_rate,3);
-            subStats.tauMinGF = 1;
-        else
-            subStats.tauMinGF = 0;
-            subStats.tauMin = NaN;
-        end
+        subStats.tauMin = round(vecin(1)*1000/CCSeries.starting_time_rate,3);
     else
-        subStats.tauMinGF = 0;
         subStats.tauMin = NaN;
     end
 else
-        subStats.tauMinGF = 0;
-        subStats.tauMin = NaN;
+   subStats.tauMin = NaN;
 end
+subStats.tauMinGF = gof.rsquare ;
 %% sag & sag ratio
 sizeSlideWind = 0.075;
 TotalSize = 0.5;
@@ -78,7 +71,6 @@ subStats.reboundDepolarization = abs(CCSeries.data.load(SwData.StimOff+loc)-...
 %%
 
 if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
-    
     subStats.minV  = subStats.minV*1000;  
     subStats.sag = subStats.sag*1000;
     subStats.maxSubDeflection = subStats.maxSubDeflection*1000;
@@ -96,12 +88,11 @@ if sum(structfun(@numel,subStats)>1) > 0                                   % Fil
 end
 
 table =  array2table(cell2mat(struct2cell(subStats))');
-table.Properties.VariableNames = {'SweepAmp','baseVm','minV','minVTime',...
-              'maxSubDeflection','tauMin', 'tauMinGF','SteadyState',...
-             'sag','sagRatio','reboundSlope','reboundDepolarization'};
+table.Properties.VariableNames = {'SwpAmp','baseVm','minV','minVTime',...
+              'maxSubDeflection','tau', 'GFtau','SteadyState',...
+             'sag','sagRat','reboundSlp','reboundDepolarization'};
 
 temp_table = util.table2nwb(table, 'subthreshold parameters');
-
 module_subStats.dynamictable.set(SwData.CurrentName, temp_table);
 
 %%

@@ -4,10 +4,10 @@ latency = (sp.thresholdTime(1)-StimOn)/round(CCSeries.starting_time_rate/1000);
 
 TblIdx = sum(~cellfun(@isempty,SpPattrn.spTrainIDs));
 
-for b = 1:20
+for b = 1:13
 SpPattrn.BinTbl(TblIdx,b) = sum(...
-    50*(b-1)/(1000/CCSeries.starting_time_rate) < sp.thresholdTime - StimOn ...
-    & sp.thresholdTime - StimOn < 50*b/(1000/CCSeries.starting_time_rate));
+    76.9*(b-1)/(1000/CCSeries.starting_time_rate) < sp.thresholdTime - StimOn ...
+    & sp.thresholdTime - StimOn < 76.9*b/(1000/CCSeries.starting_time_rate));
 end
 
 SpPattrn.spTrain.firingRate(supraCount,1) = sum(sp.thresholdTime<(StimOn+(1000/(1000/CCSeries.starting_time_rate))));
@@ -38,7 +38,7 @@ if length(nonzeros(sp.thresholdTime)) >= 2						% skip this sweep if there was o
     end
 	delay = latency/meanISI;
     if length(ISI) > 1
-        burst = sum(ISI(1:2))/2;
+        burst = (sum(ISI(1:2))/2)/meanISI;
     else
         burst = NaN;
     end

@@ -1,714 +1,218 @@
-function [cellFile, ICsummary, PlotStruct] = ...
-    LPsummary(cellFile, ICsummary, cellNr, params)
+function [nwb, icSum, PltS] = LPsummary(nwb, icSum, ClNr, PS)
 
-SweepResponseTbl = ...
-  cellFile.general_intracellular_ephys_intracellular_recordings.responses.response.data.load;
+IcephysTab = nwb.general_intracellular_ephys_intracellular_recordings;     % Assign new variable for readability
+SwpRespTbl = IcephysTab.responses.response.data.load.timeseries;           % Assign new variable for readability
+SwpAmps = IcephysTab.stimuli.vectordata.values{1}.data;                    % Assign new variable for readability
+qcParas = nwb.processing.map('QC parameter'...
+                                     ).dynamictable.values{1}.vectordata;
+qcPass = IcephysTab.dynamictable.map('quality_control_pass').vectordata;
 
-if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-        'quality_control_pass').vectordata.values{1}.data, 'double')
-    
-    if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-            'protocol_type').vectordata.values{1}.data, 'double')
-       IdxPassedSweeps = find(all(...
-        [cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data, ...
-        cellFile.general_intracellular_ephys_sweep_table.vectordata.map('BinaryLP').data],2));  
+if isa(qcPass.values{1}.data, 'double')                                    % Newly written entries into nwb object are doubles not DataStubs, hence there are two different forms of code needed to access them
+  
+  IdxPassSwps = all([qcPass.values{1}.data', contains(cellstr(...          % creates indices from a combined logical array                        
+                          IcephysTab.dynamictable.map('protocol_type'...   % Gets logical array for passing QC (sweeps x 1) 
+                           ).vectordata.values{1}.data.load),PS.LPtags)],2);    % Gets a logical array for sweeps being of the LP type                              
+  SwpPaths = {SwpRespTbl.path};                               % Gets all sweep paths of sweep response table and assigns it to a new variable  
+  SwpIDs = cellfun(@(a) str2double(a), cellfun(@(v)v(1),...            % Extract the numbers from the sweep names as doubles  
+                                       regexp(SwpPaths,'\d*','Match'))); % inner cellfun necessary if sweep name contains mutliple numbers for example an extra AD01 
+  IdPassSwps = SwpIDs(IdxPassSwps);                                    % Variable contains numbers of sweeps which passed QC  
+  IdPassSwpsC = cellstr(string(IdPassSwps));
+  %% subthreshold parameters  
+  SubThres = nwb.processing.map('subthreshold parameters').dynamictable;   % Creating variable with all subthreshold data for readability     
+  [icSum.RinHD(ClNr,1), icSum.RinOffset(ClNr,1)] = ...                    % Assign resistance and offset of cell in summary table
+        inputResistance(SubThres,PS, IdPassSwps);                      % the function returns input resistance and offset calculated as slope of a linear fit and "membrane deflection" at 0 pA       
+  icSum.RinSS(ClNr,1) = inputResisSS(SubThres, IdPassSwps, PS);       % same es previous lines but using steady state instead of highest deflection  
+  icSum.rectI(ClNr,1) = rectification(SubThres,IdPassSwps);                % calculates the rectification index 
+  %tau Vrest
+  if ~isempty(qcParas.map('SweepID').data)                                 % if there are any QCed sweeps             
+   qcTabIdx = find(ismember(regexp(cell2mat(qcParas.map(...                % Gets index of all passed LP sweeps  from cell  
+                   'SweepID').data),'\d*','Match'), IdPassSwpsC));  
+   icSum.Vrest(ClNr,1) = round(nanmean(qcParas.map('Vrest').data(qcTabIdx)),2);  %calculates resting membrane potential as mean of prestim Vrest of all passed LP sweeps
+  end
+  %tau
+  SubSwpIdx = find(endsWith(SubThres.keys, string(IdPassSwps)));
+  tauVec = nan(length(SubSwpIdx),1);
+  for s = 1:length(SubSwpIdx)                                              % for each subthreshold sweep 
+   if SubThres.values{SubSwpIdx(s)}.vectordata.map('GFtau').data > PS.GF 
+     tauVec(s,1)=SubThres.values{SubSwpIdx(s)}.vectordata.map('tau').data;
+   end         
+  end    
+  if length(tauVec) < 3 && ~isempty(tauVec)                                % if there are less than three values AND vector in not empty
+   icSum.tau(ClNr,1) = round(nanmean(tauVec(length(tauVec))),2);           % cell wide tau is calculated by mean sweep taus
+  elseif ~isempty(tauVec)                                                  % if there are 3 or more sweep taus 
+   icSum.tau(ClNr,1) = round(mean(mink(tauVec,3)),2);                      % cell wide tau is calculated by mean of first three sweep taus
+  end
+  %% firing patterns
+  spPatr = nwb.processing.map('AP Pattern').dynamictable;                  
+  SpBinTab = nwb.processing.map('AP Pattern').dynamictable.values{2}.vectordata;                                    
+  SpPatrTab = nwb.processing.map('AP Pattern').dynamictable.values{1}.vectordata;% assign variable for readability
+
+  SuprIDs = SpPatrTab.map('SwpID').data;                                   % Get names of suprathreshold sweeps as cell array  
+  passSuprIdx = ismember(SuprIDs, IdPassSwpsC); 
+  ISIs = spPatr.map('ISIs').vectordata.values{1}.data;  
+  passRts = SpPatrTab.map('firRt').data(passSuprIdx);     
+  
+  icSum.maxRt(ClNr,1) =  max(passRts);                                     % Maximum firing rate
+  icSum.lastQuisc(ClNr,1) = min(SpPatrTab.map('lastQuisc').data);          % non-persistance of firing quantified as minimum time span from last spike to stimulus end from all sweeps  
+  % dynamic frequency range
+  if spPatr.isKey('ISIs') && ~isempty(ISIs)                                % if ISI module exists and is not empty
+         
+   ISIs = ISIs(~isnan(ISIs));ISIs(ISIs==0) = [];                           % get rid of 0 and nans                                                               
+   icSum.medInstaRt(ClNr,1) = round(1000/nanmedian(ISIs),2);       
+   icSum.DFR_P90(ClNr,1) = round(prctile(ISIs, 90),2);           
+   icSum.DFR_P10(ClNr,1) = round(prctile(ISIs, 10),2); 
+   icSum.DFR_IQR(ClNr,1) = round(prctile(ISIs, 75) - prctile(ISIs, 25),2);
+   
+   if PS.plot_all == 1
+     figure('visible','off');         cdfplot(1000./ISIs);
+     grid off; box off; xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
+     title('Dynamic frequency range');
+     export_fig(fullfile(PS.outDest, 'firingPattern', [PS.cellID , '_DFR']),...
+                                                      PS.pltForm,'-r100');
+   end            
+   % adaptation   
+   icSum.AdaptRatB1B2(ClNr,1) = ...                                        % divides the sum of all spikes in the second bin
+        round(sum(SpBinTab.map('B2').data)/sum(SpBinTab.map('B1').data),2);% by the sum of all spikes in the first bin                    
+   icSum.AdaptRatB1B13(ClNr,1) = ...                                       % divides the sum of all spikes in the last bin
+       round(sum(SpBinTab.map('B13').data)/sum(SpBinTab.map('B1').data),2);% by the sum of all spikes in the first bin                         
+
+   if ~isempty(SpBinTab.map('B1').data) && ~isempty(passRts)          
+    if min(passRts) > 4
+      StartIdx = find(SpPatrTab.map('firRt').data==min(passRts));
     else
-     IdxPassedSweeps = find(all(...
-        [cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-        'quality_control_pass').vectordata.values{1}.data', ...
-        contains(cellstr(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-            'protocol_type').vectordata.values{1}.data.load), params.LPtags)],2));  
+      Close2Rheo = min(setdiff(passRts,min(passRts)));
+      StartIdx = find(SpPatrTab.map('firRt').data==Close2Rheo);
     end
-
-    SweepPaths = {SweepResponseTbl.timeseries.path};
     
-    Sweepnames = cellfun(@(a) str2double(a), ...
-        cellfun(@(v)v(1),regexp(SweepPaths,'\d*','Match')));        % inner cellfun necessary if sweep name contains mutliple numbers for example an extra AD01 
+    if ~isempty(icSum.maxRt(ClNr,1))        
+      MaxIdx = find(SpPatrTab.map('firRt').data==icSum.maxRt(ClNr,1));    
+      StartSwpBinCount = table2array(getRow(spPatr.values{2},StartIdx));   % spike bin counts for start sweep 
+      MaxSwpBinCount = table2array(getRow(spPatr.values{2},MaxIdx));       % spike bin counts for the sweep with maximum firing rate                        
+      icSum.StimAdapB123(ClNr,1) = ...                                     % calculates an adaptiation ratio by
+                     sum(StartSwpBinCount(1:3))/sum(MaxSwpBinCount(1:3));  % dividing spikes out of the first three bins from first by max sweeps  
+      icSum.StimAdapB7_13(ClNr,1) = ...                                    % calculates an adaptiation ratio by
+                     sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));  % dividing spikes from 7th to last bin from first by max sweeps 
+    end
+    APPIdx = find(ismember(cellfun(@(v)v(1), regexp(SwpPaths,...           % Get index for location of suprathreshold sweeps 
+                                       '\d*','Match')), cellstr(SuprIDs)));% in sweep response table                    
+    I = SwpAmps.load(APPIdx);                                              % Get all stimulus amplitudes of suprathershold sweeps
+    P = polyfit(I, SpPatrTab.map('firRt').data,1);                         % create a linear fit of I f curve                
+    icSum.fIslope(ClNr,1) = round(P(1),3);                                % save slope as feature for cell
 
-    NamesPassedSweeps = Sweepnames(IdxPassedSweeps);
+    if PS.plot_all == 1
+     figure('visible','off'); hold on
+     scatter(I, spPatr.values{1}.vectordata.map('firRt').data)
+     yfit = P(1)*I+P(2);             plot(I,yfit,'r-.');
+     xlabel('input current (pA)');   ylabel('firing frequency (Hz)')
+     title('f/I curve');             box off; axis tight 
+     export_fig(fullfile(PS.outDest, 'firingPattern', ...
+                         [PS.cellID , ' fI_curve']),PS.plot_format,'-r100');
+    end
+   end
+  end
+  %% finding certain sweeps
+  [sagSwpTabPos,rheoSwpTabPos, heroSwpTabPos] = deal([]);                  % initialize variabels to store sweep table position in plotting structure
+  [sagSwpSers,rheoSwpSers, heroSwpSers] = deal(types.core.CurrentClampSeries);  % initialize variabels to store sweep series data in plotting structure                                          
+  [sagSwpDat, rheoSwpDat, heroSwpDat] = deal([]);                          % initialize variabels to store processed sweep data in plotting structure                       
+     
+  APwave = nwb.processing.map('AP wave').dynamictable;                     % variable for better readability
     
-    %% subthreshold summary parameters                              
-
-    [ICsummary.resistanceHD(cellNr,1), ICsummary.resistanceOffset(cellNr,1)] = ...
-        inputResistance(cellFile.processing.map('subthreshold parameters').dynamictable,...
-        params, NamesPassedSweeps);                    % resistance based on steady state
-
-    ICsummary.resistanceSS(cellNr,1) = inputResistanceSS(...
-             cellFile.processing.map('subthreshold parameters').dynamictable, ...
-             NamesPassedSweeps, params);   
-
-    ICsummary.rectification(cellNr,1) = rectification(...
-        cellFile.processing.map('subthreshold parameters').dynamictable,NamesPassedSweeps);
-
-         if ~isempty(cellFile.processing.map('QC parameter'...
-                 ).dynamictable.values{1}.vectordata.map('SweepID').data)
-
-                QCTableIdx = find(ismember(regexp(cell2mat(...
-                            cellFile.processing.map('QC parameter'...
-                     ).dynamictable.values{1}.vectordata.map('SweepID').data),...
-                     '\d*','Match'), cellstr(string(NamesPassedSweeps))));  
-
-                ICsummary.Vrest(cellNr,1) = round(nanmean(...
-                    cellFile.processing.map('QC parameter'...
-                    ).dynamictable.values{1}.vectordata.map('Vrest').data(QCTableIdx)),2);                            % resting membrane potential
-         else
-             ICsummary.Vrest(cellNr,1) = NaN;
-         end
-
-    tau_vec = zeros(cellFile.processing.map('subthreshold parameters').dynamictable.Count,1);
-
-    for s = 1:cellFile.processing.map('subthreshold parameters').dynamictable.Count
-        number = string(regexp(...
-           cellFile.processing.map('subthreshold parameters').dynamictable.keys{s},'\d*','Match'));
-
-        if ismember(str2double(cell2mat(number(:,1))), NamesPassedSweeps) && ...
-             ~isnan(cellFile.processing.map('subthreshold parameters' ...
-               ).dynamictable.values{s}.vectordata.values{11}.data) && ...
-                  cellFile.processing.map('subthreshold parameters' ...
-                     ).dynamictable.values{s}.vectordata.values{11}.data
-               tau_vec(s) =  cellFile.processing.map('subthreshold parameters'...
-                   ).dynamictable.values{s}.vectordata.map('tauMin').data;
-        end
-    end    
-    tau_vec(tau_vec==0) = [];
-    tau_vec = sort(tau_vec);
-    if length(tau_vec) < 3 && ~isempty(tau_vec)
-        ICsummary.tau(cellNr,1) = round(mean(tau_vec(length(tau_vec))),2);
-    elseif ~isempty(tau_vec)
-       ICsummary.tau(cellNr,1) = round(mean(tau_vec(1:3)),2);
-    else
-       ICsummary.tau(cellNr,1) = NaN;
+  if isa(SwpAmps, 'double')                                                % if current amplitude is double not a DataStub
+    LPampsQC = SwpAmps(IdxPassSwps);                                       % assign current amplitudes  of sweeps that made the QC to variable
+  else  
+    LPampsQC = SwpAmps.load(find(IdxPassSwps));                            % assign current amplitudes  of sweeps that made the QC to variable
+  end
+  %% sag sweep                                                                                                                                                                             % the number of runs is lower than the number of sweep amplitudes +1    
+  sagAmp = min(LPampsQC);                                                  % finds sag sweep amplitude 
+  if (sagAmp < -70 && icSum.RinSS(ClNr,1) < 100) || ...
+           (sagAmp <= -50 && icSum.RinSS(ClNr,1) > 100)
+       
+   sagSwpTabPos = any(SwpAmps.load==sagAmp,2);                          % get sag sweep table position  
+   sagSwpID = regexp([SwpRespTbl(sagSwpTabPos).path],'\d*','Match');% gets the sweep name from the last chunck                
+   sagSwpDat = SubThres.values{contains(SubThres.keys, sagSwpID)}.vectordata;% get sag sweep data       
+   
+   if ~isempty(sagSwpDat)                                                  % if there is sag sweep data
+    icSum.sagAmp(ClNr,1) = sagAmp;   
+    icSum.sag(ClNr,1) = round(sagSwpDat.map('sag').data,2);               % save sag amplitude of sag sweep
+    icSum.sagRat(ClNr,1) = round(sagSwpDat.map('sagRat').data,2);         % save ratio of sag sweep   
+    icSum.sagVrest(ClNr,1) = round(nwb.processing.map('QC parameter'...   % save membrane potential of sag sweep                    
+                  ).dynamictable.values{1}.vectordata.map('Vrest').data(...% from the QC parameters in sweep table
+                                                          sagSwpTabPos),2);% because these are always in mV!             
+    sagSwpSers = nwb.resolve(SwpPaths(sagSwpTabPos));                     % save CC series to plot it later in the cell profile 
+   end
+  end
+  %% rheobase sweeps and parameters of first spike
+  [icSum.rheoRt(ClNr,1), rheoIdx] = min(SpPatrTab.map('firRt').data(passSuprIdx));
+  RheoSwpID = SuprIDs(rheoIdx);
+  rheoProModPos = endsWith(APwave.keys,RheoSwpID);                         % save position of rheo sweep in sweep table
+  rheoSwpDat = APwave.values{rheoProModPos}.vectordata;
+  rheoSwpTabPos = find(endsWith(SwpPaths,RheoSwpID));                      % save position of rheo sweep in sweep table
+  if ~isempty(rheoSwpDat)                                                  % if there is a rheo sweep
+   rheoSwpSers = nwb.resolve(SwpRespTbl(rheoSwpTabPos).path);              % get CCSeries from rheo sweep                                                        
+   icSum.Rheo(ClNr,1) = round(SwpAmps.load(rheoSwpTabPos));                % get current stimulus from rheo sweep from sweep table 
+   StimOnIdx = IcephysTab.responses.response.data.load.idx_start(rheoSwpTabPos);
+   StimOnTi = double(StimOnIdx)*1000/rheoSwpSers.starting_time_rate;
+   icSum.lat(ClNr,1) = rheoSwpDat.map('thresTi').data(1)- StimOnTi;        % get AP latency as threshold time                                                                             % into time in milliseconds)                                                                                                
+   icSum.widTP_LP(ClNr,1) = rheoSwpDat.map('wiTP').data(1);                % get AP width from Rheo sweep
+   icSum.peakLP(ClNr,1) = round(rheoSwpDat.map('peak').data(1),2);         % get AP peak from Rheo sweep
+   icSum.thresLP(ClNr,1) = round(rheoSwpDat.map('thres').data(1),2);       % get AP threshold from Rheo sweep
+   icSum.fTrghLP(ClNr,1) = round(rheoSwpDat.map('fTrgh').data(1),2);       % get fast through from Rheo sweep
+   icSum.sTrghLP(ClNr,1) = round(rheoSwpDat.map('sTrgh').data(1),2);       % get slow through from Rheo sweep
+   icSum.peakUpStrkLP(ClNr,1) = round(rheoSwpDat.map('peakUpStrk').data(1),2);% get peak up stroke from Rheo sweep
+   icSum.peakDwStrkLP(ClNr,1) = round(rheoSwpDat.map('peakDwStrk').data(1),2);% get peak down stroke from Rheo sweep
+   icSum.peakStrkRatLP(ClNr,1) = round(rheoSwpDat.map('peakStrkRat').data(1),2);% get peak stroke ratio from Rheo sweep   
+   icSum.htTP_LP(ClNr,1) = round(rheoSwpDat.map('htTP').data(1),2);        % get AP height from Rheo sweep
+  end
+  %% Hero sweep selection         
+  if ~isnan(icSum.Rheo(ClNr,1))                                            % if Rheo is not Nan i.e. there is a rheo base sweep
+   if icSum.Rheo(ClNr,1) < 60                                              % if the Rheo is lower than 60 pA
+    target = round(icSum.Rheo(ClNr,1),-1)+30;                              % target current is Rheo + 30 pA
+    targets = [ target-10 target target+10 ];
+   else
+    target = icSum.Rheo(ClNr,1)+70;                                        % target current is Rheo + 60 pA
+    targets = [target-30 target-20 target-10 target target+10 target+20 target+30];
+   end            
+   PoHeroAmps = LPampsQC(ismember(LPampsQC,targets));
+   [~, PoHeroAmpsPos] = min(abs(PoHeroAmps-target));
+   [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps(PoHeroAmpsPos)));         % get position of potential hero sweeps  
+   heroSwpTabPos = find(any(SwpAmps.load==LPampsQC(heroSwpPos),2));        % get potential hero sweep table position
+   heroID = str2double(regexp([SwpRespTbl(heroSwpTabPos).path], '\d*','Match'));%      
+   if ~isempty(heroID)                                                     % if there are potential hero sweep names
+    PosSpTrain = find(str2double(SuprIDs)==heroID(end));              % saves the position of the spPatr module that matches the last current potential hero sweep
+    if ~isempty(PosSpTrain)
+      heroSwpDat = getRow(spPatr.values{1}, PosSpTrain);   
+    elseif length(heroID)>1
+      PosSpTrain = find(str2double(SuprIDs)==heroID(1));              % saves the position of the spPatr module that matches 
+      heroSwpDat = getRow(spPatr.values{1}, PosSpTrain);
     end
-    %% Maximum firing rate 
-    
-     MaxRate = 1;
-
-     for s =1:length(NamesPassedSweeps)
-              if any(strcmpi({num2str(NamesPassedSweeps(s))},...
-                    cellFile.processing.map('AP Pattern').dynamictable.values{1}.vectordata.values{2}.data))
-                 Idx = find(strcmpi({num2str(NamesPassedSweeps(s))},...
-                    cellFile.processing.map('AP Pattern').dynamictable.values{1}.vectordata.values{2}.data));     
-                 Rate = table2array(getRow(cellFile.processing.map('AP Pattern'...
-                          ).dynamictable.values{1}, Idx, "columns", {'firingRate'}));
-                      if Rate > MaxRate
-                          MaxRate = Rate;
-                      end
-              end
-     end
-
-     ICsummary.maxFiringRate(cellNr,1) = MaxRate;  
-
-    %% dynamic frequency range and adaptation
-    if cellFile.processing.map('AP Pattern').dynamictable.isKey('ISIs') && ...
-         ~isempty(cellFile.processing.map('AP Pattern').dynamictable.map('ISIs'...
-         ).vectordata.values{1}.data)
-
-       ISIs = cellFile.processing.map('AP Pattern').dynamictable.map('ISIs'...
-         ).vectordata.values{1}.data;
-
-       prunedISIs = ISIs;
-       prunedISIs(ISIs==0) = [];
-       ICsummary.medInstaRate(cellNr,1) = round(1000/nanmedian(prunedISIs),2);      
-       ICsummary.ISIs_P90(cellNr,1) = round(prctile(ISIs, 90),2);           
-       ICsummary.ISIs_P10(cellNr,1) = round(prctile(ISIs, 10),2); 
-       ICsummary.ISIs_IQR(cellNr,1) = round(prctile(ISIs, 75) - ...
-                                          prctile(ISIs, 25),2);
-
-     if length(cellFile.processing.map('AP Pattern').dynamictable.map('ISIs'...
-         ).vectordata.values{1}.data) == ...
-            length(cellFile.processing.map('AP Pattern').dynamictable.map('ISIs'...
-         ).vectordata.values{1}.data)
-
-         TrueISIs = cellFile.processing.map('AP Pattern'...
-             ).dynamictable.map('ISIs').vectordata.values{1}.data(~isnan(...
-             cellFile.processing.map('AP Pattern').dynamictable.map('ISIs'...
-                   ).vectordata.values{1}.data));
-
-         if length(TrueISIs) == 1
-             ICsummary.maxFiringRate(cellNr,1) = 2;
-         end
-     end
-
-     if params.plot_all == 1
-       figure('visible','off');
-       cdfplot(1000./ISIs);
-       grid off
-       xlabel('instantenous frequency (Hz)')
-       title('Dynamic frequency range')
-       xlim([0 200])
-       box off
-       export_fig(fullfile(params.outDest, 'firingPattern', ...
-           [params.cellID , '_DFR']),params.plot_format,'-r100');
-     end            
-    ICsummary.AdaptRatioB1B2(cellNr,1) = ...
-    round(sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B2').data)/ ...
-    sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B1').data),2);
-
-   ICsummary.AdaptRatioB1B10(cellNr,1) = ...
-    round(sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B20').data)/ ...
-    sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B1').data),2);
-
-   ICsummary.AdaptRatioB1B20(cellNr,1) = ...
-    round(sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B10').data)/ ...
-    sum(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.map('B1').data),2);
-
-   if ~isempty(cellFile.processing.map('AP Pattern').dynamictable.values{2}.vectordata.values{1}.data)
-
-       temp = table2array(getRow(cellFile.processing.map('AP Pattern'...
-        ).dynamictable.values{2},1))./table2array(getRow(cellFile.processing.map(...
-        'AP Pattern').dynamictable.values{2},length(cellFile.processing.map(...
-        'AP Pattern').dynamictable.values{2}.id.data)));
-
-      ICsummary.StimAdaptation(cellNr,1) = round(sum(temp(~isinf(temp)),'omitnan')/nnz(~isinf(temp)),3);
-
-      ICsummary.MinLastQui(cellNr,1) = ...
-          min(cellFile.processing.map('AP Pattern').dynamictable.values{1}.vectordata.values{1}.data);
-
-      APPNames = cellFile.processing.map('AP Pattern').dynamictable.values{1}.vectordata.map('SweepIDs').data;
-
-      APPIdx = find(ismember(cellfun(@(v)v(1), regexp(...
-          SweepPaths,'\d*','Match')), cellstr(APPNames)));
-
-      if isa(cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-              1}.data,'double')
-         I = cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data(APPIdx);
-      else
-         I = cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data.load(APPIdx);
-      end
-
-      P = polyfit(I, cellFile.processing.map('AP Pattern'...
-          ).dynamictable.values{1}.vectordata.map('firingRate').data,1);
-
-      ICsummary.fI_slope(cellNr,1) = round(P(1),3);
-
-      if params.plot_all == 1
-           figure('visible','off');
-           plot(I, cellFile.processing.map('AP Pattern'...
-               ).dynamictable.values{1}.vectordata.map('firingRate').data)
-           yfit = P(1)*I+P(2);
-           hold on
-           plot(I,yfit,'r-.');
-           xlabel('input current (pA)')
-           ylabel('firing frequency (Hz)')
-           title('f/I curve')
-           box off
-           axis tight 
-           export_fig(fullfile(params.outDest, 'firingPattern', ...
-               [params.cellID , ' fI_curve']),params.plot_format,'-r100');
-      end
-     end
-    end
-    %% finding sag sweep
-    runs = 1;
-    sagSweep = []; sagPos = [];
-    PlotStruct.SagSweepTablePos = [];
-    sweepAmps = cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{1}.data.load;
-    sweepAmps(sweepAmps>-45) = [];
-    if ICsummary.resistanceHD(cellNr,1) < 100
-       sweepAmps(sweepAmps>-65) = []; 
-    end
-    sweepAmps = sort(sweepAmps);
-    
-    while isempty(sagSweep) && runs < length(sweepAmps)+1
-        
-        SweepPos = find( ...
-            cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{1}.data.load == ...
-                     sweepAmps(runs));
-        
-        Path2Sweep = cellFile.general_intracellular_ephys_intracellular_recordings.responses.response.data.load.timeseries(...
-                       SweepPos).path;
-        
-        Pathparts = regexp(Path2Sweep,'/','split');  
-              
-        SweepName = char(Pathparts(length(Pathparts)));   
-        
-        if ismember(str2double(regexp(SweepName,'\d*','Match')), NamesPassedSweeps)
-        
-            sagPos = find(contains(cellFile.processing.map('subthreshold parameters' ...
-                     ).dynamictable.keys, SweepName));
-
-            sagSweep = cellFile.processing.map('subthreshold parameters').dynamictable.values{sagPos};
-
-            PlotStruct.SagSweepTablePos = find(strcmp(SweepPaths,...
-                     ['/acquisition/',cellFile.processing.map(...
-                     'subthreshold parameters').dynamictable.keys{sagPos}]));          
-        end
-        runs= runs +1;
-    end
-
-    if ~isempty(sagSweep)
-        ICsummary.sagAmp(cellNr,1) = round(sagSweep.vectordata.map('SweepAmp').data,2);
-        ICsummary.sag(cellNr,1) = round(sagSweep.vectordata.map('sag').data,2);
-        ICsummary.sag_ratio(cellNr,1) = round(sagSweep.vectordata.map('sagRatio').data,2);  
-        QCIdx = find(strcmp(cellFile.processing.map(...
-            'QC parameter').dynamictable.values{1}.vectordata.map('SweepID').data, ...
-                     cellFile.processing.map(...
-                      'subthreshold parameters').dynamictable.keys{sagPos}));
-
-        ICsummary.sagVrest(cellNr,1) = ...
-             round(cellFile.processing.map('QC parameter'...
-             ).dynamictable.values{1}.vectordata.map('Vrest').data(QCIdx),2);
-
-        PlotStruct.sagSweepSeries = cellFile.resolve(SweepPaths(PlotStruct.SagSweepTablePos));
-    else
-        PlotStruct.sagSweepSeries = [];
-    end
-
-    %% find rheobase sweeps and parameters of first spike
-    PlotStruct.RheoSweepTablePos = [];
-    PlotStruct.RheoSweep = [];
-
-    for s = 1:cellFile.processing.map('AP wave').dynamictable.Count            %% loop through all Sweeps with spike data
-       number = string(regexp(...
-            cellFile.processing.map('AP wave').dynamictable.keys{s},'\d*','Match'));
-
-        if ismember(str2double(cell2mat(number(:,1))), NamesPassedSweeps)                  %% if sweep passed the QC
-
-           if (isempty(PlotStruct.RheoSweep) && length(cellFile.processing.map('AP wave' ...
-                ).dynamictable.values{s}.vectordata.values{1}.data) ...
-                   <= params.maxRheoSpikes) || (~isempty(PlotStruct.RheoSweep)  && ...                        %% if the sweep has less 
-                   length(cellFile.processing.map('AP wave').dynamictable.values{...
-                     s}.vectordata.values{1}.data) < ...
-                         length(PlotStruct.RheoSweep.vectordata.values{1}.data))                      
-
-              PlotStruct.RheoSweep = cellFile.processing.map('AP wave').dynamictable.values{s};
-              RheoPos = s;
-           end
-        end
-    end    
-
-    if ~isempty(PlotStruct.RheoSweep)
-
-        PlotStruct.RheoSweepTablePos = find(endsWith(...
-            SweepPaths,cellFile.processing.map('AP wave').dynamictable.keys{RheoPos}));
-
-        ICsummary.Rheo(cellNr,1) = ...
-          round(cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data(PlotStruct.RheoSweepTablePos));
-
-        ICsummary.latency(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('thresholdTime').data(1) - ...
-            table2array(SweepResponseTbl(PlotStruct.RheoSweepTablePos,1))*1000/cellFile.resolve(...
-            SweepPaths(PlotStruct.RheoSweepTablePos( ...
-            contains(SweepPaths(PlotStruct.RheoSweepTablePos),'acquisition')))).starting_time_rate;
-
-        ICsummary.widthTP_LP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('fullWidthTP').data(1);
-        ICsummary.peakLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('peak').data(1),2);
-
-        ICsummary.thresholdLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('threshold').data(1),2);
-        ICsummary.fastTroughLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('fast_trough').data(1),2);
-        ICsummary.slowTroughLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('slow_trough').data(1),2);
-        ICsummary.peakUpStrokeLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('peakUpStroke').data(1),2);
-        ICsummary.peakDownStrokeLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('peakDownStroke').data(1),2);
-        ICsummary.peakStrokeRatioLP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('peakStrokeRatio').data(1),2);   
-        ICsummary.heightTP_LP(cellNr,1) = round(PlotStruct.RheoSweep.vectordata.map('heightTP').data(1),2);
-
-        PlotStruct.RheoSweepSeries =  cellFile.resolve(SweepPaths(PlotStruct.RheoSweepTablePos(...
-                contains(SweepPaths(PlotStruct.RheoSweepTablePos),'acquisition'))));
-
-    else
-        PlotStruct.RheoSweepSeries = [];
-    end
-
-    %% Hero sweep selection
-    HeroSweep = [];            
-    PlotStruct.HeroSweepPos = [];
-    PlotStruct.HeroSweepTablePos = [];
-    diff2target = [];
-    if ~isnan(ICsummary.Rheo(cellNr,1))
-        if ICsummary.Rheo(cellNr,1) <= 80
-          target = ICsummary.Rheo(cellNr,1)+40;
-        else
-          target = ICsummary.Rheo(cellNr,1)+60;
-        end
-        if isa(...
-            cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data, 'double')
-
-           sweepAmps = cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data;
-        else  
-           sweepAmps = cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data.load;  
-        end
-        while isempty(HeroSweep) && all(target <= max(sweepAmps(IdxPassedSweeps))) && ...
-                length(diff2target) < 10000
-
-            target = target(~(target < ICsummary.Rheo(cellNr,1)));
-
-            diff2target = min(abs(sweepAmps-target));
-
-            [PlotStruct.HeroSweepPos , ~] = find(any(abs(sweepAmps-target)==diff2target,2));
-
-            PosHeroNames = str2double(cellfun(@(v)v(1), ...
-                regexp(cellstr(SweepPaths(PlotStruct.HeroSweepPos(...
-                   contains(SweepPaths(PlotStruct.HeroSweepPos),'acquisition')))), ...
-                   '\d*','Match')));
-
-            for h = 1:length(PosHeroNames)  
-                 check = find(str2double(cellFile.processing.map('AP Pattern'...
-                    ).dynamictable.values{1}.vectordata.map('SweepIDs').data)==PosHeroNames(h));
-                if isempty(check)
-                   PosSpTrain(h) = NaN;
-                else
-                   PosSpTrain(h) = check;
-                end
-            end
-
-            if ~isempty(PosSpTrain) && ~isempty(PosSpTrain(~isnan(PosSpTrain)))
-                PosSpTrain = PosSpTrain(~isnan(PosSpTrain));
-                mem = 10000;
-                for i = 1:length(PosSpTrain)
-                    RheoName = str2double(cell2mat(regexp(...
-                        cellFile.processing.map('AP wave').dynamictable.keys{RheoPos},'\d*','Match')));
-                    dist = abs(PosSpTrain(i) -RheoName); 
-                    if any(ismember(PosHeroNames, NamesPassedSweeps)) && ...
-                            mem > dist
-                        HeroSweep = getRow(cellFile.processing.map('AP Pattern'...
-                                        ).dynamictable.values{1}, PosSpTrain(i));     
-                        mem = dist;            
-                    end
-                end
-                if isempty(HeroSweep)
-                    target = [target - 20, target + 20];
-                end
-            else
-                  target = [target - 20, target + 20];
-            end
-        end
-
-        if ~isempty(HeroSweep)
-          temp =  cellfun(@(v)v(1),regexp(SweepPaths,'\d*','Match'));
-          PlotStruct.HeroSweepTablePos =  find(strcmp(temp,HeroSweep.SweepIDs));
-
-          PlotStruct.HeroSweepTablePos = PlotStruct.HeroSweepTablePos(contains(...
-              SweepPaths(PlotStruct.HeroSweepTablePos), 'acquisition'));
-
-          PlotStruct.HeroSweepSeries = cellFile.resolve(...
-                                    SweepPaths(PlotStruct.HeroSweepTablePos));
-
-            ICsummary.cvISI(cellNr,1) = round(HeroSweep.cvISI,3);
-            ICsummary.HeroRate(cellNr,1) = HeroSweep.firingRate;
-            ICsummary.HeroAmp(cellNr,1) = ...
-                unique(cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data(find(Sweepnames==str2double(HeroSweep.SweepIDs)))) ;
-            ICsummary.heroLatency(cellNr,1) = HeroSweep.latency;
-            ICsummary.peakAdapt(cellNr,1) = round(HeroSweep.peakAdapt,3);
-            ICsummary.adaptIndex(cellNr,1) = round(HeroSweep.adaptIndex2,3);
-            ICsummary.burst(cellNr,1) = round(HeroSweep.burst,2);           
-
-            if length(PlotStruct.HeroSweepSeries) > 1
-             PlotStruct.HeroSweepSeries = PlotStruct.HeroSweepSeries{2};
-            end
-
-        elseif length(PlotStruct.RheoSweep.vectordata.map('heightTP').data) > 1
-            PlotStruct.HeroSweepSeries = PlotStruct.RheoSweepSeries;
-            PlotStruct.HeroSweepTablePos = PlotStruct.RheoSweepTablePos;
-        else
-            PlotStruct.HeroSweepSeries = [];
-            PlotStruct.HeroSweepTablePos = [];
-        end
-    else
-        PlotStruct.HeroSweepSeries = [];
-        PlotStruct.HeroSweepTablePos = [];
-    end
+   end
+   if ~isempty(heroSwpDat)                                                 % if there is a hero sweep
+     heroSwpSers = nwb.resolve(SwpPaths(heroSwpTabPos(end)));              % get CCSeries of hero sweep 
+     icSum.cvISI(ClNr,1) = round(heroSwpDat.cvISI,3);                      % get cvISI
+     icSum.HeroRt(ClNr,1) = heroSwpDat.firRt;                            % get firing rate of hero sweep  
+     icSum.HeroAmp(ClNr,1) = LPampsQC(heroSwpPos(end));                    % get current amplitude of hero sweep
+     icSum.heroLat(ClNr,1) = heroSwpDat.lat;                           % get latency of hero sweep
+     icSum.peakAdapt(ClNr,1) = round(heroSwpDat.peakAdapt,3);              % get peak adaptation of hero sweep
+     icSum.adaptIdx(ClNr,1) = round(heroSwpDat.adaptIdx2,3);             % get adaptation index of hero sweep 
+     icSum.burst(ClNr,1) = round(heroSwpDat.burst,2);                      % get bursting index of hero sweep 
+   elseif length(rheoSwpDat.map('heightTP').data) > 3                      % if there is no hero sweep but rheobase has more than 3 spikes 
+     heroSwpSers = rheoSwpSers; heroSwpTabPos = rheoSwpTabPos;             % get rheo CCSeries as hero sweep            
+     PosSpTrain = find(contains(SuprIDs, RheoSwpID));   
+     heroSwpDat = getRow(spPatr.values{1}, PosSpTrain);                    % get Hero Sweep Data from spPatr module
+     icSum.cvISI(ClNr,1) = round(heroSwpDat.cvISI,3);                      % get cvISI
+     icSum.HeroRt(ClNr,1) = heroSwpDat.firRt;                            % get firing rate of hero sweep  
+     icSum.HeroAmp(ClNr,1) =  icSum.Rheo(ClNr,1);                          % get current amplitude of hero sweep
+     icSum.heroLat(ClNr,1) = heroSwpDat.lat;                           % get latency of hero sweep
+     icSum.peakAdapt(ClNr,1) = round(heroSwpDat.peakAdapt,3);              % get peak adaptation of hero sweep
+     icSum.adaptIdx(ClNr,1) = round(heroSwpDat.adaptIdx2,3);             % get adaptation index of hero sweep 
+     icSum.burst(ClNr,1) = round(heroSwpDat.burst,2);                      % get bursting index of hero sweep 
+   end
+  end
+  %% Saving sweeps and data for plotting cell profile   
+  PltS.heroSwpSers = heroSwpSers; PltS.heroSwpTabPos = heroSwpTabPos;      % save hero sweep CCseries and table position in structure for plotting later
+  PltS.sagSwpTabPos = sagSwpTabPos; PltS.sagSwpSers = sagSwpSers;          % save sag sweep CCseries and position in sweep table
+  PltS.rheoSwpTabPos = rheoSwpTabPos;                                      % save rheobase sweep table position in structure for plotting later
+  PltS.rheoSwpSers = rheoSwpSers;  PltS.rheoSwpDat = rheoSwpDat;           % saves rheob data and CCSeries in plotting structure
 else  % required for runSummary because data format changes from double to DataStub
-        IdxPassedSweeps = find(all(...
-            [cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data.load, ...
-            cellFile.general_intracellular_ephys_sweep_table.vectordata.map('BinaryLP').data.load],2));  
-        
-        Sweepnames = cellfun(@(a) str2double(a), regexp(SweepPaths,'\d*','Match'));
-
-        NamesPassedSweeps = unique(Sweepnames(IdxPassedSweeps));
-        IdxPassedSweeps = IdxPassedSweeps(1:length(NamesPassedSweeps));
-
-        %% subthreshold summary parameters                              
-
-        [ICsummary.resistanceHD(cellNr,1), ICsummary.resistanceOffset(cellNr,1)] = ...
-            inputResistance(cellFile.processing.map('subthreshold parameters').dynamictable,...
-            params , NamesPassedSweeps);              % resistance based on steady state
-        
-        ICsummary.resistanceSS(cellNr,1) = inputResistanceSS(...
-                 cellFile.processing.map('subthreshold parameters').dynamictable, ...
-                 NamesPassedSweeps, params);    
-             
-        ICsummary.rectification(cellNr,1) = rectification(...
-            cellFile.processing.map('subthreshold parameters').dynamictable,NamesPassedSweeps);
-        
-             if ~isempty(cellFile.processing.map('QC parameter'...
-                     ).dynamictable.values{1}.vectordata.map('SweepID').data.load)
-                 
-                    QCTableIdx = find(ismember(regexp(cell2mat(...
-                                cellFile.processing.map('QC parameter'...
-                         ).dynamictable.values{1}.vectordata.map('SweepID').data.load),...
-                         '\d*','Match'), cellstr(string(NamesPassedSweeps))));  
-
-                    ICsummary.Vrest(cellNr,1) = nanmean(...
-                        cellFile.processing.map('QC parameter'...
-                        ).dynamictable.values{1}.vectordata.map('Vrest').data.load(QCTableIdx));                            % resting membrane potential
-             else
-                 ICsummary.Vrest(cellNr,1) = NaN;
-             end
-        tau_vec = [];
-
-        for s = 1:cellFile.processing.map('subthreshold parameters').dynamictable.Count
-            number = regexp(...
-               cellFile.processing.map('subthreshold parameters').dynamictable.keys{s},'\d*','Match');
-
-            if ismember(str2double(cell2mat(number)), NamesPassedSweeps) && ...
-                 ~isnan(cellFile.processing.map('subthreshold parameters' ...
-                   ).dynamictable.values{s}.vectordata.values{11}.data.load) && ...
-                      cellFile.processing.map('subthreshold parameters' ...
-                         ).dynamictable.values{s}.vectordata.values{11}.data.load
-
-                   tau_vec =  [tau_vec, ...
-                       cellFile.processing.map('subthreshold parameters').dynamictable.values{s}.vectordata.values{10}.data.load];
-            end
-        end    
-        tau_vec = sort(tau_vec);
-        if length(tau_vec) < 3 && ~isempty(tau_vec)
-            ICsummary.tau(cellNr,1) = mean(tau_vec(length(tau_vec)));
-        elseif ~isempty(tau_vec)
-           ICsummary.tau(cellNr,1) = mean(tau_vec(1:3));
-        else
-           ICsummary.tau(cellNr,1) = NaN;
-        end
-        %% Maximum firing rate and  median instantanous rate
-
-        if cellFile.processing.isKey('All_ISIs') && ...
-             ~isempty(cellFile.processing.map('All_ISIs').dynamictable.values{1}.vectordata.values{2}.data.load)
-                                             
-           ICsummary.medInstaRate(cellNr,1) = 1000/nanmedian(...
-                  cellFile.processing.map('All_ISIs'...
-                  ).dynamictable.values{1}.vectordata.values{1}.data.load);  
-          
-         if length(cellFile.processing.map('All_ISIs'...
-             ).dynamictable.values{1}.vectordata.values{2}.data.load) == ...
-             length(cellFile.processing.map('All_ISIs').dynamictable.values{1 ...
-                                        }.vectordata.values{1}.data.load)
-            
-             TrueISIs = cellFile.processing.map('All_ISIs'...
-               ).dynamictable.values{1}.vectordata.values{2}.data.load(~isnan(...
-               cellFile.processing.map('All_ISIs').dynamictable.values{1 ...
-                                        }.vectordata.values{1}.data.load));
-                                                                     
-             if length(TrueISIs) == 1
-                 ICsummary.maxFiringRate(cellNr,1) = 2;
-             end
-         else
-            ICsummary.maxFiringRate(cellNr,1) = max(diff(...
-                cellFile.processing.map('All_ISIs'...
-             ).dynamictable.values{1}.vectordata.values{2}.data.load));
-            for s = 1:length(IdxPassedSweeps)
-                
-            end
-         
-         
-         end   
-      else            
-          ICsummary.maxFiringRate(cellNr,1) = 0;
-          ICsummary.medInstaRate(cellNr,1) = 0;         
-      end
-        %% finding sag sweep
-        runs = 1;
-        sagSweep = []; sagPos = [];
-        PrefeSagAmps = [-90, -70, -110, -50, -30];
-        PlotStruct.SagSweepTablePos = [];
-
-        while isempty(sagSweep) && runs < 5
-            for s = 1:cellFile.processing.map('subthreshold parameters').dynamictable.Count 
-
-              number = regexp(cellFile.processing.map('subthreshold parameters' ...
-                     ).dynamictable.keys{s},'\d*','Match');
-
-              if ismember(str2double(cell2mat(number)), NamesPassedSweeps) && ...
-                   round(cellFile.processing.map('subthreshold parameters'...
-                   ).dynamictable.values{s}.vectordata.values{2}.data.load) == PrefeSagAmps(runs)  
-                 sagSweep = cellFile.processing.map('subthreshold parameters').dynamictable.values{s};
-                 sagPos = s;
-              end    
-            end
-            if ~isempty(sagPos)
-              PlotStruct.SagSweepTablePos = find(strcmp(SweepPaths,...
-                        ['/acquisition/',cellFile.processing.map(...
-                          'subthreshold parameters').dynamictable.keys{sagPos}]));
-            end
-            runs= runs +1;
-        end
-
-        if ~isempty(sagSweep)
-            ICsummary.sagAmp(cellNr,1) = sagSweep.vectordata.values{2}.data.load;
-            ICsummary.sag(cellNr,1) = sagSweep.vectordata.values{8}.data.load;
-            ICsummary.sag_ratio(cellNr,1) = sagSweep.vectordata.values{9}.data.load;    
-            QCIdx = find(strcmp(cellFile.processing.map(...
-                'QC parameter').dynamictable.values{1}.vectordata.map('SweepID').data.load, ...
-                         cellFile.processing.map(...
-                          'subthreshold parameters').dynamictable.keys{sagPos}));
-            
-            ICsummary.sagVrest(cellNr,1) = ...
-                 cellFile.processing.map('QC parameter'...
-                 ).dynamictable.values{1}.vectordata.map('Vrest').data.load(QCIdx);
-             
-            PlotStruct.sagSweepSeries = cellFile.resolve(SweepPaths(PlotStruct.SagSweepTablePos));
-        else
-            PlotStruct.sagSweepSeries = [];
-        end
-
-        %% find rheobase sweeps and parameters of first spike
-        PlotStruct.RheoSweepTablePos = [];
-        PlotStruct.RheoSweep = [];
-        
-        for s = 1:cellFile.processing.map('AP wave').dynamictable.Count            %% loop through all Sweeps with spike data
-            number = regexp(...
-                cellFile.processing.map('AP wave').dynamictable.keys{s},'\d*','Match');
-            if ismember(str2double(cell2mat(number)), NamesPassedSweeps)                  %% if sweep passed the QC
-
-               if (isempty(PlotStruct.RheoSweep) && length(cellFile.processing.map('AP wave' ...
-                    ).dynamictable.values{s}.vectordata.values{1}.data.load) ...
-                       <= params.maxRheoSpikes) || (~isempty(PlotStruct.RheoSweep)  && ...                        %% if the sweep has less 
-                       length(cellFile.processing.map('AP wave').dynamictable.values{...
-                         s}.vectordata.values{1}.data.load) < ...
-                             length(PlotStruct.RheoSweep.vectordata.values{1}.data.load))                      
-
-                  PlotStruct.RheoSweep = cellFile.processing.map('AP wave').dynamictable.values{s};
-                  RheoPos = s;
-               end
-            end
-        end    
-
-        if ~isempty(PlotStruct.RheoSweep)
-
-            PlotStruct.RheoSweepTablePos = find(endsWith(...
-                SweepPaths,cellFile.processing.map('AP wave').dynamictable.keys{RheoPos}));
-
-            ICsummary.Rheo(cellNr,1) = ...
-                round(nanmean(unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-                'SweepAmp').data.load(PlotStruct.RheoSweepTablePos))));
-
-            ICsummary.latency(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('thresholdTime').data.load(1) - ...
-                nanmean(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-                'StimOn').data.load(PlotStruct.RheoSweepTablePos))*1000/cellFile.resolve(...
-                SweepPaths(PlotStruct.RheoSweepTablePos( ...
-                contains(SweepPaths(PlotStruct.RheoSweepTablePos),'acquisition')))).starting_time_rate;
-
-            ICsummary.widthTP_LP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('fullWidthTP').data.load(1);
-            ICsummary.peakLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peak').data.load(1);
-            
-            ICsummary.thresholdLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('threshold').data.load(1) ;
-            ICsummary.fastTroughLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('fast_trough').data.load(1);
-            ICsummary.slowTroughLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('slow_trough').data.load(1);
-            ICsummary.peakUpStrokeLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peakUpStroke').data.load(1);
-            ICsummary.peakDownStrokeLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peakDownStroke').data.load(1);
-            ICsummary.peakStrokeRatioLP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('peakStrokeRatio').data.load(1);   
-            ICsummary.heightTP_LP(cellNr,1) = PlotStruct.RheoSweep.vectordata.map('heightTP').data.load(1);
-
-            PlotStruct.RheoSweepSeries =  cellFile.resolve(SweepPaths(PlotStruct.RheoSweepTablePos(...
-                    contains(SweepPaths(PlotStruct.RheoSweepTablePos),'acquisition'))));
-
-        else
-            PlotStruct.RheoSweepSeries = [];
-        end
-
-
-
-
-        %% Hero sweep selection
-        HeroSweep = [];            
-        PlotStruct.HeroSweepPos = [];
-        PlotStruct.HeroSweepTablePos = [];
-        diff2target = [];
-        if ~isnan(ICsummary.Rheo(cellNr,1))
-            target = ICsummary.Rheo(cellNr,1)+60;
-           
-            if isa(...
-                cellFile.general_intracellular_ephys_sweep_table.vectordata.map('SweepAmp').data.load, 'double')
-            
-               sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.map('SweepAmp').data.load;
-            else  
-               sweepAmps = cellFile.general_intracellular_ephys_sweep_table.vectordata.map('SweepAmp').data.load.load;  
-            end
-            while isempty(HeroSweep) && all(target <= max(sweepAmps(IdxPassedSweeps))) && ...
-                    length(diff2target) < 100000
-
-                target = target(~(target < ICsummary.Rheo(cellNr,1)));
-
-                diff2target = min(abs(sweepAmps-target));
-
-                [PlotStruct.HeroSweepPos , ~] = find(any(abs(sweepAmps-target)==diff2target,2));
-
-                PosHeroNames = str2double(cellfun(@(v)v(1), ...
-                    regexp(cellstr(SweepPaths(PlotStruct.HeroSweepPos(...
-                       contains(SweepPaths(PlotStruct.HeroSweepPos),'acquisition')))), ...
-                       '\d*','Match')));
-
-                for h = 1:length(PosHeroNames)  
-                     check = find(cellFile.processing.map('AP Pattern'...
-                        ).dynamictable.values{1}.vectordata.values{1}.data.load==PosHeroNames(h));
-                    if isempty(check)
-                       PosSpTrain(h) = NaN;
-                    else
-                       PosSpTrain(h) = check;
-                    end
-                end
-
-                if ~isempty(PosSpTrain) && ~isempty(PosSpTrain(~isnan(PosSpTrain)))
-                    PosSpTrain = PosSpTrain(~isnan(PosSpTrain));
-                    mem = 10000;
-                    for i = 1:length(PosSpTrain)
-                        RheoName = str2double(cell2mat(regexp(...
-                            cellFile.processing.map('AP wave').dynamictable.keys{RheoPos},'\d*','Match')));
-                        dist = abs(PosSpTrain(i) -RheoName); 
-                        if any(ismember(PosHeroNames, NamesPassedSweeps)) && ...
-                                mem > dist
-                            HeroSweep = getRow(cellFile.processing.map('AP Pattern'...
-                                            ).dynamictable.values{1}, PosSpTrain(i));     
-                            mem = dist;            
-                        end
-                    end
-                    if isempty(HeroSweep)
-                        target = [target - 20, target + 20];
-                    end
-                else
-                      target = [target - 20, target + 20];
-                end
-            end
-
-            if ~isempty(HeroSweep)
-               temp = regexp(SweepPathsAll,'\d*','Match');
-               temp = [temp{:}];
-              PlotStruct.HeroSweepTablePos =  find(strcmp(temp,num2str(HeroSweep.SweepIDs)));
-            
-              PlotStruct.HeroSweepTablePos = PlotStruct.HeroSweepTablePos(contains(...
-                  SweepPathsAll(PlotStruct.HeroSweepTablePos), 'acquisition'));
-              
-              PlotStruct.HeroSweepSeries = cellFile.resolve(...
-                                        SweepPathsAll(PlotStruct.HeroSweepTablePos));
-
-                ICsummary.cvISI(cellNr,1) = HeroSweep.cvISI;
-                ICsummary.HeroRate(cellNr,1) = HeroSweep.meanFR1000;
-                ICsummary.HeroAmp(cellNr,1) = ...
-                    unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-                    'SweepAmp').data.load(find(Sweepnames==HeroSweep.SweepIDs))) ;
-                ICsummary.heroLatency(cellNr,1) = HeroSweep.latency;
-                ICsummary.peakAdapt(cellNr,1) = HeroSweep.peakAdapt;
-                ICsummary.adaptIndex(cellNr,1) = HeroSweep.adaptIndex2;
-                ICsummary.burst(cellNr,1) = HeroSweep.burst;           
-                ICsummary.delay(cellNr,1) = HeroSweep.delay;           
-
-                if length(PlotStruct.HeroSweepSeries) > 1
-                 PlotStruct.HeroSweepSeries = PlotStruct.HeroSweepSeries{2};
-                end
-            
-            elseif length(PlotStruct.RheoSweep.vectordata.map('heightTP').data.load) > 1
-                PlotStruct.HeroSweepSeries = PlotStruct.RheoSweepSeries;
-                PlotStruct.HeroSweepTablePos = PlotStruct.RheoSweepTablePos;
-            else
-                PlotStruct.HeroSweepSeries = [];
-                PlotStruct.HeroSweepTablePos = [];
-            end
-        else
-            PlotStruct.HeroSweepSeries = [];
-            PlotStruct.HeroSweepTablePos = [];
-        end
+  
 end
