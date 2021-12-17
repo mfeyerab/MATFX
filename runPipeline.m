@@ -50,6 +50,7 @@ if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
     mkdir(fullfile(PS.outDest, '\traces'))
     mkdir(fullfile(PS.outDest, '\betweenSweeps'))
     mkdir(fullfile(PS.outDest, '\AP_Waveforms'))
+    mkdir(fullfile(PS.outDest, '\tauFit'))    
 end
 
 %% Initialize feature and QC summary tables

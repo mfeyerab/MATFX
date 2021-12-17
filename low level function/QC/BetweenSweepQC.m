@@ -1,5 +1,5 @@
 function  [BwSweepPass, BwSweepParameter] = BetweenSweepQC(QC_parameter, ...
-    BwSweepMode, params)
+    BwSweepMode, PS)
 
 vec = QC_parameter.Vrest';
 vec(QC_parameter.Vrest'>-40) = NaN;
@@ -15,7 +15,7 @@ else
     BwSweepPass(height(QC_parameter),1) = false;
 end
 if exist('OrigV')
-   outlierVec = find(abs(QC_parameter.Vrest-OrigV) > params.BwSweepMax);     
+   outlierVec = find(abs(QC_parameter.Vrest-OrigV) > PS.BwSweepMax);     
     for v = 1:height(QC_parameter)
       if ~isnan(QC_parameter.Vrest(v))  
         BwSweepParameter(v,1) = OrigV - QC_parameter.Vrest(v);
@@ -27,7 +27,7 @@ if exist('OrigV')
       end
     end
 
-    if params.plot_all == 1
+    if PS.plot_all == 1
         ind = 1:height(QC_parameter) ;
         figure('Position',[50 50 300 250],'visible','off'); set(gcf,'color','w');          % generate figure
         hold on
@@ -43,8 +43,8 @@ if exist('OrigV')
         ylabel('resting V (mV)')
         axis tight
         ylim([-80 -45])
-        export_fig(fullfile(params.outDest, 'betweenSweeps', ...
-            [params.cellID, ' rmp w outliers']),params.plot_format,'-r100');                            % save figure
+        export_fig(fullfile(PS.outDest, 'betweenSweeps', ...
+            [PS.cellID, ' rmp w outliers']),PS.pltForm,'-r100');                            % save figure
         close
     end
 end

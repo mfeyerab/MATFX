@@ -1,4 +1,4 @@
-function b = inputResisSS(SubStatTable, NamesPassedSweeps, params)
+function b = inputResisSS(SubStatTable, NamesPassedSweeps, PS)
 
 tempX = [];
     
@@ -22,7 +22,7 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     f = polyfit(inputX,inputY,1);
     b = round(f(1) * (10^3),2);
 
-    if params.plot_all == 1
+    if PS.plot_all == 1
     figure('visible','off') 
     hold on
     plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
@@ -33,8 +33,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     title('V/I curve')
     box off
     axis tight
-    export_fig(fullfile(params.outDest, 'resistance', [...
-        params.cellID, ' resistance_ss']),params.plot_format,'-r100');
+    export_fig(fullfile(PS.outDest, 'resistance', [...
+        PS.cellID, ' resistance_ss']),PS.pltForm,'-r100');
     end
 else
     b = NaN;   

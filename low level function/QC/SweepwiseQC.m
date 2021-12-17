@@ -132,7 +132,7 @@ end
         ylim([-100 -30])
         legend({'pre-stim','post-stim'})
         export_fig(fullfile(params.outDest, 'peristim',[params.cellID,' ',int2str(SweepCount),...
-            ' RMS noise vectors']),params.plot_format,'-r100');
+            ' RMS noise vectors']),params.pltForm ,'-r100');
         close
     end
 end

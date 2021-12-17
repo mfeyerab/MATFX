@@ -10,7 +10,7 @@ PS.SkipTags = ["Ramp",...
     "Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND", "I-V", "unknown"];
 
 % plotting functions
-PS.plot_all = 0;
+PS.plot_all = 1;
 PS.pltForm = '-jpg';
 
 % spike detection

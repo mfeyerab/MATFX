@@ -1,4 +1,4 @@
-function [resistance, offset]= inputResistance(SubStatTable, params, NamesPassedSweeps)
+function [resistance, offset]= inputResistance(SubStatTable, PS, NamesPassedSweeps)
 
 tempX = [];
 
@@ -38,7 +38,7 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     f = polyfit(inputX,inputY,1);
     resistance = round(f(1) * (10^3),2);
     offset = round(f(2),2);
-    if params.plot_all == 1 && check == 1
+    if PS.plot_all == 1 && check == 1
         figure('visible','off'); 
         hold on
         plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
@@ -49,8 +49,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
         title('V/I curve')
         box off
         axis tight 
-        export_fig(fullfile(params.outDest, 'resistance', ...
-             [params.cellID, ' input resistance']),params.plot_format,'-r100'); 
+        export_fig(fullfile(PS.outDest, 'resistance', ...
+             [PS.cellID, ' input resistance']),PS.pltForm,'-r100'); 
         close
     end
 elseif length(nonzeros(tempX)) == 1
@@ -58,7 +58,7 @@ elseif length(nonzeros(tempX)) == 1
     f = polyfit([0; tempX],[0; tempY],1);
     resistance = round(f(1) * (10^3));
     offset = 0;
-    if params.plot_all == 1 && check == 1
+    if PS.plot_all == 1 && check == 1
         figure('visible','off'); 
         hold on
         plot([0; tempX],(f(1)*[0; tempX]+f(2))','k','LineWidth',1)
@@ -69,8 +69,8 @@ elseif length(nonzeros(tempX)) == 1
         title('V/I curve')
         box off
         axis tight  
-        export_fig(fullfile(params.outDest, 'resistance', ...
-             [params.cellID, 'input resistance']),params.plot_format,'-r100');
+        export_fig(fullfile(PS.outDest, 'resistance', ...
+             [PS.cellID, 'input resistance']),PS.pltForm,'-r100');
         close
     end
 else
