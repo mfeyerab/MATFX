@@ -1,158 +1,69 @@
-function [cellFile, ICsummary, PlotStruct] = ...
-    SPsummary(cellFile, ICsummary, cellNr, params, PlotStruct)
+function [icSum, PS] = SPsummary(nwb, icSum, cellNr, PS)
 
-SweepResponseTbl = ...
-  cellFile.general_intracellular_ephys_intracellular_recordings.responses.response.data.load;
+IcephysTab = nwb.general_intracellular_ephys_intracellular_recordings;     % Assign new variable for readability
+SwpRespTbl = IcephysTab.responses.response.data.load.timeseries;           % Assign new variable for readability
+SwpAmps = IcephysTab.stimuli.vectordata.values{1}.data;                    % Assign new variable for readability
+qcPass = IcephysTab.dynamictable.map('quality_control_pass').vectordata;
 
-if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-        'quality_control_pass').vectordata.values{1}.data, 'double')
+SPIdx = contains(cellstr(IcephysTab.dynamictable.map('protocol_type'...
+                     ).vectordata.values{1}.data.load),PS.SPtags);
+if isa(qcPass.values{1}.data, 'double')                                    % Newly written entries into nwb object are doubles not DataStubs, hence there are two different forms of code needed to access them
+  
+  IdxPassSwps = all([qcPass.values{1}.data', SPIdx],2);                    % creates indices from passing QC (sweeps x 1)and LP type indices                              
+  SwpPaths = {SwpRespTbl.path};                                            % Gets all sweep paths of sweep response table and assigns it to a new variable  
+  SwpIDs = cellfun(@(a) str2double(a), cellfun(@(v)v(1),...                % Extract the numbers from the sweep names as doubles  
+                                       regexp(SwpPaths,'\d*','Match')));   % inner cellfun necessary if sweep name contains mutliple numbers for example an extra AD01 
+  IdPassSwps = SwpIDs(IdxPassSwps);                                        % Variable contains numbers of sweeps which passed QC  
+  IdPassSwpsC = cellstr(string(IdPassSwps));
+  
+ if ~isempty(IdPassSwps)
+      
+%% find SP "rheobase" sweeps and parameters of first spike
+     PS.SPSwpTbPos = []; PS.SPSwpSers = [];     
+     APwave = nwb.processing.map('AP wave').dynamictable;                  % variable for better readability     
+  if isa(SwpAmps, 'double')                                                % if current amplitude is double not a DataStub
+    SPampsQC = SwpAmps(IdxPassSwps);                                       % assign current amplitudes  of sweeps that made the QC to variable
+  else  
+    SPampsQC = SwpAmps.load(find(IdxPassSwps));                            % assign current amplitudes  of sweeps that made the QC to variable
+  end  
+  tempSPstep = min(SPampsQC(ismember(IdPassSwpsC,...
+                            regexp(cell2mat(APwave.keys),'\d*','Match'))));
+
+  if ~isempty(tempSPstep)
     
-    if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-            'protocol_type').vectordata.values{1}.data, 'double')
-       IdxPassedSweeps = find(all(...
-        [cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data, ...
-        cellFile.general_intracellular_ephys_sweep_table.vectordata.map('BinaryLP').data],2));  
+    tempSPstepLoc = find(contains(APwave.keys,IdPassSwpsC(...
+                                        SPampsQC==tempSPstep)),1,'first');
+    SPSwpTbPos = find(endsWith(SwpPaths,nwb.processing.map('AP wave'...
+                                      ).dynamictable.keys{tempSPstepLoc}));
+    SP_AP = APwave.values{tempSPstepLoc}.vectordata;
+    
+    if ~isempty(SP_AP.values{1}.data)
+      icSum.latencySP(cellNr,1) = SP_AP.map('thresTi').data - ...
+            (IcephysTab.responses.response.data.load(SPSwpTbPos).idx_start*...
+            1000/nwb.resolve(SwpRespTbl(SPSwpTbPos).path).starting_time_rate);        
+
+      icSum.CurrentStepSP(cellNr,1) = tempSPstep;
+      icSum.widthTP_SP(cellNr,1) = SP_AP.map('wiTP').data;
+      icSum.peakSP(cellNr,1) = SP_AP.map('peak').data;    
+      icSum.thresholdSP(cellNr,1) = SP_AP.map('thres').data;
+      icSum.fastTroughSP(cellNr,1) = SP_AP.map('fTrgh').data;
+      icSum.slowTroughSP(cellNr,1) = SP_AP.map('sTrgh').data;
+      icSum.peakUpStrokeSP(cellNr,1) = SP_AP.map('peakUpStrk').data; 
+      icSum.peakDownStrokeSP(cellNr,1) = SP_AP.map('peakDwStrk').data;
+      icSum.peakStrokeRatioSP(cellNr,1) = SP_AP.map('peakStrkRat').data;   
+      icSum.heightTP_SP(cellNr,1) = SP_AP.map('htTP').data;
+      
+      PS.SPSwpSers =  nwb.resolve(SwpPaths(SPSwpTbPos(contains(...
+                                    SwpPaths(SPSwpTbPos),'acquisition'))));
+      PS.SPSwpTbPos = SPSwpTbPos; PS.SPSwpDat = SP_AP;
     else
-     IdxPassedSweeps = find(all(...
-        [cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-        'quality_control_pass').vectordata.values{1}.data', ...
-        contains(cellstr(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
-            'protocol_type').vectordata.values{1}.data.load), params.SPtags)],2));  
+        [PS.SPSwpSers, PS.SPSwpTbPos, PS.SPSwpDat] = deal([]);
     end
-
-    SweepPaths = {SweepResponseTbl.timeseries.path};
-    
-    Sweepnames = cellfun(@(a) str2double(a), ...
-        cellfun(@(v)v(1),regexp(SweepPaths,'\d*','Match')));        % inner cellfun necessary if sweep name contains mutliple numbers for example an extra AD01 
-
-    NamesPassedSweeps = Sweepnames(IdxPassedSweeps);  
-    
-    
-       %% find rheobase sweeps and parameters of first spike
-        PlotStruct.SPSweepTablePos = [];
-        PlotStruct.SPSweep = [];
-        
-        for s = 1:cellFile.processing.map('AP wave').dynamictable.Count            %% loop through all Sweeps with spike data
-            number = regexp(...
-                cellFile.processing.map('AP wave').dynamictable.keys{s},'\d*','Match');
-            if ismember(str2num(cell2mat(number)), NamesPassedSweeps)                  %% if sweep passed the QC
-
-               if (isempty(PlotStruct.SPSweep) && length(cellFile.processing.map('AP wave' ...
-                    ).dynamictable.values{s}.vectordata.values{1}.data) ...
-                       <= params.maxRheoSpikes) || (~isempty(PlotStruct.SPSweep)  && ...                        %% if the sweep has less 
-                       length(cellFile.processing.map('AP wave').dynamictable.values{...
-                         s}.vectordata.values{1}.data) < ...
-                             length(PlotStruct.SPSweep.vectordata.values{1}.data))                      
-
-                  PlotStruct.SPSweep = cellFile.processing.map('AP wave').dynamictable.values{s};
-                  RheoPos = s;
-               end
-            end
-        end    
-
-        if ~isempty(PlotStruct.SPSweep)
-
-            PlotStruct.SPSweepTablePos = find(endsWith(...
-                SweepPaths,cellFile.processing.map('AP wave').dynamictable.keys{RheoPos}));
-
-            ICsummary.CurrentStepSP(cellNr,1) = ...
-                  cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
-             1}.data(PlotStruct.SPSweepTablePos);
-
-            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresTi').data(1) - ...
-                table2array(SweepResponseTbl(PlotStruct.SPSweepTablePos,1))*1000/cellFile.resolve(...
-                SweepPaths(PlotStruct.SPSweepTablePos( ...
-                contains(SweepPaths(PlotStruct.SPSweepTablePos),'acquisition')))).starting_time_rate;        
-
-            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresTi').data(1) - ...
-                table2array(SweepResponseTbl(PlotStruct.SPSweepTablePos,1))*1000/cellFile.resolve(...
-               SweepPaths(PlotStruct.SPSweepTablePos(contains(...
-               SweepPaths(PlotStruct.SPSweepTablePos),'acquisition')))).starting_time_rate;
-
-            
-            ICsummary.widthTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('wiTP').data(1);
-            ICsummary.peakSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peak').data(1);
-            
-            ICsummary.thresholdSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thres').data(1) ;
-            ICsummary.fastTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('fTrgh').data(1);
-            ICsummary.slowTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('sTrgh').data(1);
-            ICsummary.peakUpStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakUpStrk').data(1);
-            ICsummary.peakDownStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakDwStrk').data(1);
-            ICsummary.peakStrokeRatioSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakStrkRat').data(1);   
-            ICsummary.heightTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('htTP').data(1);
-
-            PlotStruct.SPSweepSeries =  cellFile.resolve(SweepPaths(PlotStruct.SPSweepTablePos(...
-                    contains(SweepPaths(PlotStruct.SPSweepTablePos),'acquisition'))));
-
-        else
-            PlotStruct.SPSweepTablePos = [];
-            PlotStruct.SPSweepSeries = [];
-        end
+  else
+      [PS.SPSwpSers, PS.SPSwpTbPos, PS.SPSwpDat] = deal([]);
+  end
 else
-        IdxPassedSweeps = find(all(...
-         [cellFile.general_intracellular_ephys_sweep_table.vectordata.map('QC_total_pass').data.load, ...
-          cellFile.general_intracellular_ephys_sweep_table.vectordata.map('BinarySP').data.load],2));  
-        
-        Sweepnames = cellfun(@(a) str2double(a), regexp(SweepPaths,'\d*','Match'));
-
-        NamesPassedSweeps = unique(Sweepnames(IdxPassedSweeps));
-        IdxPassedSweeps = IdxPassedSweeps(1:length(NamesPassedSweeps));    
-    
-    
-       %% find rheobase sweeps and parameters of first spike
-        PlotStruct.SPSweepTablePos = [];
-        PlotStruct.SPSweep = [];
-        
-        for s = 1:cellFile.processing.map('AP wave').dynamictable.Count            %% loop through all Sweeps with spike data
-            number = regexp(...
-                cellFile.processing.map('AP wave').dynamictable.keys{s},'\d*','Match');
-            if ismember(str2num(cell2mat(number)), NamesPassedSweeps)                  %% if sweep passed the QC
-
-               if (isempty(PlotStruct.SPSweep) && length(cellFile.processing.map('AP wave' ...
-                    ).dynamictable.values{s}.vectordata.values{1}.data.load) ...
-                       <= params.maxRheoSpikes) || (~isempty(PlotStruct.SPSweep)  && ...                        %% if the sweep has less 
-                       length(cellFile.processing.map('AP wave').dynamictable.values{...
-                         s}.vectordata.values{1}.data.load) < ...
-                             length(PlotStruct.SPSweep.vectordata.values{1}.data.load))                      
-
-                  PlotStruct.SPSweep = cellFile.processing.map('AP wave').dynamictable.values{s};
-                  RheoPos = s;
-               end
-            end
-        end    
-
-        if ~isempty(PlotStruct.SPSweep)
-
-            PlotStruct.SPSweepTablePos = find(endsWith(...
-                SweepPaths,cellFile.processing.map('AP wave').dynamictable.keys{RheoPos}));
-
-            ICsummary.CurrentStepSP(cellNr,1) = ...
-                nanmean(unique(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-                'SweepAmp').data.load(PlotStruct.SPSweepTablePos)));
-
-            ICsummary.latencySP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('thresholdTime').data(1) - ...
-                nanmean(cellFile.general_intracellular_ephys_sweep_table.vectordata.map(...
-                'StimOn').data.load(PlotStruct.SPSweepTablePos))*1000/cellFile.resolve(... 
-                SweepPaths(PlotStruct.SPSweepTablePos( ...
-                contains(SweepPaths(PlotStruct.SPSweepTablePos),'acquisition')))).starting_time_rate;
-
-            ICsummary.widthTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('fullWidthTP').data.load(1);
-            ICsummary.peakSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peak').data.load(1);
-            
-            ICsummary.thresholdSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('threshold').data.load(1) ;
-            ICsummary.fastTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('fast_trough').data.load(1);
-            ICsummary.slowTroughSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('slow_trough').data.load(1);
-            ICsummary.peakUpStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakUpStroke').data.load(1);
-            ICsummary.peakDownStrokeSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakDownStroke').data.load(1);
-            ICsummary.peakStrokeRatioSP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('peakStrokeRatio').data.load(1);   
-            ICsummary.heightTP_SP(cellNr,1) = PlotStruct.SPSweep.vectordata.map('heightTP').data.load(1);
-
-            PlotStruct.SPSweepSeries =  cellFile.resolve(SweepPaths(PlotStruct.SPSweepTablePos(...
-                    contains(SweepPaths(PlotStruct.SPSweepTablePos),'acquisition'))));
-
-        else
-            PlotStruct.SPSweepTablePos = [];
-            PlotStruct.SPSweepSeries = [];
-        end
+    [PS.SPSwpSers, PS.SPSwpTbPos] = deal([]);
 end
-           
+else  % required for runSummary because data format changes from double to DataStub
+end        

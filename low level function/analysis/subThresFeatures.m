@@ -32,11 +32,13 @@ if length(y)>=4
         subStats.tauMin = round(vecin(1)*1000/CCSeries.starting_time_rate,3);
     else
         subStats.tauMin = NaN;
+        subStats.tauMinGF = NaN;
     end
+    subStats.tauMinGF = gof.rsquare ;
 else
    subStats.tauMin = NaN;
+   subStats.tauMinGF = NaN;
 end
-subStats.tauMinGF = gof.rsquare ;
 %% sag & sag ratio
 sizeSlideWind = 0.075;
 TotalSize = 0.5;

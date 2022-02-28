@@ -224,9 +224,9 @@ for n = 1:length(cellList)                                                 % for
           str2double(info.values{1}.('initial_access_resistance')) ...
                  <= Ri_preqc*PS.factorRelaRa
 
-          [nwb, ICsummary, PltS] = LPsummary(nwb, ICsummary, n, PS);       % extract features from long pulse stimulus
-          [nwb, ICsummary, PltS] =  SPsummary(nwb, ICsummary, n, PS, PltS); % extract features from short pulse stimulus
-          plotCellProfile(nwb, PltS, PS)                                    % plot cell profile 
+          [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);       % extract features from long pulse stimulus
+          [ICsummary, PS] =  SPsummary(nwb, ICsummary, n, PS); % extract features from short pulse stimulus
+          plotCellProfile(nwb, PS)                                    % plot cell profile 
        else 
            display(['excluded by cell-wide QC for initial Ra (', ...
                  num2str(info.values{1}.('initial_access_resistance')),...
@@ -238,10 +238,9 @@ for n = 1:length(cellList)                                                 % for
        end  
        
    else
-       [nwb, ICsummary, PltS] = LPsummary(nwb, ICsummary, n, PS);    % extract features from long pulse stimulus 
-       [nwb, ICsummary, PltS] = SPsummary(nwb, ICsummary, ...
-                                                   n, PS, PltS); % extract features from short pulse stimulus 
-       plotCellProfile(nwb, PltS, PS)                            % plot cell profile
+       [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);    % extract features from long pulse stimulus 
+       [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS); % extract features from short pulse stimulus 
+       plotCellProfile(nwb, PS)                            % plot cell profile
        disp('No initial access resistance available') 
    end    
    if isnan(ICsummary.thresLP(n)) && PS.noSupra == 1               % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
