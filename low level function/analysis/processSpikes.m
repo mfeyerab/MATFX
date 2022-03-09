@@ -1,25 +1,22 @@
-function [module_spikes, sp, SpQC, QCpass] = ...
-    processSpikes(CCSeries, SwData, params, supraCount, ...
-           module_spikes, SpQC, QCpass, SweepCount)
+function [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC)
 
- if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
+ if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
     
     supraEvents = find(...
-        CCSeries.data.load(SwData.StimOn:SwData.StimOff+round(...
-        CCSeries.starting_time_rate*0.005))>=params.thresholdV/1000)-1+SwData.StimOn;
+        CCSers.data.load(PS.SwDat.StimOn:PS.SwDat.StimOff+round(...
+        CCSers.starting_time_rate*0.005))>=params.thresholdV/1000)-1+PS.SwDat.StimOn;
  else 
     supraEvents = find(...
-        CCSeries.data.load(SwData.StimOn:SwData.StimOff+round(...
-        CCSeries.starting_time_rate*0.005))>=params.thresholdV)-1+SwData.StimOn;
+        CCSers.data.load(PS.SwDat.StimOn:PS.SwDat.StimOff+round(...
+        CCSers.starting_time_rate*0.005))>=PS.thresholdV)-1+PS.SwDat.StimOn;
  end
 sp = [];
 if ~isempty(supraEvents)
     [int4Peak,startPotSp] = int4APs(supraEvents);
-    sp = estimatePeak(startPotSp,int4Peak,CCSeries);
+    sp = estimatePeak(startPotSp,int4Peak,CCSers);
     if ~isempty(sp)
-     sp = getSpikeParameter(CCSeries, sp, params, SwData.StimOff);
-     [SpQC, QCpass] = processSpikeQC(CCSeries, sp, params, ...
-                                   supraCount, SpQC, QCpass, SweepCount);
+     sp = getSpikeParameter(CCSers, sp, PS);
+     QC = processSpikeQC(CCSers, sp, PS, QC, SwpCt);
                                
 %% Save spike parameter
 
@@ -37,7 +34,7 @@ if ~isempty(supraEvents)
                  'sTrgh','sTrghDur', 'wiTP', ...
                  'htTP'};
          
-    if checkVolts(CCSeries.data_unit)&& string(CCSeries.description) ~= "PLACEHOLDER"
+    if checkVolts(CCSers.data_unit)&& string(CCSers.description) ~= "PLACEHOLDER"
         
         table.peak  = table.peak*1000;  
         table.thres  = table.thres*1000;  
@@ -51,19 +48,19 @@ if ~isempty(supraEvents)
     end     
 
     table.thresTi = ...
-        table.thresTi*1000/round(CCSeries.starting_time_rate);
+        table.thresTi*1000/round(CCSers.starting_time_rate);
 
     table.peakTi = ...
-        table.peakTi*1000/round(CCSeries.starting_time_rate);
+        table.peakTi*1000/round(CCSers.starting_time_rate);
 
     table.trghTi = ...
-        table.trghTi*1000/round(CCSeries.starting_time_rate);
+        table.trghTi*1000/round(CCSers.starting_time_rate);
 
     table = util.table2nwb(table, 'AP processing results');
 
 %% save in dynamic table
 
-    module_spikes.dynamictable.set(SwData.CurrentName, table);
+    modSpikes.dynamictable.set(PS.SwDat.CurrentName, table);
   
     end
  end

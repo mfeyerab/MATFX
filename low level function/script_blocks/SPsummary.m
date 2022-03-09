@@ -19,8 +19,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
  if ~isempty(IdPassSwps)
       
 %% find SP "rheobase" sweeps and parameters of first spike
-     PS.SPSwpTbPos = []; PS.SPSwpSers = [];     
-     APwave = nwb.processing.map('AP wave').dynamictable;                  % variable for better readability     
+  APwave = nwb.processing.map('AP wave').dynamictable;                     % variable for better readability     
   if isa(SwpAmps, 'double')                                                % if current amplitude is double not a DataStub
     SPampsQC = SwpAmps(IdxPassSwps);                                       % assign current amplitudes  of sweeps that made the QC to variable
   else  
@@ -33,37 +32,29 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
     
     tempSPstepLoc = find(contains(APwave.keys,IdPassSwpsC(...
                                         SPampsQC==tempSPstep)),1,'first');
-    SPSwpTbPos = find(endsWith(SwpPaths,nwb.processing.map('AP wave'...
+    PS.SPSwpTbPos = find(endsWith(SwpPaths,nwb.processing.map('AP wave'...
                                       ).dynamictable.keys{tempSPstepLoc}));
-    SP_AP = APwave.values{tempSPstepLoc}.vectordata;
+    PS.SPSwpDat = APwave.values{tempSPstepLoc}.vectordata;
     
-    if ~isempty(SP_AP.values{1}.data)
-      icSum.latencySP(cellNr,1) = SP_AP.map('thresTi').data - ...
-            (IcephysTab.responses.response.data.load(SPSwpTbPos).idx_start*...
-            1000/nwb.resolve(SwpRespTbl(SPSwpTbPos).path).starting_time_rate);        
+    if ~isempty(PS.SPSwpDat.values{1}.data)
+      icSum.latencySP(cellNr,1) = PS.SPSwpDat.map('thresTi').data - ...
+            (IcephysTab.responses.response.data.load(PS.SPSwpTbPos).idx_start*...
+            1000/nwb.resolve(SwpRespTbl(PS.SPSwpTbPos).path).starting_time_rate);        
 
       icSum.CurrentStepSP(cellNr,1) = tempSPstep;
-      icSum.widthTP_SP(cellNr,1) = SP_AP.map('wiTP').data;
-      icSum.peakSP(cellNr,1) = SP_AP.map('peak').data;    
-      icSum.thresholdSP(cellNr,1) = SP_AP.map('thres').data;
-      icSum.fastTroughSP(cellNr,1) = SP_AP.map('fTrgh').data;
-      icSum.slowTroughSP(cellNr,1) = SP_AP.map('sTrgh').data;
-      icSum.peakUpStrokeSP(cellNr,1) = SP_AP.map('peakUpStrk').data; 
-      icSum.peakDownStrokeSP(cellNr,1) = SP_AP.map('peakDwStrk').data;
-      icSum.peakStrokeRatioSP(cellNr,1) = SP_AP.map('peakStrkRat').data;   
-      icSum.heightTP_SP(cellNr,1) = SP_AP.map('htTP').data;
-      
-      PS.SPSwpSers =  nwb.resolve(SwpPaths(SPSwpTbPos(contains(...
-                                    SwpPaths(SPSwpTbPos),'acquisition'))));
-      PS.SPSwpTbPos = SPSwpTbPos; PS.SPSwpDat = SP_AP;
-    else
-        [PS.SPSwpSers, PS.SPSwpTbPos, PS.SPSwpDat] = deal([]);
+      icSum.widthTP_SP(cellNr,1) = PS.SPSwpDat.map('wiTP').data;
+      icSum.peakSP(cellNr,1) = PS.SPSwpDat.map('peak').data;    
+      icSum.thresholdSP(cellNr,1) = PS.SPSwpDat.map('thres').data;
+      icSum.fastTroughSP(cellNr,1) = PS.SPSwpDat.map('fTrgh').data;
+      icSum.slowTroughSP(cellNr,1) = PS.SPSwpDat.map('sTrgh').data;
+      icSum.peakUpStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakUpStrk').data; 
+      icSum.peakDownStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakDwStrk').data;
+      icSum.peakStrokeRatioSP(cellNr,1) = PS.SPSwpDat.map('peakStrkRat').data;   
+      icSum.heightTP_SP(cellNr,1) = PS.SPSwpDat.map('htTP').data;     
+      PS.SPSwpSers =  nwb.resolve(SwpPaths(PS.SPSwpTbPos(contains(...
+                                    SwpPaths(PS.SPSwpTbPos),'acquisition'))));
     end
-  else
-      [PS.SPSwpSers, PS.SPSwpTbPos, PS.SPSwpDat] = deal([]);
   end
-else
-    [PS.SPSwpSers, PS.SPSwpTbPos] = deal([]);
 end
 else  % required for runSummary because data format changes from double to DataStub
 end        

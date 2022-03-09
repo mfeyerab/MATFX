@@ -1,4 +1,4 @@
-function [QC_parameter, QC_pass]  = SweepwiseQC(CCSeries, SwData, SweepCount, QC_parameter, QC_pass, params)
+function [QC]  = SweepwiseQC(CCSers,PS,QC,SwpCt)
 
 %{
 SweepwiseQC
@@ -8,25 +8,43 @@ SweepwiseQC
 - measures difference in resting potential at pre- and post-stimulus
 %}
 
-%% selecting time windows and determining long-term noise/membrane voltage stability    
-if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
 
-    vec_pre = CCSeries.data.load(...
-                 SwData.StimOn-0.15*CCSeries.starting_time_rate:SwData.StimOn-1).*1000;
-    vec_post = CCSeries.data.load((end-0.25*CCSeries.starting_time_rate)+1:...
-    length(CCSeries.data.load)).*1000;
-
+%% Getting test pulse onset and saving voltage data
+if mean(mean(PS.SwDat.StimData(1:PS.SwDat.StimOn))) < 0                    % if test pulse is hyperpolarizing 
+  [~, PS.SwDat.testOn] = ...
+            findpeaks(-diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)));
+  QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
+                         (0.015*CCSers.starting_time_rate):...
+                        PS.SwDat.testOn+(0.05*CCSers.starting_time_rate))};
+elseif mean(mean(PS.SwDat.StimData(1:PS.SwDat.StimOn))) > 0                % if test pulse is hyperpolarizing 
+   [~, PS.SwDat.testOn] = ...
+            findpeaks(diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)));
+  QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
+                         (0.015*CCSers.starting_time_rate):...
+                        PS.SwDat.testOn+(0.05*CCSers.starting_time_rate))};
 else
-    if SwData.StimOn < 0.15*CCSeries.starting_time_rate
-        disp(['Sweep Nr ', num2str(CCSeries.sweep_number), ' has peristimulus lengths shorter than desired'])
-        vec_pre = CCSeries.data.load(1:SwData.StimOn);
-        vec_post = CCSeries.data.load(SwData.StimOff:end);
-    else 
-    vec_pre = CCSeries.data.load(...
-              SwData.StimOn-0.15*CCSeries.starting_time_rate:SwData.StimOn-1) ;
-    vec_post = CCSeries.data.load((end-0.25*CCSeries.starting_time_rate)+1:...
-    length(CCSeries.data.load));
-    end
+    disp([PS.SwDat.CurrentName, ' has no detectable test pulse'])
+end
+
+%% selecting time windows and determining long-term noise/membrane voltage stability    
+if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
+
+ vec_pre = CCSers.data.load(...
+          PS.SwDat.StimOn-0.15*CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000;
+ vec_post = CCSers.data.load((end-0.25*CCSers.starting_time_rate)+1:...
+             length(CCSers.data.load)).*1000;
+else   
+  if PS.SwDat.StimOn < 0.15*CCSers.starting_time_rate
+    disp(['Sweep Nr ', num2str(CCSers.sweep_number), ...
+                         ' has peristimulus lengths shorter than desired'])
+    vec_pre = CCSers.data.load(1:PS.SwDat.StimOn);
+    vec_post = CCSers.data.load(PS.SwDat.StimOff:end);
+  else 
+    vec_pre = CCSers.data.load(...
+      PS.SwDat.StimOn-0.15*CCSers.starting_time_rate:PS.SwDat.StimOn-1);
+    vec_post = CCSers.data.load((end-0.25*CCSers.starting_time_rate)+1:...
+    length(CCSers.data.load));
+  end
 end
 
 restVPre = mean(vec_pre);
@@ -36,7 +54,7 @@ rmse_post = sqrt(mean((vec_post - restVPost).^2));
 diffV_b_e = abs(restVPre-restVPost); % differnce between end and stim onset 
 %% Determining short-term noise
 
-stWin = round(1.5*(CCSeries.starting_time_rate/1000));
+stWin = round(1.5*(CCSers.starting_time_rate/1000));
 winCount = 1;
 for i = 1:round(stWin/2):length(vec_pre)-stWin
     yhat = mean(vec_pre(1,i:i+stWin));
@@ -55,32 +73,31 @@ rmse_post_st = mean(rmse_post_st);
 
 %% saving parameters
     
-if isempty(CCSeries.bias_current)
+if isempty(CCSers.bias_current)
  holdingI = 0;
-elseif  isa(CCSeries.bias_current,'types.untyped.DataStub')
- holdingI = CCSeries.bias_current.load;
+elseif  isa(CCSers.bias_current,'types.untyped.DataStub')
+ holdingI = CCSers.bias_current.load;
 else
- holdingI = CCSeries.bias_current*10^12;
+ holdingI = CCSers.bias_current;
 end 
 
-if isempty(CCSeries.bridge_balance)
+if isempty(CCSers.bridge_balance)
  bridgBal = 0;
-elseif  isa(CCSeries.bridge_balance,'types.untyped.DataStub')
- bridgBal = CCSeries.bridge_balance.load;
+elseif  isa(CCSers.bridge_balance,'types.untyped.DataStub')
+ bridgBal = CCSers.bridge_balance.load;
 else   
- bridgBal = CCSeries.bridge_balance*10^-6;
+ bridgBal = CCSers.bridge_balance;
 end
 
-if isempty(CCSeries.capacitance_compensation)
+if isempty(CCSers.capacitance_compensation)
   CaComp = NaN;
-elseif isa(CCSeries.capacitance_compensation,'types.untyped.DataStub')
-    CaComp = CCSeries.capacitance_compensation.load;
+elseif isa(CCSers.capacitance_compensation,'types.untyped.DataStub')
+    CaComp = CCSers.capacitance_compensation.load;
 else
-    CaComp = CCSeries.capacitance_compensation;
+    CaComp = CCSers.capacitance_compensation;
 end
-    
 
-    QC_parameter(SweepCount,3:end) = array2table([...
+QC.params(SwpCt,3:end) = array2table([...
         rmse_pre_st, ...
         rmse_post_st, ...
         rmse_pre, ...
@@ -88,40 +105,26 @@ end
         diffV_b_e, ...
         restVPre, ...
         holdingI,...
-        0,...
+        NaN,...
         bridgBal,...
-        0,...
-        0, ...
+        NaN,...
+        NaN, ...
         CaComp]);
 
-    %% determine pass binaries
+%% determine pass binaries
 
-    QC_pass.stRMSE_pre(SweepCount)  = ...
-      QC_parameter.stRMSE_pre(SweepCount) < params.RMSEst;
-
-    QC_pass.stRMSE_post(SweepCount) = ...
-      QC_parameter.stRMSE_post(SweepCount) < params.RMSEst;
-
-     QC_pass.ltRMSE_pre(SweepCount)  = ...
-      QC_parameter.ltRMSE_pre(SweepCount) < params.RMSElt;
-
-    QC_pass.ltRMSE_post(SweepCount) = ...
-      QC_parameter.ltRMSE_post(SweepCount) < params.RMSElt;
-
-    QC_pass.diffVrest(SweepCount) = ...
-      QC_parameter.diffVrest(SweepCount) < params.maxDiffBwBeginEnd;
-
-    QC_pass.Vrest(SweepCount) = ...
-      QC_parameter.Vrest(SweepCount) < params.maximumRestingPot;
-
-    QC_pass.holdingI(SweepCount) = ...
-      QC_parameter.holdingI(SweepCount) < params.holdingI;
-
-    QC_pass.bridge_balance_abs(SweepCount) = ...
-      QC_parameter.bridge_balance_abs(SweepCount) < params.bridge_balance;
+QC.pass.stRMSE_pre(SwpCt)  = QC.params.stRMSE_pre(SwpCt) < PS.RMSEst;
+QC.pass.stRMSE_post(SwpCt) = QC.params.stRMSE_post(SwpCt) < PS.RMSEst;
+QC.pass.ltRMSE_pre(SwpCt)  = QC.params.ltRMSE_pre(SwpCt) < PS.RMSElt;
+QC.pass.ltRMSE_post(SwpCt) = QC.params.ltRMSE_post(SwpCt) < PS.RMSElt;
+QC.pass.diffVrest(SwpCt)   = QC.params.diffVrest(SwpCt) < PS.maxDiffBwBeginEnd;
+QC.pass.Vrest(SwpCt)       = QC.params.Vrest(SwpCt) < PS.maximumRestingPot;
+QC.pass.holdingI(SwpCt)    = QC.params.holdingI(SwpCt) < PS.holdingI;
+QC.pass.bridge_balance_abs(SwpCt) = ...
+    QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance;
 
     %% Plotting visualizations (Optional)
-    if params.plot_all == 1
+    if PS.plot_all > 1
         figure('Position',[50 50 250 250],'visible','off'); set(gcf,'color','w');
         hold on
         plot(vec_pre)
@@ -131,7 +134,7 @@ end
         axis tight
         ylim([-100 -30])
         legend({'pre-stim','post-stim'})
-        export_fig(fullfile(params.outDest, 'peristim',[params.cellID,' ',int2str(SweepCount),...
+        export_fig(fullfile(params.outDest, 'peristim',[params.cellID,' ',int2str(SwpCt),...
             ' RMS noise vectors']),params.pltForm ,'-r100');
         close
     end

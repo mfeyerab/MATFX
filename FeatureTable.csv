@@ -1,0 +1,55 @@
+short From,long Form,unit,description
+Vrest,resting membrane potential of the cell,mV,baseline membrane potential determined as mean of the prestimulus interval
+RinHD,input resistance based on highest deflection,MegaOhm,slope of linear fit of IU curve determined by membrane potential deflection of hyperpolarizing current steps of long pulse protocol
+RinSS,input resistance based on steady state,MegaOhm,slope of linear fit of IU curve determined by membrane potential deflection of hyperpolarizing current steps of long pulse protocol of membrane  hyperpolarizing current steps of long
+tau,membrane time constant,ms,determined per sweep  of hyperpolarizing current steps of long pulse protocol; calculated as time point when exponential fit of membrane potential deflection from stimulus onset to highest deflection reaches level of 66%; averaged from up to first three lowest sweeps 
+Rheo,Rheobase,pA,lowest amount of current  in long pulse protocol to elicit an action potential
+sagVrest,sag resting membrane potential,mV,resting membrane potential of the sag sweep
+sag,sag,mV,difference in membrane potential between steady state and highest deflection
+sagRat,sag ratio,none,(sag + steady state depolarization) divided by steady state depolarization; with no sag the sag ratio is 1; a sag ratio of 1.5 means that the sag is half of the steady state depolarization
+sagAmp,sag  amplitude,pA,current amplitude of the sag sweep
+widTP_LP,action potential width (threshold to peak) of long pulse protocol,ms,width at half-amplitude (threshold to peak) of the (first) action potential of rheobase sweep  
+peakLP,peak of action potential of long pulse protocol,mV,peak of the action potential based on the (first) rheobase action potential 
+thresLP,threshold  of action potential of long pulse protocol,mV,threshold of the (first) rheobase action potential determined as membrane potential at which slope a certain percentage of the peak slope of the rising phase is reached (set in loadParams PS.pcentMaxdVdt)
+fTrghLP,fast trough of long pulse protocol,mV,minum membrane potential within 1.5 ms after the (first) rheobase action potential has reached the threshold level again
+sTrghLP,slow trough of long pulse protocol,mV,minum membrane potential after the (first) rheobase action potential has reached the threshold level again
+peakUpStrkLP,peak up stroke of long pulse protocol,mV/ms,maximum slope of the rising phase of the (first) rheobase sweep
+peakDwStrkLP,peak down stroke of long pulse protocol,mV/ms,minimum slope of the repolarization phase of the  (first) rheobase sweep
+peakStrkRatLP,peak stroke ratio of long pulse protocol,none,Ratio of peak slopes of rising and repolarization phase based on the (first) rheobase sweep
+htTP_LP,height of action potential considering threshold to peak of long pulse protocol,mV,difference in membrane potential between threshold and peak of the (first) rheobase action potential
+lat,latency,ms,time distance between threshold of (first) spike and stimulus onset of rheobase sweep 
+CurrentStepSP,applied current at first suprathreshold short pulse sweep ,pA,lowest amount of current  in short pulse protocol to elicit an action potential
+thresholdSP,threshold of the first supratheshold short pulse action potential,mV,threshold of the action potential of first suprathreshold short pulse sweep determined as membrane potential at which slope a certain percentage of the peak slope of the rising phase is reached (set in loadParams PS.pcentMaxdVdt)
+fastTroughSP,fast trough of short pulse protocol,ms,minum membrane potential within 1.5 ms after the action potential of first suprathreshold short pulse sweep has reached the threshold level again
+slowTroughSP,slow trough of short pulse protocol,ms,minum membrane potential after the action potential of first suprathreshold short pulse sweep has reached the threshold level again
+heightTP_SP,height of action potential considering threshold to peak of short pulse protocol,mV,height of the first supratheshold short pulse action potential based on threshold to peak
+peakUpStrokeSP,peak up stroke of short pulse protocol,mV/ms,maximum slope of the rising phase of the first supratheshold short pulse action potential
+peakDownStrokeSP,peak down stroke of short pulse protocol,mV/ms,minimum slope of the repolarization phase of the first supratheshold short pulse action potential
+peakStrokeRatioSP,peak stroke ratio of short pulse protocol,none,Ratio of peak slopes of rising and repolarization phase based on the first supratheshold short pulse action potential
+latencySP,latency of short pulse,ms,time distance between threshold of first supratheshold short pulse action potential
+widthTP_SP,action potential width (threshold to peak) of short pulse protocol,ms,width at half-amplitude (threshold to peak) of the action potential based on the first supratheshold short pulse action potential
+peakSP,peak of action potential of short pulse protocol,mV,peak of the action potential based on first suprathreshold short pulse sweep 
+rheoRt,Rate of the rheobase sweep,Hz,number of spikes in rheo sweep divided by length of long pulse (1s)
+lastQuisc,last quiscient period,ms,Minumum intervall from last spike to the end of the stimulus taken from all sweeps
+medInstaRt,median instantenous rate,Hz,Inverse of the median interspike interval of all interspike intervals  of the cell 
+DFR_P90,"dynamic frequency range, 90 percentile",Hz,90 percentile of all inverse interspike intervals 
+DFR_P10,"dynamic frequency range, 10 percentile",Hz,10 percentile of all inverse interspike intervals 
+DFR_IQR,"dynamic frequency range, interquartile range",Hz,interquartile range of all inverse interspike intervals 
+AdaptRatB1B2,"adaptation ratio, first bin versus second bin",none,Stimulus duration of the long pulse is divided up into 13 bins. Spike counts per bin are calculated summing up across stimulus intensities. Ratio of spike count of first bin and spike count of second bin
+AdaptRatB1B13,"adaptation ratio, first bin versus thirteened bin",none,Stimulus duration of the long pulse is divided up into 13 bins. Spike counts per bin are calculated summing up across stimulus intensities. Ratio of spike count of first bin and spike count of last bin
+StimAdapB123,"stimulus adaptation, in the first three bins",none,Stimulus duration of the long pulse is divided up into 13 bins. Ratio of spike counts of the first three bins at  stimulus intensity after rheobase and spike counts of the first three bins at high stimulus intensity 
+StimAdapB7_13,"stimulus adaptation,bins 7 to 13",none,Stimulus duration of the long pulse is divided up into 13 bins. Ratio of spike counts of the last six bins at low stimulus intensity after rheobase and spike counts of the last six bins at high stimulus intensity 
+fIslope,slope of frequency-current curve,Hz/pA,slope of a robust linear fit of I-f curve
+maxRt,maximum firing rate,Hz,Maximum firing rate of all sweeps 
+rectI,rectifcation index,none,non-linearity of IU curve used for input resistance quantified by ratio of Vm/pA ratiosof minimum current step and maximum current step
+cvISI,coefficient of varriance of inter spike intervall,none,mean interspike intervall of hero sweep divided by standard deviation of hero sweep
+HeroRt,hero sweep firing rate,Hz,number of spikes in hero sweep divided by length of long pulse (1s)
+HeroAmp,current amplitude of the hero sweep,pA,current amplitude of the hero sweep determined by the closes current step to rheobase +40/60 pA
+heroLat,latency of first spike based on hero sweep ,ms,time distance between threshold of first action potential of the hero sweep and stimulus onset
+peakAdapt,peak adaptation,none,ratio of height of the first action potential of the herosweep and height of the last action potential of the hero sweep
+adaptIdx,adaptation index,none,sum of (ISI(i+1)-ISI(i))/(ISI(i+1)+ISI(i)) divided by number of ISIs-1; taken from the hero sweep
+burst,burst index,none, first  ISIs of the sweep divided by mean ISI of sweep
+TrghDiff,trough difference,mV,difference in membrane potential between first trough and 2nd last trough
+TrghRatio,trough ratio,none,ratio of membrane potential difference btween baseline membrane potential and first trough and  membrane potential difference btween baseline membrane potential and 2nd last trough
+Temperature,temperature,°C,
+RinOffset,input resistance offset,mV,offset membrane deflection at 0 pA  from input resistance fit

@@ -10,8 +10,9 @@ PS.SkipTags = ["Ramp",...
     "Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND", "I-V", "unknown"];
 
 % plotting functions
-PS.plot_all = 1;
+PS.plot_all = 0;
 PS.pltForm = '-jpg';
+PS.Webexport=0; 
 
 % spike detection
 PS.thresholdV = -15;                             % detection threshold for V-based spikes
@@ -48,8 +49,8 @@ PS.reboundSpWindow = 50;                         % window to look for rebound sp
 PS.GF = 0.85;                                    % goodness of fit for exponential fit for tau
 
 % spike-wise quality control PSmeters
-PS.pcentMaxdVdt = 0.1;                          % threshold = < % of dVdt
-PS.absdVdt = 2.9;                                  % threshold = absolute value
+PS.pcentMaxdVdt = 0.1;                           % threshold = < % of dVdt
+PS.absdVdt = 2.9;                                % threshold = absolute value
 PS.minRefract = 0.5;                             % min refractory
 PS.mindVdt = 5;                                  % minimum amount of dV/dt
 PS.minDiffThreshold2PeakN = 35;                  % max diff in V bw threshold and peak for narrow 
