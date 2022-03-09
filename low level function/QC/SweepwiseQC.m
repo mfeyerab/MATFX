@@ -10,15 +10,15 @@ SweepwiseQC
 
 
 %% Getting test pulse onset and saving voltage data
-if mean(mean(PS.SwDat.StimData(1:PS.SwDat.StimOn))) < 0                    % if test pulse is hyperpolarizing 
+if mean(mean(PS.SwDat.StimData(1:PS.SwDat.StimOn)))-mode(PS.SwDat.StimData) < 0                    % if test pulse is hyperpolarizing 
   [~, PS.SwDat.testOn] = ...
-            findpeaks(-diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)));
+            findpeaks(-diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)),'SortStr','descend','NPeaks',1);
   QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
                          (0.015*CCSers.starting_time_rate):...
                         PS.SwDat.testOn+(0.05*CCSers.starting_time_rate))};
-elseif mean(mean(PS.SwDat.StimData(1:PS.SwDat.StimOn))) > 0                % if test pulse is hyperpolarizing 
+elseif mean(mean(PS.SwDat.StimData(1:PS.SwDat.StimOn)))-mode(PS.SwDat.StimData) > 0                % if test pulse is hyperpolarizing 
    [~, PS.SwDat.testOn] = ...
-            findpeaks(diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)));
+            findpeaks(diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)),'SortStr','descend','NPeaks',1);
   QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
                          (0.015*CCSers.starting_time_rate):...
                         PS.SwDat.testOn+(0.05*CCSers.starting_time_rate))};
