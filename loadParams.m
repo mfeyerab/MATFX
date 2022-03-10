@@ -1,6 +1,5 @@
 function PS = loadParams
 
-
 % Definitions LP and SP tags  (stimulus description giving away the stim length)
 PS.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long Pulse"];
 PS.SPtags = ["SP","C1SS"];
@@ -35,7 +34,7 @@ PS.preAIBS_samplWind = 199;
 PS.RMSEst = 0.3;                                 % maximum RMSE measure short term
 PS.RMSElt = 0.75;                                 % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
-PS.maxDiffBwBeginEnd = 8;                        % maximum difference between beginning and end of sweep
+PS.maxDiffBwBeginEnd = 5;                        % maximum difference between beginning and end of sweep
 PS.maximumRestingPot = -49;                      % minimum resting potential
 PS.holdingI = 100;                               % maximum holding current
 PS.bridge_balance = 24;                          % maximum bridge balance

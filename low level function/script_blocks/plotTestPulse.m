@@ -1,5 +1,6 @@
 function plotTestPulse(TPcells, PS)
 
+TPcells(cellfun(@isempty, TPcells)) = [];
 shift=mean(cellfun(@range, TPcells))/5;
 count = 1;
 
@@ -13,9 +14,10 @@ elseif length(TPcells) >50
 else
   step =2 ;
 end
-    
+
+colorVec = jet(length(TPcells)); 
 for i=1:step:length(TPcells)
-plot(TPcells{i}+shift*count)
+plot(TPcells{i}+shift*count,'Color',colorVec(i,:))
 count = count+1;
 end
 

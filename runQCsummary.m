@@ -70,85 +70,133 @@ xticklabels({'pre','post'})
 exportgraphics(gcf,fullfile(path, 'QC', 'QCpreVsPost.png'))
 
 %%
-T=table(); I=[];BB=[];CC=[];
-for t = 1:length(cellTabs)
-    T = [T; tables.(['T', num2str(t)])];   
-    I = [I; max(tables.(['T', num2str(t)]).holdingI)];
-    BB = [BB;max(tables.(['T', num2str(t)]).bridge_balance_abs)];
-    CC = [CC;max(tables.(['T', num2str(t)]).CapaComp)];
+RigTags = unique(cellfun(@(x) x(8:9), files,'UniformOutput',false));
+RigTags{length(RigTags)+1} = 'Total';
+RigQC = struct();
+
+for r=1:length(RigTags)
+    RigQC.(char(RigTags(r))) = table();
+    RigQC.([char(RigTags(r)),'_I']) = [];
+    RigQC.([char(RigTags(r)),'_BB']) = [];
+    RigQC.([char(RigTags(r)),'_CC']) = [];
 end
 
+for t = 1:length(cellTabs)   
+ RigQC.Total = [RigQC.Total; tables.(['T', num2str(t)])];
+ RigQC.Total_I = [RigQC.Total_I; max(tables.(['T', num2str(t)]).holdingI)];
+ RigQC.Total_BB =[RigQC.Total_BB; max(tables.(['T', num2str(t)]).bridge_balance_abs)];
+ RigQC.Total_CC = [RigQC.Total_CC; max(tables.(['T', num2str(t)]).CapaComp)];
+ RigQC.(files{t}(8:9)) = [RigQC.(files{t}(8:9)); tables.(['T', num2str(t)])];   
+ RigQC.([files{t}(8:9), '_I']) = [RigQC.([files{t}(8:9), '_I']); ...
+                                max(tables.(['T', num2str(t)]).holdingI)];
+ RigQC.([files{t}(8:9), '_BB']) = [RigQC.([files{t}(8:9), '_BB']); ...
+                                max(tables.(['T', num2str(t)]).bridge_balance_abs)];
+ RigQC.([files{t}(8:9), '_CC']) = [RigQC.([files{t}(8:9), '_CC']); ...
+                                 max(tables.(['T', num2str(t)]).CapaComp)];
+end
 
+for r=1:length(RigTags)
+    
 figure('Position',[50 50 1600 900]); set(gcf,'color','w');
-subplot(2,4,1)
-histogram(T.ltRMSE_pre(~isnan(T.ltRMSE_pre)),[0:0.1:2],'FaceColor','k','Normalization','probability');
-line([p.RMSElt,p.RMSElt],[0,0.4], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('lt RMS pre-stim')
-    axis tight
-    box off
-subplot(2,4,2)
-histogram(T.ltRMSE_post(~isnan(T.ltRMSE_post)),[0:0.1:2],'FaceColor','k','Normalization','probability');
-line([p.RMSElt,p.RMSElt],[0,0.4], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('lt RMS post-stim')
-    axis tight
-    box off
-subplot(2,4,3)
-histogram(T.stRMSE_pre(~isnan(T.stRMSE_pre)),[0:0.025:0.5],'FaceColor','k','Normalization','probability');
-line([p.RMSEst,p.RMSEst],[0,0.4], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('st RMS pre-stim')
-    axis tight
-    box off
-subplot(2,4,4)
-histogram(T.stRMSE_post(~isnan(T.stRMSE_post)),[0:0.025:0.5],'FaceColor','k','Normalization','probability');
-line([p.RMSEst,p.RMSEst],[0,0.4], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('st RMS post-stim')
-    axis tight
-    box off
+subplot(3,4,1)
+histogram(RigQC.(char(RigTags(r))).ltRMSE_pre(~isnan(RigQC.(char(RigTags(r))).ltRMSE_pre)),[0:0.1:2],'FaceColor','k','Normalization','probability');
+l1 = line([p.RMSElt,p.RMSElt],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+l2 = line([0.5,0.5],[0,0.4],'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('lt RMS pre-stim')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
+  
+subplot(3,4,2)
+histogram(RigQC.(char(RigTags(r))).ltRMSE_post(~isnan(RigQC.(char(RigTags(r))).ltRMSE_post)),[0:0.1:2],'FaceColor','k','Normalization','probability');
+l1 = line([p.RMSElt,p.RMSElt],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+l2 = line([0.5,0.5],[0,0.4],'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('lt RMS post-stim')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
+
+subplot(3,4,3)
+histogram(RigQC.(char(RigTags(r))).stRMSE_pre(~isnan(RigQC.(char(RigTags(r))).stRMSE_pre)),[0:0.025:0.4],'FaceColor','k','Normalization','probability');
+l1 = line([p.RMSEst,p.RMSEst],[0,0.7],'color','r','linewidth',1,'linestyle','--');
+l2 = line([0.07,0.07],[0,0.7],'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('st RMS pre-stim')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
     
-subplot(2,4,5)
-histogram(T.diffVrest(~isnan(T.diffVrest)),[0:0.25:10],'FaceColor','k','Normalization','probability');
-line([p.maxDiffBwBeginEnd,p.maxDiffBwBeginEnd],[0,0.4], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('V rest pre vs post')
-    axis tight
-    box off
+subplot(3,4,4)
+histogram(RigQC.(char(RigTags(r))).stRMSE_post(~isnan(RigQC.(char(RigTags(r))).stRMSE_post)),[0:0.025:0.4],'FaceColor','k','Normalization','probability');
+l1 = line([p.RMSEst,p.RMSEst],[0,0.7],'color','r','linewidth',1,'linestyle','--');
+l2 = line([0.07,0.07],[0,0.7],'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('st RMS post-stim')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
     
-subplot(2,4, 6)
-histogram(I,[0:5:120],'FaceColor','k','Normalization','probability');
-line([p.holdingI,p.holdingI],[0,0.6], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('max holding I')
-    axis tight
-    box off
+subplot(3,4,5)
+histogram(RigQC.(char(RigTags(r))).diffVrest(~isnan(RigQC.(char(RigTags(r))).diffVrest)),[0:0.25:7],'FaceColor','k','Normalization','probability');
+l1 = line([p.maxDiffBwBeginEnd,p.maxDiffBwBeginEnd],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+l2 = line([1,1],[0,0.4],'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('V rest pre vs post')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
     
-subplot(2,4,7)
-histogram(BB,[0:1:25],'FaceColor','k','Normalization','probability');
-line([p.bridge_balance,p.bridge_balance],[0,0.3], ...
-            'color','r','linewidth',1,'linestyle','--');
-    ylabel('probability')
-    xlabel('max bridge ballance')
-    axis tight
-    box off
+subplot(3,4, 6)
+histogram(RigQC.([char(RigTags(r)),'_I']),[0:5:120],'FaceColor','k','Normalization','probability');
+l1 = line([p.holdingI,p.holdingI],[0,0.7],'color','r','linewidth',1,'linestyle','--');
+l2 = line([100,100],[0,0.7],'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('max holding I (pA)')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
+
+subplot(3,4,7)
+histogram(RigQC.(char(RigTags(r))).Vrest(~isnan(RigQC.(char(RigTags(r))).Vrest)),[-90:2:-42],'FaceColor','k','Normalization','probability');
+l1 = line([p.maximumRestingPot,p.maximumRestingPot],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('Vrest (mV)')
+axis tight
+box off
+legend([l1],{'CurrentRun'}) 
+
+subplot(3,4,8)
+histogram(RigQC.(char(RigTags(r))).betweenSweep(~isnan(RigQC.(char(RigTags(r))).betweenSweep)),[-6:0.5:6],'FaceColor','k','Normalization','probability');
+l1 = line([p.BwSweepMax,p.BwSweepMax],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+l1 = line([-p.BwSweepMax,-p.BwSweepMax],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('distance to target (mV)')
+axis tight
+box off
+legend([l1],{'CurrentRun'}) 
+
+subplot(3,4,9)
+histogram(RigQC.([char(RigTags(r)),'_BB']),[0:1:25],'FaceColor','k','Normalization','probability');
+l1 = line([p.bridge_balance,p.bridge_balance],[0,0.3], 'color','r','linewidth',1,'linestyle','--');
+l2 = line([20,20],[0,0.3], 'color','b','linewidth',1,'linestyle','--');
+ylabel('probability')
+xlabel('max bridge ballance')
+axis tight
+box off
+legend([l1, l2],{'CurrentRun', 'AIBS'}) 
     
- subplot(2,4,8)
-histogram(CC,[0:0.4:10],'FaceColor','k','Normalization','probability');
+subplot(3,4,10)
+histogram(RigQC.([char(RigTags(r)),'_CC']),[0:0.4:10],'FaceColor','k','Normalization','probability');
     ylabel('probability')
     xlabel('max capacitance neutralization')
     axis tight
     box off   
     
-exportgraphics(gcf,fullfile(path, 'QC', 'QChistograms.png'))
-      
+exportgraphics(gcf,fullfile(path, 'QC', [char(RigTags(r)), 'histograms.png']))
+end
+
 %% Scatter plots
 % figure('Position',[50 50 900 200]); set(gcf,'color','w');
 % subplot(1,4,1)
