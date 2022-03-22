@@ -27,7 +27,7 @@ data base of Allen Insitute for Brain Science into a format that can be processe
 It produces several additional tables with analysis results, various plots as well as appended NWB files that contain QC-independent processing moduls with all interim analysis. 
 This additional data contains all extracted features for individual sweeps and spikes such as all action potential waveform parameters, spike count, interspike intervals, QC parameters and so on.
 In addition the intracellular sweep table contains for documenting pass or fail of the respective sweep in regard of the used QC. A detailed description of number and nature of the input arguments
-can be found within the function [here](https://github.com/mfeyerab/MATFX/blob/main/runPipeline.m). Name and method for determined features can be found under utilites\FeatureTable.   
+can be found within the function [here](https://github.com/mfeyerab/MATFX/blob/dev/runPipeline.m). Name and method for determined features can be found under utilites\FeatureTable.   
 
 **2) loadParams:** this function contains all parameters assigned manually by the analyist; such as cut-offs for spike detection and QC, time windows for determining certain QC parameters 
  as well as tags and nature of the desired and undesired protocol types.
