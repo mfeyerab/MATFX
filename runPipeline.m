@@ -1,14 +1,103 @@
 function ICsummary = runPipeline(varargin) %{
+%Runs quality control and feature analysis on data indicated
+%by input argument
+% 
+% Examples:
+%
+%  runPipeline(inputPath, outputPath, BetweenSwpMode) 
+%  Gets all NWB Files from the input path and processes them.  
+%  The between sweep mode sets what kind of between sweep quality  
+%  assurance will be used. After the cell is processed a multitude of 
+%  features is extracted, the processed data is saved in the NWB File and
+%  written into  the output path
+%
+%  runPipeline(Path, BetweenSwpMode) 
+%  Gets all NWB Files from the input path and overwrites files after
+%  processing and feature extraction
+%
+% Inputs:
+%
+%  (input/output)Path - string or character array specifiying 
+%                      location for reading and/or writing NWB files
+%
+%  BetweenSwpMode     - integer of either 1 or 2: Mode 1 has a target
+%                      membrane potential, determined by a robust average  
+%                      of the first five sweeps: between sweep quality 
+%                      control in Mode 2 is assessed by deviations from 
+%                      the robust average of all sweeps.
+% 
+% create files and folders:
+% 
+% ephys_features  - table with all extraced features per cell; for more   
+%                 information on names and methods for features see the
+%                 feature table under utilities. 
+%              
+% box1            - table without cells that have not passed quality 
+%                control with important anatomical and subject data for the 
+%                purpose of publishing this information on a website.
+%
+% box2_ephys      - table without cells that have not passed quality  
+%                control with a few key electrophysiological features for  
+%                the purpose of publishing this information on a website.
+% 
+% binary_selection - table with binary codes for passing the quality
+%                  control; 1 means the sweep passed; 0 means the sweep 
+%                  failed quality control; NaN means that this cell did not
+%                  contain as many sweeps as columns in the table.
+%
+% ID_lookup       - table with two columns showing correspondence between
+%                 old NWB cell ID and new NWB cell ID. These new cell IDs  
+%                 are introduced to publish the data on an open-source 
+%                 website.
+%
+% procedure_doc   - table to document all quality control parameters used 
+%                 in the analysis run and some other important enviroment   
+%                 variables.
+%
+% AP_Waveforms   - folder to export voltage data of long pulse rheobase  
+%                 spike for review and display on an open-source website.
+%
+% betweenSweep   - folder to export visualizations of the between sweep  
+%                 quality control.
+%
+% firingPattern  - folder to export visualizations of firing pattern
+%                 analysis.
+%
+% peristim       - folder to export raw voltage traces for evaluating 
+%                membrane potential variability for quality control.
+%              
+% profiles       - folder to export cell profiles showing key sweeps. These   
+%                figures are designed to provide a quick impression of the
+%                cell's biophysical properties. 
+%
+% QC             - folder to export all results of the quality control
+%                analysis. It contains two tables for each individual cell:
+%                one table to encode the results in respect of passing or  
+%                failing, the other to save the values of all relavant 
+%                quality parameters and other additional data for helpful
+%                context.
+%
+% resistance    - folder to export visualizations for determining input    
+%                resistance: one for voltage deflection from baseline to   
+%                highest deflection, the other one for voltage deflection
+%                from baseline to the steady state (postfix: _ss).
+%
+% tauFit        -folder to export visualizations for determining the               
+%               membrane time constant for each individual sweep.
+%
+% TP            -folder to export plots for manual evaluation of pipette
+%               compensation and its changes over time. There are two plots  
+%               for each cell: for one, raw voltage traces of test pulses   
+%               across the entire recording, the other showing the voltage 
+%               data at the onset of the long pulse stimulus.
+%
+% traces       -folder for the export of downsampled long pulse voltage 
+%              traces in a one csv file per cell. This data is for online 
+%              display (not actual sharing) of voltage data on an 
+%              open-source website.
 
 warning('off'); dbstop if error                                            % for troubleshooting errors
-%{ 
-Runs analysis pipeline on all nwb files in the path indicated as first input argument.
-Second input argument is the path at which nwb files with additional processing moduls are saved. 
-If only one input argument is used nwb files will be overwritten. An additional input argument 
-is necessary to set the betweenSweepQCmode (either 1 or 2): Mode 1, with a target membrane potential,
-which is the average of the prestimulus interval of the first three sweeps. Mode 2, in
-which betweenSweep QC is assessed by deviations from the grand average. 
-%}
+
 if length(varargin) > 2                                                 
           disp('No overwrite mode') 
           overwrite = 0;
