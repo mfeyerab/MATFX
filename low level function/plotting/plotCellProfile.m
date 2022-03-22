@@ -24,8 +24,31 @@ if ~isempty(nwb.general_intracellular_ephys.values{1}.slice)
 end
 
 %% Get stimulus onsets and end for plotting first subfigure: rheo and sag sweep
-
-if ~isempty(PS.sagSwpSers) && ~isempty(PS.sagSwpSers.data) 
+if length(PS.sagSwpSers) > 1 && length(PS.sagSwpSers) < 3
+   data = mean([PS.sagSwpSers{1}.data.load, ...
+                              PS.sagSwpSers{2}.data.load],2);
+   sagSwpOn = double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),1)));
+   sagSwpOff = double(sagSwpOn + ...
+                    double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),2))));
+   p = plot([0:1000/PS.sagSwpSers{1}.starting_time_rate: ...
+        (sagSwpOff-sagSwpOn+(0.3*PS.sagSwpSers{1}.starting_time_rate))...
+        /PS.sagSwpSers{1}.starting_time_rate*1000],...
+        data(sagSwpOn-0.1*PS.sagSwpSers{1}.starting_time_rate...
+          :sagSwpOff+0.2*PS.sagSwpSers{1}.starting_time_rate));                                          
+elseif length(PS.sagSwpSers) > 1 && length(PS.sagSwpSers) < 4
+   data = mean([PS.sagSwpSers{1}.data.load, ...
+                              PS.sagSwpSers{2}.data.load, ...
+                                 PS.sagSwpSers{3}.data.load],2);
+   sagSwpOn = double(table2array(SwpRespTbl(PS.sagSwpTabPos{1},1)));
+   sagSwpOff = double(sagSwpOn + ...
+                    double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),2))));
+   p = plot([0:1000/PS.sagSwpSers{1}.starting_time_rate: ...
+        (sagSwpOff-sagSwpOn+(0.3*PS.sagSwpSers{1}.starting_time_rate))...
+        /PS.sagSwpSers{1}.starting_time_rate*1000],...
+        data(sagSwpOn-0.1*PS.sagSwpSers{1}.starting_time_rate...
+          :sagSwpOff+0.2*PS.sagSwpSers{1}.starting_time_rate));
+else   
+ if ~isempty(PS.sagSwpSers) && ~isempty(PS.sagSwpSers.data) 
   sagSwpOn = double(table2array(SwpRespTbl(PS.sagSwpTabPos,1)));
   sagSwpOff = double(sagSwpOn + double(table2array(SwpRespTbl(PS.sagSwpTabPos,2))));
   p = plot([0:1000/PS.sagSwpSers.starting_time_rate: ...
@@ -33,16 +56,32 @@ if ~isempty(PS.sagSwpSers) && ~isempty(PS.sagSwpSers.data)
         /PS.sagSwpSers.starting_time_rate*1000],...
         PS.sagSwpSers.data.load(sagSwpOn-0.1*PS.sagSwpSers.starting_time_rate...
           :sagSwpOff+0.2*PS.sagSwpSers.starting_time_rate));
-    p.Color = 'black';
-    if checkVolts(PS.sagSwpSers.data_unit) && string(PS.sagSwpSers.description) ~= "PLACEHOLDER"
-      ylim([-0.115 0.070])
-      ylabel('Voltage (V)')
-    else
-      ylim([-115 70])
-      ylabel('Voltage (mV)')
-     end
+ end
 end
 
+if exist('p') && length(PS.sagSwpSers)>1
+  p.Color = 'black';
+  if checkVolts(PS.sagSwpSers{1}.data_unit) && ...
+                     string(PS.sagSwpSers{1}.description) ~= "PLACEHOLDER"
+    ylim([-0.115 0.070])
+    ylabel('Voltage (V)')
+  else
+    ylim([-115 70])
+    ylabel('Voltage (mV)')
+  end
+elseif exist('p') && length(PS.sagSwpSers)==1
+  p.Color = 'black';
+  if checkVolts(PS.sagSwpSers.data_unit) && ...
+                     string(PS.sagSwpSers.description) ~= "PLACEHOLDER"
+    ylim([-0.115 0.070])
+    ylabel('Voltage (V)')
+  else
+    ylim([-115 70])
+    ylabel('Voltage (mV)')
+  end  
+end
+
+%% Subfigure 1 Rheo
 if ~isempty(PS.rheoSwpSers.data)
     RheoSweepOn = double(table2array(SwpRespTbl(PS.rheoSwpTabPos,1)));
     RheoSweepOff = RheoSweepOn + ...
@@ -212,7 +251,8 @@ end
 % box off
 % end
 %% Saving the figure
-export_fig([PS.outDest, '/profiles/', PS.cellID,' Cell profile'],PS.pltForm,'-r100');
+exportgraphics(gcf,fullfile(PS.outDest, 'profiles', ...
+                                   [PS.cellID,' Cell profile',PS.pltForm]))
 
 %% Export LP rheo waveform 4 website
 if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)
@@ -233,6 +273,6 @@ if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)
         end
     p.Color = 'black'; 
     set(gca,'visible','off')
-    export_fig(fullfile(PS.outDest, '/AP_Waveforms/', PS.cellID),'-nocrop', '-transparent','-png','-r50');
+    exportgraphics(gcf,fullfile(PS.outDest, 'AP_Waveforms', [PS.cellID, '.png']),'BackgroundColor','none');
 end
 

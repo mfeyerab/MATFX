@@ -49,8 +49,8 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
         title('V/I curve')
         box off
         axis tight 
-        export_fig(fullfile(PS.outDest, 'resistance', ...
-             [PS.cellID, ' input resistance']),PS.pltForm,'-r100'); 
+        exportgraphics(gcf,fullfile(PS.outDest, ...
+            'resistance', [PS.cellID,' input resistance',PS.pltForm]))
         close
     end
 elseif length(nonzeros(tempX)) == 1
@@ -69,8 +69,8 @@ elseif length(nonzeros(tempX)) == 1
         title('V/I curve')
         box off
         axis tight  
-        export_fig(fullfile(PS.outDest, 'resistance', ...
-             [PS.cellID, 'input resistance']),PS.pltForm,'-r100');
+        exportgraphics(gcf,fullfile(PS.outDest, ...
+            'resistance', [PS.cellID,' input resistance',PS.pltForm]))
         close
     end
 else

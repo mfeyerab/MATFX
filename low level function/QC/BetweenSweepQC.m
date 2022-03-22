@@ -41,8 +41,8 @@ if exist('OrigV')
         ylabel('resting V (mV)')
         axis tight
         ylim([-80 -45])
-        export_fig(fullfile(PS.outDest, 'betweenSweeps', ...
-            [PS.cellID, ' rmp w outliers']),PS.pltForm,'-r100');                            % save figure
+        exportgraphics(gcf,fullfile(PS.outDest, 'betweenSweeps', ...
+            [PS.cellID,' rmp w outliers',PS.pltForm]))                     % save figure
         close
     end
 end

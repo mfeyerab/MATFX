@@ -2,7 +2,7 @@ function ICsummary = runPipeline(varargin) %{
 
 warning('off'); dbstop if error                                            % for troubleshooting errors
 %{ 
-Runs analysis pipeline on all nwb file in the path indicated as first input argument.
+Runs analysis pipeline on all nwb files in the path indicated as first input argument.
 Second input argument is the path at which nwb files with additional processing moduls are saved. 
 If only one input argument is used nwb files will be overwritten. An additional input argument 
 is necessary to set the betweenSweepQCmode (either 1 or 2): Mode 1, with a target membrane potential,
@@ -32,18 +32,18 @@ if isa(varargin{length(varargin)}, 'double')
 else
    error('No number inputed for between sweep QC')
 end
-InitRun; 
+InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
 for n = 1:length(cellList)                                                 % for all cells in directory
  nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
  %% Initialize Cell Variables
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
- InitCellVars
+ InitCellVars                                                              % Initalizes cell-wide variables
  %% Looping through sweeps    
  for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable           
      
-  InitSweep
+  InitSweep                                                                % Initalizes sweep-wide variables 
   if ~contains(ProtoTags(SwpCt), PS.SkipTags)                              % only continues if protocol name is not on the list in PS.SkipTags
                 
    CCSers = nwb.resolve(PS.SwDat.CurrentPath);                             % load the CurrentClampSeries of the respective sweep
@@ -96,7 +96,7 @@ for n = 1:length(cellList)                                                 % for
           [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);              % extract features from long pulse stimulus
           [ICsummary, PS] =  SPsummary(nwb, ICsummary, n, PS);             % extract features from short pulse stimulus
           plotCellProfile(nwb, PS)                                         % plot cell profile 
-          plotTestPulse(QC.testpulse,PS)
+          plotSanityChecks(QC, PS, ICsummary, n)
        else 
            display(['excluded by cell-wide QC for initial Ra (', ...
                  num2str(info.values{1}.('initial_access_resistance')),...
@@ -110,7 +110,7 @@ for n = 1:length(cellList)                                                 % for
      [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                   % extract features from long pulse stimulus 
      [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                   % extract features from short pulse stimulus 
      plotCellProfile(nwb, PS)                                              % plot cell profile
-     plotTestPulse(QC.testpulse,PS)
+     plotSanityChecks(QC ,PS, ICsummary, n)
      disp('No initial access resistance available') 
   end    
   if isnan(ICsummary.thresLP(n)) && PS.noSupra == 1                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
@@ -120,7 +120,7 @@ for n = 1:length(cellList)                                                 % for
   end
   %% Add subject data, dendritic type and reporter status   
    AddSubjectCellData 
-  %% Export Traces  
+  %% Export downsampled traces for display on website  
   if PS.Webexport==1 && ~isempty(LPexport)                                 % if there raw traces in the table for export
        exportCells
   end

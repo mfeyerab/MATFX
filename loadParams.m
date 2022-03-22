@@ -10,7 +10,7 @@ PS.SkipTags = ["Ramp",...
 
 % plotting functions
 PS.plot_all = 1;
-PS.pltForm = '-jpg';
+PS.pltForm = '.png';
 PS.Webexport=0; 
 
 % spike detection
@@ -23,7 +23,7 @@ PS.sampleRTdt = 1000/PS.sampleRT;                 % sample rate we want
 
 % cell-wise quality control PSmeters
 PS.cutoffInitRa = 24;
-PS.factorRelaRa = 0.25;
+PS.factorRelaRa = 0.20;
 PS.noSupra = 1;
 PS.maxRheoSpikes = 100;
 
@@ -34,8 +34,8 @@ PS.preAIBS_samplWind = 199;
 PS.RMSEst = 0.3;                                 % maximum RMSE measure short term
 PS.RMSElt = 0.75;                                 % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
-PS.maxDiffBwBeginEnd = 5;                        % maximum difference between beginning and end of sweep
-PS.maximumRestingPot = -49;                      % minimum resting potential
+PS.maxDiffBwBeginEnd = 1;                        % maximum difference between beginning and end of sweep
+PS.maximumRestingPot = -50;                      % minimum resting potential
 PS.holdingI = 100;                               % maximum holding current
 PS.bridge_balance = 24;                          % maximum bridge balance
 PS.minGoodSpFra = 0.25;

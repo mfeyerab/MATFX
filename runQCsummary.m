@@ -6,11 +6,18 @@ files = {files(contains({files.name}, 'parameter')).name};
 
 for c = 1:length(files)
    tables.(['T', num2str(c)]) = readtable(fullfile(path,'QC', files{c}));
+   if any(tables.(['T', num2str(c)]).bridge_balance_abs > 100) 
+       tables.(['T', num2str(c)]).bridge_balance_abs = tables.(['T', num2str(c)]).bridge_balance_abs/1e6;
+   end
+   if any(tables.(['T', num2str(c)]).CapaComp <1 & tables.(['T', num2str(c)]).CapaComp~=0)
+       tables.(['T', num2str(c)]).CapaComp = tables.(['T', num2str(c)]).CapaComp*1e12;
+   end
 end
 
 cellTabs = fieldnames(tables);
 
 %%
+figure
 subplot(1,4,1)
 hold on
 for n = 1:length(cellTabs)
