@@ -26,7 +26,7 @@ function ICsummary = runPipeline(varargin) %{
 %                      control in Mode 2 is assessed by deviations from 
 %                      the robust average of all sweeps.
 % 
-% create files and folders:
+% Creates following files and folders in output folder:
 % 
 % ephys_features  - table with all extraced features per cell; for more   
 %                 information on names and methods for features see the
@@ -49,6 +49,9 @@ function ICsummary = runPipeline(varargin) %{
 %                 old NWB cell ID and new NWB cell ID. These new cell IDs  
 %                 are introduced to publish the data on an open-source 
 %                 website.
+%
+% QC_sweeps_per_tag_martix  - table that summarizes the results of the 
+%                 sweepwise quality control. 
 %
 % procedure_doc   - table to document all quality control parameters used 
 %                 in the analysis run and some other important enviroment   
@@ -133,7 +136,7 @@ for n = 1:length(cellList)                                                 % for
  for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable           
      
   InitSweep                                                                % Initalizes sweep-wide variables 
-  if ~contains(ProtoTags(SwpCt), PS.SkipTags)                              % only continues if protocol name is not on the list in PS.SkipTags
+  if ~contains(ProtoTags(SwpCt,:), PS.SkipTags)                              % only continues if protocol name is not on the list in PS.SkipTags
                 
    CCSers = nwb.resolve(PS.SwDat.CurrentPath);                             % load the CurrentClampSeries of the respective sweep
    PS.SwDat.StimOn = double(table2array(RespTbl(SwpCt,1)));                % gets stimulus onset from response table 

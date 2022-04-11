@@ -210,7 +210,7 @@ if ~isempty(PS.rheoSwpSers.data)
       ylabel('dV/dt (V/ms)')
       xlabel('Voltage (V)')
       xlim([-0.075 0.080])
-      ylim([-0.80 1])
+      ylim([-0.60 0.8])
       scatter(PS.rheoSwpDat.map('thres').data(1)/1000, ...
        diff(PS.rheoSwpSers.data.load(spStart/1000*PS.rheoSwpSers.starting_time_rate-1 ...
         :spStart/1000*PS.rheoSwpSers.starting_time_rate))/...
@@ -219,11 +219,15 @@ if ~isempty(PS.rheoSwpSers.data)
       ylabel('dV/dt (mV/ms)')
       xlabel('Voltage (mV)')
       xlim([-75 80])
-      ylim([-800 1000])
+      ylim([-600 800])
       scatter(PS.rheoSwpDat.map('thres').data(1), ...
        diff(PS.rheoSwpSers.data.load(spStart/1000*PS.rheoSwpSers.starting_time_rate-1 ...
         :spStart/1000*PS.rheoSwpSers.starting_time_rate))/...
        (1000/PS.rheoSwpSers.starting_time_rate),100);
+      plot([-75 80],ones(2,1)*PS.rheoSwpDat.map('peakUpStrk').data(1), ...
+          'Color','k','LineStyle','--')
+      plot([-75 80],ones(2,1)*PS.rheoSwpDat.map('peakDwStrk').data(1), ...
+          'Color','k','LineStyle','--')
     end
 end 
 if ~isempty(PS.SPSwpSers) && ~isempty(PS.SPSwpSers.data)
@@ -237,6 +241,10 @@ if ~isempty(PS.SPSwpSers) && ~isempty(PS.SPSwpSers.data)
               5*PS.SPSwpSers.starting_time_rate/1000) ...
           /(1000/PS.SPSwpSers.starting_time_rate)));  
          p.Color = 'red';  
+     plot([-75 80],ones(2,1)*PS.SPSwpDat.map('peakUpStrk').data(1), ...
+          'Color','r','LineStyle','--')
+     plot([-75 80],ones(2,1)*PS.SPSwpDat.map('peakDwStrk').data(1), ...
+          'Color','r','LineStyle','--')                 
 end
 title('Waveform phaseplots SP vs LP')
 if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)

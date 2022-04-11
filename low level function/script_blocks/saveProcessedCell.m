@@ -24,12 +24,12 @@
   end  
   totalSweeps = height(QC.pass)-sum(isnan(QC.pass.QC_total_pass));         % calculates the number of sweeps being considered during the analysis
   QC_removalsPerTag(n,1) = {totalSweeps};                                  % adding total number of sweeps to the removals-per-tag table
-  QC_removalsPerTag(n,2) = varfun(@sum, rmmissing(QC.pass(:,3)));          % adding the number of passed sweeps to the removals-per-tag table
-  QC_removalsPerTag(n,3:end) = num2cell(abs(table2array(...
-      varfun(@sum, rmmissing(QC.pass(:,4:end))))-totalSweeps));            % adding the number of failed sweeps per QC criterium to the removals-per-tag table
+  QC_removalsPerTag(n,2) = {sum(rmmissing(QC.pass{:,3}))};                 % adding the number of passed sweeps to the removals-per-tag table
+  QC_removalsPerTag(n,3:end) = array2table(abs(sum(...
+                   rmmissing(QC.pass{:,4:14}),1)-totalSweeps));            % adding the number of failed sweeps per QC criterium to the removals-per-tag table
   QC.pass(isnan(QC.pass.QC_total_pass),13:14)={NaN};
   QCparameterTotal.(['ID_' PS.cellID ]) = QC.params;                       % add QC parameter table of the cell to structure for saving those  
-  QCpassTotal.(['ID_' PS.cellID  ]) = QC.pass;                            % add QC pass table of the cell to structure for saving those  
+  QCpassTotal.(['ID_' PS.cellID  ]) = QC.pass;                             % add QC pass table of the cell to structure for saving those  
   
  %% save all sweep processing in NWB file
  modAPP = fillAPP_Mod(modAPP,SpPattrn,nwb.nwb_version);                    % make AP pattern processing module  

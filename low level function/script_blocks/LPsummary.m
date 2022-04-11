@@ -217,14 +217,18 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    if ~isnan(icSum.Rheo(ClNr,1))                                           % if Rheo is not Nan i.e. there is a rheo base sweep
     if icSum.Rheo(ClNr,1) < 60                                             % if the Rheo is lower than 60 pA
      target = round(icSum.Rheo(ClNr,1),-1)+30;                             % target current is Rheo + 30 pA
-     targets = [ target-10 target target+10 ];
-    else
+     targets = [ target-10 target target+10 target+20 target+30 ];
+    elseif icSum.Rheo(ClNr,1) < 180 
      target = icSum.Rheo(ClNr,1)+70;                                       % target current is Rheo + 70 pA
-     targets = [target-30 target-20 target-10 target target+10 target+20 target+30];
+     targets = [target target+10 target+20 target+30 target+40 target+50];
+    else 
+     target = icSum.Rheo(ClNr,1)+140;                                      % target current is Rheo + 70 pA
+     targets = [target target+10 target+20 target+30 target+40 target+50];
     end            
     PoHeroAmps = LPampsQC(ismember(LPampsQC,targets));
     if ~isempty(PoHeroAmps)
-    [~, PoHeroAmpsPos] = min(abs(PoHeroAmps-target));
+    PoHeroAmpsPos = find(abs(PoHeroAmps-target)==...
+        min(abs(PoHeroAmps-target)),1,'last');
     [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps(PoHeroAmpsPos)));        % get position of potential hero sweeps  
     PS.heroSwpTabPos = find(all([round(SwpAmps.load)==LPampsQC(heroSwpPos), ...
                                                                 LPIdx],2));% get potential hero sweep table position

@@ -1,6 +1,12 @@
 function [sp] = getSpikeParameter(CCSers,sp,PS)
 
-sp.dVdt = diff(CCSers.data.load())/(1000/CCSers.starting_time_rate);
+if  PS.refPeakSlop==1
+    sp.dVdt = lowpass(diff(CCSers.data.load())/...
+             (1000/CCSers.starting_time_rate),10000, 50000);
+else
+   sp.dVdt = diff(CCSers.data.load())/(1000/CCSers.starting_time_rate); 
+end
+
 win4Trough = 15*round(CCSers.starting_time_rate)/1000;
 
 sp.maxdVdt = NaN(1,length(sp.peak));
@@ -110,8 +116,8 @@ for i = 1:length(sp.peak)  % for each putative spike
     % compute peak stroke ratio
     if sp.thresholdTime(i)~=0
         maxTemp = max(sp.dVdt(sp.thresholdTime(i):sp.peakTime(i)));
-        minTemp = min(sp.dVdt(sp.peakTime(i):sp.troughTime(i)-1));
-    else 
+        minTemp = min(sp.dVdt(sp.peakTime(i):sp.troughTime(i)-1));        
+    else
         maxTemp = [];
         minTemp = [];
     end

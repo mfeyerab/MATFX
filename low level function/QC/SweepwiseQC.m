@@ -1,12 +1,22 @@
 function [QC]  = SweepwiseQC(CCSers,PS,QC,SwpCt)
+%SweepwiseQC
+%- takes two vectors, pre- and post-stimulus (400 ms each)
+%- takes two measures of noise, short (1.5 ms) and long (500 ms) term
+%- measures resting potential
+%- measures difference in resting potential at pre- and post-stimulus
+%
 
-%{
-SweepwiseQC
-- takes two vectors, pre- and post-stimulus (400 ms each)
-- takes two measures of noise, short (1.5 ms) and long (500 ms) term
-- measures resting potential
-- measures difference in resting potential at pre- and post-stimulus
-%}
+%% Determining protocol type 
+if contains(CCSers.stimulus_description, PS.LPtags) 
+    Wind = PS.LPqc_samplWind;
+    recvTi = PS.LPqc_recovTime;                         %   
+elseif contains(CCSers.stimulus_description, PS.SPtags) 
+    Wind = PS.SPqc_samplWind;
+    recvTi = PS.SPqc_recovTime;  
+else
+    disp([PS.SwDat.CurrentName, ' has no identified protocol type', ...
+       ' which is called ',CCSers.stimulus_description])
+end
 
 %% Getting test pulse onset and saving voltage data
 if range(PS.SwDat.StimData)>2
@@ -14,8 +24,8 @@ if range(PS.SwDat.StimData)>2
 end
 
 if round(range(PS.SwDat.StimData(1:PS.SwDat.StimOn-10))/2,3) < 0                    % if test pulse is hyperpolarizing 
-  [~, PS.SwDat.testOn] = ...
-            findpeaks(-diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)),'SortStr','descend','NPeaks',1);
+  [~, PS.SwDat.testOn] = findpeaks(-diff(...
+      PS.SwDat.StimData(1:PS.SwDat.StimOn)),'SortStr','descend','NPeaks',1);
   QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
                          (0.015*CCSers.starting_time_rate):...
                         PS.SwDat.testOn+(0.075*CCSers.starting_time_rate))};
@@ -39,21 +49,26 @@ QC.VStimOff(SwpCt) = {CCSers.data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_ra
 %% selecting time windows and determining long-term noise/membrane voltage stability    
 if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
 
- vec_pre = CCSers.data.load(...
-          PS.SwDat.StimOn-0.15*CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000;
- vec_post = CCSers.data.load((end-0.25*CCSers.starting_time_rate)+1:...
-             length(CCSers.data.load)).*1000;
+ vec_pre = CCSers.data.load(PS.SwDat.StimOn-Wind*...
+           CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000;
+      
+ vec_post = CCSers.data.load(PS.SwDat.StimOff+recvTi*...
+           CCSers.starting_time_rate+1:...
+           PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
+           Wind*CCSers.starting_time_rate).*1000;
 else   
-  if PS.SwDat.StimOn < 0.15*CCSers.starting_time_rate
+  if PS.SwDat.StimOn < PS.LPqc_samplWind*CCSers.starting_time_rate
     disp(['Sweep Nr ', num2str(CCSers.sweep_number), ...
                          ' has peristimulus lengths shorter than desired'])
     vec_pre = CCSers.data.load(1:PS.SwDat.StimOn);
     vec_post = CCSers.data.load(PS.SwDat.StimOff:end);
   else 
     vec_pre = CCSers.data.load(...
-      PS.SwDat.StimOn-0.15*CCSers.starting_time_rate:PS.SwDat.StimOn-1);
-    vec_post = CCSers.data.load((end-0.25*CCSers.starting_time_rate)+1:...
-    length(CCSers.data.load));
+      PS.SwDat.StimOn-Wind*CCSers.starting_time_rate:PS.SwDat.StimOn-1);
+    vec_post = CCSers.data.load(...
+        PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+1:...
+        PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
+          Wind*CCSers.starting_time_rate);
   end
 end
 

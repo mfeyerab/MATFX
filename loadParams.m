@@ -1,64 +1,83 @@
 function PS = loadParams
+%function for loading manually set parameters relevant for processing and
+%visualization; the analyist can change parameters here to the desired
+%values.
 
-% Definitions LP and SP tags  (stimulus description giving away the stim length)
-PS.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long Pulse"];
-PS.SPtags = ["SP","C1SS"];
+%% Definitions of protocol tags (stimulus description giving away the stim structure)
+%these tags are used for detecting protocol types from nwb files from the AIBS
+%both the pre-PatchSeq (Gouwens et al. 2019) and the PatchSeq dataset (Gouwens 
+%et al. 2020). 
+%Additionally length of the long pulse and short pulse can be  
+%manipulated. This might be helpful to apply some of the analysis to other types
+%of protocols such as 500 ms long pulse, but this has not been tested as  
+%of now April 2022. 
+%SkipTags are character patterns which indicate a protocol type that cannot or 
+%should not  be analyzed with the current code such as Ramp or Chirp stimulus.
+%The tag "unknown" is used in the NeuroNex conversion pipeline for protocols 
+%with a stimulus structure that does not much either long pulse or short pulse
+
+PS.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long Pulse"];                 
+PS.SPtags = ["SP","C1SS", "Short"];
 PS.LPlength = 1;
 PS.SPlength = 0.003;
-PS.SkipTags = ["Ramp",...
-    "Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND", "I-V", "unknown"];
+PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", ...
+    "EXPEND", "I-V", "unknown", "Unknown"];
 
-% plotting functions
+%% plotting parameters
+%plot_all can be either: 0 for a minimal amount of additional visualization;
+%1 for standard visualization, 2 for extensive visualizations (includes 
+%raw voltage data of RMSE integration window for each sweep)
+
 PS.plot_all = 1;
 PS.pltForm = '.png';
 PS.Webexport=0; 
 
-% spike detection
-PS.thresholdV = -15;                             % detection threshold for V-based spikes
-PS.thresholdDVDT = 20;                           % detection threshold for dV/dt-based spikes
+%% spike detection and analysis
+PS.thresholdV = -15;                                                       % detection threshold for V-based spikes
+PS.thresholdDVDT = 20;                                                     % detection threshold for dV/dt-based spikes
+PS.refPeakSlop = 1;                                                        % refined peak up and down stroke are filtered before max/min analysis => needs much more processing time  
 
-% target sampling PSmeters
-PS.sampleRT = 5e4;                               % sample rate we want
-PS.sampleRTdt = 1000/PS.sampleRT;                 % sample rate we want
+%% resampling
+PS.sampleRT = 5e4;                                                         % sample rate we want
+PS.sampleRTdt = 1000/PS.sampleRT;                                          % sample rate we want
 
-% cell-wise quality control PSmeters
-PS.cutoffInitRa = 24;
-PS.factorRelaRa = 0.20;
-PS.noSupra = 1;
-PS.maxRheoSpikes = 100;
+%% cell-wise quality control parameters
+PS.cutoffInitRa = 24;                                                      % cut off for absolute value of intial access resistance  
+PS.factorRelaRa = 0.25;                                                    % cut off for relative value of intial access resistance  
+PS.noSupra = 1;                                                            % binary variable for kicking cells without suprathreshold features
+PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
 
-% swep-wise root mean square quality control PSmeters
-PS.LPqc_samplWind = 100; PS.LPqc_recovTime = 850; 
-PS.SPqc_samplWind = 100; PS.SPqc_recovTime = 600;
-PS.preAIBS_samplWind = 199;
-PS.RMSEst = 0.3;                                 % maximum RMSE measure short term
-PS.RMSElt = 0.75;                                 % maximum RMSE measure long term
+%% sweep-wise quality control parameters and integration windows
+PS.LPqc_samplWind = 0.5; PS.LPqc_recovTime = 6;                            % determine length and distance to stimulus end for window of RMSE calculations for the long pulse  
+PS.SPqc_samplWind = 0.5; PS.SPqc_recovTime = 0.95;                          % determine length and distance to stimulus end for window of RMSE calculations for the short pulse 
+PS.RMSEst = 0.3;                                                           % maximum RMSE measure short term
+PS.RMSElt = 0.75;                                                          % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
-PS.maxDiffBwBeginEnd = 1;                        % maximum difference between beginning and end of sweep
-PS.maximumRestingPot = -50;                      % minimum resting potential
-PS.holdingI = 100;                               % maximum holding current
-PS.bridge_balance = 24;                          % maximum bridge balance
-PS.minGoodSpFra = 0.25;
-PS.BwSweepMax = 4.5;
+PS.maxDiffBwBeginEnd = 2.5;                                                % maximum difference between beginning and end of sweep
+PS.maximumRestingPot = -50;                                                % minimum resting potential
+PS.holdingI = 100;                                                         % maximum holding current
+PS.bridge_balance = 24;                                                    % maximum bridge balance
+PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
+PS.BwSweepMax = 4.5;                                                       % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 
-% rebound slope and spike PSmeters
-PS.reboundWindow = 100;                          % window to find maximum rebound peak
-PS.reboundFitWindow = 150;                       % window from max rebound peak to fit / acquireRes
-PS.reboundSpWindow = 50;                         % window to look for rebound spikes (ms)
-PS.GF = 0.85;                                    % goodness of fit for exponential fit for tau
+%% parameters for subthreshold analysis
+PS.reboundWindow = 100;                                                    % window to find maximum rebound peak
+PS.reboundFitWindow = 150;                                                 % window from max rebound peak to fit / acquireRes
+PS.reboundSpWindow = 50;                                                   % window to look for rebound spikes (ms)
+PS.GF = 0.85;                                                              % goodness of fit for exponential fit for tau
 
-% spike-wise quality control PSmeters
-PS.pcentMaxdVdt = 0.1;                           % threshold = < % of dVdt
-PS.absdVdt = 2.9;                                % threshold = absolute value
-PS.minRefract = 0.5;                             % min refractory
-PS.mindVdt = 5;                                  % minimum amount of dV/dt
-PS.minDiffThreshold2PeakN = 35;                  % max diff in V bw threshold and peak for narrow 
-PS.minDiffThreshold2PeakB = 45;                  % max diff in V bw threshold and peak for broad
-PS.maxDiffThreshold2PeakT = 2;                   % max diff in t bw threshold and peak
-% PS.minDiffPeak2Trough = 30;                      % max diff in V bw peak and trough
-% PS.maxDiffPeak2TroughT = 10;                     % max diff in t bw peak and trough
-PS.percentRheobaseHeight = .3;                   % APSms must be X percent of Rheobase height
-PS.maxThreshold = -18;                           % above this value APs are eliminated (mV)
-PS.minTrough = -30;                              % above this value APs are eliminated (mV)
+%% spike-wise quality control parameters
+PS.pcentMaxdVdt = 0.1;                                                     % threshold = < % of dVdt
+PS.absdVdt = 2.9;                                                          % threshold = absolute value
+PS.minRefract = 0.5;                                                       % min refractory
+PS.mindVdt = 5;                                                            % minimum amount of dV/dt
+PS.minDiffThreshold2PeakN = 35;                                            % max diff in V bw threshold and peak for narrow 
+PS.minDiffThreshold2PeakB = 45;                                            % max diff in V bw threshold and peak for broad
+PS.maxDiffThreshold2PeakT = 2;                                             % max diff in t bw threshold and peak
+% PS.minDiffPeak2Trough = 30;                                              % max diff in V bw peak and trough
+% PS.maxDiffPeak2TroughT = 10;                                             % max diff in t bw peak and trough
+PS.percentRheobaseHeight = .3;                                             % APSms must be X percent of Rheobase height
+PS.maxThreshold = -18;                                                     % above this value APs are eliminated (mV)
+PS.minTrough = -30;                                                        % above this value APs are eliminated (mV)
 
 % check PSms.minTrough (any removals) PSms.minTrough adjusted to threshold
