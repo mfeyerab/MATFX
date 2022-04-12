@@ -136,8 +136,9 @@ for n = 1:length(cellList)                                                 % for
  for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable           
      
   InitSweep                                                                % Initalizes sweep-wide variables 
-  if ~contains(ProtoTags(SwpCt,:), PS.SkipTags)                              % only continues if protocol name is not on the list in PS.SkipTags
-                
+  if ~contains(ProtoTags(SwpCt,:), PS.SkipTags) && ...                     % only continues if protocol name is not on the list in PS.SkipTags AND 
+    (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manuTP(SwpCt)))      % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
+            
    CCSers = nwb.resolve(PS.SwDat.CurrentPath);                             % load the CurrentClampSeries of the respective sweep
    PS.SwDat.StimOn = double(table2array(RespTbl(SwpCt,1)));                % gets stimulus onset from response table 
    PS.SwDat.StimOff = double(...
@@ -186,9 +187,9 @@ for n = 1:length(cellList)                                                 % for
                  <= Ri_preqc*PS.factorRelaRa                               % if ini access resistance is below absolute and relative threshold     
 
           [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);              % extract features from long pulse stimulus
-          [ICsummary, PS] =  SPsummary(nwb, ICsummary, n, PS);             % extract features from short pulse stimulus
+          [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);              % extract features from short pulse stimulus
           plotCellProfile(nwb, PS)                                         % plot cell profile 
-          plotSanityChecks(QC, PS, ICsummary, n)
+          plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
        else 
            display(['excluded by cell-wide QC for initial Ra (', ...
                  num2str(info.values{1}.('initial_access_resistance')),...
@@ -202,7 +203,7 @@ for n = 1:length(cellList)                                                 % for
      [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                   % extract features from long pulse stimulus 
      [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                   % extract features from short pulse stimulus 
      plotCellProfile(nwb, PS)                                              % plot cell profile
-     plotSanityChecks(QC ,PS, ICsummary, n)
+     plotSanityChecks(QC ,PS, ICsummary, n, ICEtab)
      disp('No initial access resistance available') 
   end    
   if isnan(ICsummary.thresLP(n)) && PS.noSupra == 1                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium

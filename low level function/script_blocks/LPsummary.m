@@ -219,11 +219,11 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      target = round(icSum.Rheo(ClNr,1),-1)+30;                             % target current is Rheo + 30 pA
      targets = [ target-10 target target+10 target+20 target+30 ];
     elseif icSum.Rheo(ClNr,1) < 180 
-     target = icSum.Rheo(ClNr,1)+70;                                       % target current is Rheo + 70 pA
-     targets = [target target+10 target+20 target+30 target+40 target+50];
+     target = icSum.Rheo(ClNr,1)+80;                                       % target current is Rheo + 70 pA
+     targets = [target+10 target+20 target+30 target+40 target+50];
     else 
      target = icSum.Rheo(ClNr,1)+140;                                      % target current is Rheo + 70 pA
-     targets = [target target+10 target+20 target+30 target+40 target+50];
+     targets = [target+10 target+20 target+30 target+40 target+50];
     end            
     PoHeroAmps = LPampsQC(ismember(LPampsQC,targets));
     if ~isempty(PoHeroAmps)

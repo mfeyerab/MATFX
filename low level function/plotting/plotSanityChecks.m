@@ -1,10 +1,12 @@
-function plotSanityChecks(QC, PS, ICsummary, n)
+function plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
 
+QCvec = logical(ICEtab.dynamictable.values{2}.vectordata.values{1}.data');
+QC.testpulse = QC.testpulse(QCvec);
 QC.testpulse(cellfun(@isempty, QC.testpulse)) = [];
 shift=mean(cellfun(@range, QC.testpulse))/3;
 count = 0;
 
-figure; hold on
+figure('visible','off'); hold on
 if length(QC.testpulse) >100
   step =5 ; 
 elseif length(QC.testpulse) >75
@@ -30,17 +32,22 @@ box off
 
 exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.png']))
 
-%%
-figure; hold on
+%% Stimulus Onset LP
+LPvec = contains(string(ICEtab.dynamictable.values{...
+                                 1}.vectordata.values{1}.data.load), 'LP');                             
+
+figure('visible','off'); hold on
 for s=1:height(QC.pass)
-    if contains(QC.pass.Protocol(s), 'LP')
+    if LPvec(s)&& QCvec(s)
        plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
     end
 end
 
-title(['Stimulus onset ', PS.cellID])
+I = ICEtab.stimuli.vectordata.values{1}.data.load(...
+                         find(all([QCvec, LPvec],2)));                    
+title(['Stimulus onset ', PS.cellID, ' I= ',...
+    num2str(min(I)), ' to ', num2str(max(I))]);
 ylabel('Voltage trace (mV)')
-
 ylim([-10 15])
 ylabel('Voltage (mV)')
 xlabel('samples')
@@ -52,5 +59,33 @@ if ~isempty(PS.rheoSwpSers.data) && checkVolts(PS.rheoSwpSers.data_unit) && ...
   ylabel('Voltage (V)')
 end  
 
+exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
+%% Stimulus Onset SP
 
-exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOn','.png']))
+SPvec = contains(string(ICEtab.dynamictable.values{...
+                                 1}.vectordata.values{1}.data.load), 'SP');                             
+
+I = ICEtab.stimuli.vectordata.values{1}.data.load(...
+                         find(all([QCvec, SPvec],2)));
+figure('visible','off'); hold on
+for s=1:height(QC.pass)
+    if SPvec(s)&& QCvec(s)
+       plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
+    end
+end
+
+title(['Stimulus onset ', PS.cellID, ' I= ',...
+    num2str(min(I)), ' to ', num2str(max(I))]);
+ylabel('Voltage trace (mV)')
+ylim([-10 15])
+ylabel('Voltage (mV)')
+xlabel('samples')
+box off
+
+if ~isempty(PS.rheoSwpSers.data) && checkVolts(PS.rheoSwpSers.data_unit) && ...
+                 string(PS.rheoSwpSers.description) ~= "PLACEHOLDER"
+  ylim([-0.01 0.015])
+  ylabel('Voltage (V)')
+end  
+
+exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnSP','.png']))

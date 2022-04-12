@@ -28,7 +28,7 @@ PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", ...
 %1 for standard visualization, 2 for extensive visualizations (includes 
 %raw voltage data of RMSE integration window for each sweep)
 
-PS.plot_all = 1;
+PS.plot_all = 2;
 PS.pltForm = '.png';
 PS.Webexport=0; 
 
@@ -48,8 +48,8 @@ PS.noSupra = 1;                                                            % bin
 PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
 
 %% sweep-wise quality control parameters and integration windows
-PS.LPqc_samplWind = 0.5; PS.LPqc_recovTime = 6;                            % determine length and distance to stimulus end for window of RMSE calculations for the long pulse  
-PS.SPqc_samplWind = 0.5; PS.SPqc_recovTime = 0.95;                          % determine length and distance to stimulus end for window of RMSE calculations for the short pulse 
+PS.LPqc_samplWind = 0.5; PS.LPqc_recovTime = 5.5;                          % determine length and distance to stimulus end for window of RMSE calculations for the long pulse  
+PS.SPqc_samplWind = 0.5; PS.SPqc_recovTime = 0.95;                         % determine length and distance to stimulus end for window of RMSE calculations for the short pulse 
 PS.RMSEst = 0.3;                                                           % maximum RMSE measure short term
 PS.RMSElt = 0.75;                                                          % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
@@ -59,6 +59,7 @@ PS.holdingI = 100;                                                         % max
 PS.bridge_balance = 24;                                                    % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
 PS.BwSweepMax = 4.5;                                                       % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
+PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 
 
 %% parameters for subthreshold analysis
 PS.reboundWindow = 100;                                                    % window to find maximum rebound peak

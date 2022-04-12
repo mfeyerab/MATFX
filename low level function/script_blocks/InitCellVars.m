@@ -1,10 +1,10 @@
 %% For plotting profile
-  [PS.sagSwpTabPos,PS.rheoSwpTabPos, PS.heroSwpTabPos, ...
+ [PS.sagSwpTabPos,PS.rheoSwpTabPos, PS.heroSwpTabPos, ...
   PS.rheoSwpDat, PS.SPSwpDat, PS.SPSwpTbPos, PS.heroSwpAPPDat] = deal([]); % initialize variabels to store sweep table position in plotting structure
-  [PS.sagSwpSers,PS.rheoSwpSers, PS.heroSwpSers, PS.SPSwpSers] = ...
+ [PS.sagSwpSers,PS.rheoSwpSers, PS.heroSwpSers, PS.SPSwpSers] = ...
       deal(types.core.CurrentClampSeries); 
 %% Setting up QC tables and initializing variables
-  QC.params = table(); QC.testpulse = cell(0,0);                              % creating empty MATLAB table for QC paramters
+  QC.params = table(); QC.testpulse = cell(0,0);                           % creating empty MATLAB table for QC paramters
   QC.params.SweepID = repmat({''},length(nwb.acquisition.keys),1);         % initializing SweepID column of QC paramters table
   QC.params.Protocol = repmat({''},length(nwb.acquisition.keys),1);        % initializing Protocol column of QC paramters table
   QC.params(:,3:length(qc_tags(2:end))+2) = array2table(NaN(...         
@@ -15,9 +15,17 @@
   QC.pass.SweepID = repmat({''},length(nwb.acquisition.keys),1);           % initializing SweepID column of QC passing table 
   QC.pass.Protocol = repmat({''},length(nwb.acquisition.keys),1);          % initializing Protocol column of QC passing table
   QC.pass(:,3:length(qc_tags)+2) = ...
-      array2table(NaN(length(nwb.acquisition.keys), length(qc_tags)));   % initializing logic values for passing table
-  QC.pass.Properties.VariableNames(3:width(QC.pass)-1) = qc_tags(2:end);     % naming passing parameters variables
-  QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};  
+      array2table(NaN(length(nwb.acquisition.keys), length(qc_tags)));     % initializing logic values for passing table
+  QC.pass.Properties.VariableNames(3:width(QC.pass)-1) = qc_tags(2:end);   % naming passing parameters variables
+  QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};           % initializing additional variable for sweep wise QC encoding manual test pulse review
+  if PS.manTPremoval && ...                                                % if manual removal due to test pulse is enabled
+              exist(fullfile(PS.outDest, 'TP', [PS.cellID,'_TP.csv']))     % if table with results of manual test pulse review exists
+          
+    TPtab = readtable(fullfile(PS.outDest, 'TP', [PS.cellID,'_TP.csv']));  % read table with results of manual test pulse review
+    QC.pass.manuTP = TPtab.TP;                                             % assign binary from results of test pulse review to QC pass table
+  elseif PS.manTPremoval
+      disp('No result file for manual test pulse review')
+  end
   SpPattrn.ISIs = {}; SpPattrn.spTrain = struct(); QC.Spike = struct();    % initializing variables for interspike intervals, spike train parameters, spike QC 
   PS.subCount = 1; PS.supraCount = 1;                                      % starting counting variables for sub- and suprathreshold variables
   SpPattrn.spTrainIDs = {}; SpPattrn.BinTbl = zeros(0,13);                 % initializing variables to save spike train sweep IDs and binned spike train table
