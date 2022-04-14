@@ -32,9 +32,14 @@ if round(range(PS.SwDat.StimData(1:PS.SwDat.StimOn-10))/2,3) < 0                
 elseif round(range(PS.SwDat.StimData(1:PS.SwDat.StimOn-10))/2,3)  > 0                % if test pulse is hyperpolarizing 
    [~, PS.SwDat.testOn] = ...
             findpeaks(-diff(PS.SwDat.StimData(1:PS.SwDat.StimOn)),'SortStr','descend','NPeaks',1);
-  QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
-                         (0.015*CCSers.starting_time_rate):...
-                        PS.SwDat.testOn+(0.075*CCSers.starting_time_rate))};
+  if 0.015*CCSers.starting_time_rate>PS.SwDat.testOn
+   QC.testpulse(SwpCt) = {CCSers.data.load(1:PS.SwDat.testOn+(...
+                                      0.075*CCSers.starting_time_rate))};
+  else     
+   QC.testpulse(SwpCt) = {CCSers.data.load(PS.SwDat.testOn-...
+                       (0.015*CCSers.starting_time_rate):...
+                       PS.SwDat.testOn+(0.075*CCSers.starting_time_rate))};
+  end
 else
     disp([PS.SwDat.CurrentName, ' has no detectable test pulse'])
 end
@@ -163,7 +168,7 @@ QC.pass.ltRMSE_pre(SwpCt)  = QC.params.ltRMSE_pre(SwpCt) < PS.RMSElt;
 QC.pass.ltRMSE_post(SwpCt) = QC.params.ltRMSE_post(SwpCt) < PS.RMSElt;
 QC.pass.diffVrest(SwpCt)   = QC.params.diffVrest(SwpCt) < PS.maxDiffBwBeginEnd;
 QC.pass.Vrest(SwpCt)       = QC.params.Vrest(SwpCt) < PS.maximumRestingPot;
-QC.pass.holdingI(SwpCt)    = QC.params.holdingI(SwpCt) < PS.holdingI;
+QC.pass.holdingI(SwpCt)    = abs(QC.params.holdingI(SwpCt)) < PS.holdingI;
 QC.pass.bridge_balance_abs(SwpCt) = ...
     QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance;
 
