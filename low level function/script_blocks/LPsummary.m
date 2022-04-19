@@ -53,6 +53,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   SuprIDs = SpPatrTab.map('SwpID').data;                                   % Get names of suprathreshold sweeps as cell array  
   if iscell(SuprIDs)
   passSuprIdx = ismember(SuprIDs, IdPassSwpsC); 
+  LPsupraIDs = SuprIDs(passSuprIdx);
   ISIs = spPatr.map('ISIs').vectordata.values{1}.data;  
   passRts = SpPatrTab.map('firRt').data(passSuprIdx);     
   
@@ -69,7 +70,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    icSum.DFR_P10(ClNr,1) = round(prctile(ISIs, 10),2); 
    icSum.DFR_IQR(ClNr,1) = round(prctile(ISIs, 75) - prctile(ISIs, 25),2);
    
-   if PS.plot_all == 1 && ~isempty(ISIs)
+   if PS.plot_all >= 1 && ~isempty(ISIs)
      figure('visible','off');         cdfplot(1000./ISIs);
      grid off; box off; xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
      title('Dynamic frequency range');
@@ -97,18 +98,16 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       icSum.StimAdapB123(ClNr,1) = ...                                     % calculates an adaptiation ratio by
                      sum(StartSwpBinCount(1:3))/sum(MaxSwpBinCount(1:3));  % dividing spikes out of the first three bins from first by max sweeps  
       icSum.StimAdapB7_13(ClNr,1) = ...                                    % calculates an adaptiation ratio by
-                     sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));  % dividing spikes from 7th to last bin from first by max sweeps 
-    end
-    APPIdx = find(ismember(cellfun(@(v)v(1), regexp(SwpPaths,...           % Get index for location of suprathreshold sweeps 
-                                       '\d*','Match')), cellstr(SuprIDs)));% in sweep response table                    
-    I = SwpAmps.load(APPIdx);                                              % Get all stimulus amplitudes of suprathershold sweeps
+                     sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));% dividing spikes from 7th to last bin from first by max sweeps 
+    end              
+    I = SwpAmps.load(find(ismember(SwpIDs,cellfun(@str2num,LPsupraIDs)))); % Get all stimulus amplitudes of suprathershold long pulse sweeps
     if length(I)>2
-     P = robustfit(I, SpPatrTab.map('firRt').data);                        % create a linear fit of I f curve                
+     P = robustfit(I, passRts);                                            % create a linear fit of I f curve                
      icSum.fIslope(ClNr,1) = round(P(1),3);                                % save slope as feature for cell
 
-     if PS.plot_all == 1
+     if PS.plot_all >= 1
       figure('visible','off'); hold on
-      scatter(I, spPatr.values{1}.vectordata.map('firRt').data)
+      scatter(I, passRts)
       yfit = P(2)*I+P(1);             plot(I,yfit,'r-.');
       xlabel('input current (pA)');   ylabel('firing frequency (Hz)')
       title('f/I curve');             box off; axis tight 
@@ -172,10 +171,10 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    end
   end
   %% rheobase sweeps and parameters of first spike
-  if iscell(SuprIDs) && ~isempty(passRts)
+  if iscell(LPsupraIDs) && ~isempty(passRts)
    [icSum.rheoRt(ClNr,1), rheoIdx] = ...
        min(SpPatrTab.map('firRt').data(passSuprIdx));
-   RheoSwpID = SuprIDs(rheoIdx);
+   RheoSwpID = LPsupraIDs(rheoIdx);
    if length(RheoSwpID) > 1
     for r=1:length(RheoSwpID)
     PS.rheoSwpTabPos(r) = find(endsWith(SwpPaths,['_', RheoSwpID{r}]));    % save position of rheo sweep in sweep table   
@@ -234,10 +233,14 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
                                                                 LPIdx],2));% get potential hero sweep table position
     heroID = str2double(regexp([SwpRespTbl(PS.heroSwpTabPos).path], '\d*','Match'));%   
     heroProModAPPos = endsWith(APwave.keys,['_',num2str(heroID(1))]);      % position of hero sweep in AP wave processing moduls
-    heroSwpAPDat = APwave.values{heroProModAPPos}.vectordata;              % 
-    end    
-    if exist("heroID")                                                     % if there are potential hero sweep names
-     PosSpTrain = find(str2double(SuprIDs)==heroID(1));                    % saves the position of the spPatr module that matches the first current potential hero sweep
+      if isempty(find(heroProModAPPos))
+       heroID = [];
+      else
+       heroSwpAPDat = APwave.values{heroProModAPPos}.vectordata;              % 
+      end    
+    end
+    if exist("heroID") && ~isempty(heroID)                                 % if there are potential hero sweep names
+     PosSpTrain = find(str2double(LPsupraIDs)==heroID(1));                    % saves the position of the spPatr module that matches the first current potential hero sweep
      if ~isempty(PosSpTrain)
       PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
      end
