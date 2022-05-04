@@ -16,7 +16,7 @@ function PS = loadParams
 %The tag "unknown" is used in the NeuroNex conversion pipeline for protocols 
 %with a stimulus structure that does not much either long pulse or short pulse
 
-PS.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long Pulse"];                 
+PS.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long"];                 
 PS.SPtags = ["SP","C1SS", "Short"];
 PS.LPlength = 1;
 PS.SPlength = 0.003;
@@ -28,35 +28,37 @@ PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", ...
 %1 for standard visualization, 2 for extensive visualizations (includes 
 %raw voltage data of RMSE integration window for each sweep)
 
-PS.plot_all = 2;
+PS.plot_all = 1;
 PS.pltForm = '.png';
 PS.Webexport=0; 
 
 %% spike detection and analysis
 PS.thresholdV = -15;                                                       % detection threshold for V-based spikes
 PS.thresholdDVDT = 20;                                                     % detection threshold for dV/dt-based spikes
-PS.refPeakSlop = 1;                                                        % refined peak up and down stroke are filtered before max/min analysis => needs much more processing time  
+PS.refPeakSlop = 0;                                                        % refined peak up and down stroke are filtered before max/min analysis => needs much more processing time  
+PS.enableSpQC = 0;                                                         % parameter to determine if spike "quality" will be evaluated
 
 %% resampling
 PS.sampleRT = 5e4;                                                         % sample rate we want
 PS.sampleRTdt = 1000/PS.sampleRT;                                          % sample rate we want
 
 %% cell-wise quality control parameters
-PS.cutoffInitRa = 24;                                                      % cut off for absolute value of intial access resistance  
+PS.cutoffInitRa = 24.9;                                                    % cut off for absolute value of intial access resistance  
 PS.factorRelaRa = 0.25;                                                    % cut off for relative value of intial access resistance  
 PS.noSupra = 1;                                                            % binary variable for kicking cells without suprathreshold features
 PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
 
 %% sweep-wise quality control parameters and integration windows
-PS.LPqc_samplWind = 0.5; PS.LPqc_recovTime = 5.5;                          % determine length and distance to stimulus end for window of RMSE calculations for the long pulse  
-PS.SPqc_samplWind = 0.5; PS.SPqc_recovTime = 0.95;                         % determine length and distance to stimulus end for window of RMSE calculations for the short pulse 
+PS.LPqc_samplWind = 0.4; PS.LPqc_recovTime = 4.75;                         % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the long pulse  
+PS.SPqc_samplWind = 0.25; PS.SPqc_recovTime = 0.65;                        % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the short pulse 
+PS.preTP= 0.015; PS.TPtrace = 0.08;                                        % determine length (in seconds) of prestimulus intervall and length of voltage trace for test pulse
 PS.RMSEst = 0.3;                                                           % maximum RMSE measure short term
 PS.RMSElt = 0.75;                                                          % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
-PS.maxDiffBwBeginEnd = 2.5;                                                % maximum difference between beginning and end of sweep
+PS.maxDiffBwBeginEnd = 4.75;                                               % maximum difference between beginning and end of sweep
 PS.maximumRestingPot = -50;                                                % minimum resting potential
 PS.holdingI = 100;                                                         % maximum holding current
-PS.bridge_balance = 24;                                                    % maximum bridge balance
+PS.bridge_balance = 24.9;                                                  % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
 PS.BwSweepMax = 4.5;                                                       % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 

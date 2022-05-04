@@ -16,8 +16,11 @@ if ~isempty(supraEvents)
     sp = estimatePeak(startPotSp,int4Peak,CCSers);
     if ~isempty(sp)
      sp = getSpikeParameter(CCSers, sp, PS);
-     QC = processSpikeQC(CCSers, sp, PS, QC, SwpCt);
-                               
+     if PS.enableSpQC==1
+      QC = processSpikeQC(CCSers, sp, PS, QC, SwpCt);
+     else
+      QC.pass.bad_spikes(SwpCt,1) = 1;
+     end
 %% Save spike parameter
 
     sp = rmfield(sp, 'dVdt');

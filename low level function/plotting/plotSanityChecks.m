@@ -1,37 +1,38 @@
 function plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
 
 QCvec = logical(ICEtab.dynamictable.values{2}.vectordata.values{1}.data');
-QC.testpulse = QC.testpulse(QCvec);
-QC.testpulse(cellfun(@isempty, QC.testpulse)) = [];
-shift=mean(cellfun(@range, QC.testpulse))/3;
-count = 0;
+if ~isempty(QC.testpulse)
+    QC.testpulse = QC.testpulse(QCvec);
+    QC.testpulse(cellfun(@isempty, QC.testpulse)) = [];
+    shift=mean(cellfun(@range, QC.testpulse))/3;
+    count = 0;
 
-figure('visible','off'); hold on
-if length(QC.testpulse) >100
-  step =5 ; 
-elseif length(QC.testpulse) >75
-  step =4 ;
-elseif length(QC.testpulse) >50
-  step =3 ;
-else
-  step =2 ;
+    figure('visible','off'); hold on
+    if length(QC.testpulse) >100
+      step =5 ; 
+    elseif length(QC.testpulse) >75
+      step =4 ;
+    elseif length(QC.testpulse) >50
+      step =3 ;
+    else
+      step =2 ;
+    end
+
+    colorVec = jet(length(QC.testpulse)); 
+    for i=1:step:length(QC.testpulse)
+    plot(QC.testpulse{i}-mean(QC.testpulse{i}(1:250))+shift*count,'Color',colorVec(i,:))
+    count = count+1;
+    end
+
+    title(['Test pulses from 1 to ', num2str(length(QC.testpulse))])
+    subtitle(['R_i_n = ', num2str(round(ICsummary.RinHD(n))), ' M\Omega',...
+        ' tau = ', num2str(ICsummary.tau(n)), ' ms' ])
+    ylabel('Voltage trace (mV)')
+    xlabel('samples')
+    box off
+
+    exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.png']))
 end
-
-colorVec = jet(length(QC.testpulse)); 
-for i=1:step:length(QC.testpulse)
-plot(QC.testpulse{i}-mean(QC.testpulse{i}(1:250))+shift*count,'Color',colorVec(i,:))
-count = count+1;
-end
-
-title(['Test pulses from 1 to ', num2str(length(QC.testpulse))])
-subtitle(['R_i_n = ', num2str(round(ICsummary.RinHD(n))), ' M\Omega',...
-    ' tau = ', num2str(ICsummary.tau(n)), ' ms' ])
-ylabel('Voltage trace (mV)')
-xlabel('samples')
-box off
-
-exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.png']))
-
 %% Stimulus Onset LP
 LPvec = contains(string(ICEtab.dynamictable.values{...
                                  1}.vectordata.values{1}.data.load), 'LP');                             

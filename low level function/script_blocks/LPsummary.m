@@ -100,7 +100,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       icSum.StimAdapB7_13(ClNr,1) = ...                                    % calculates an adaptiation ratio by
                      sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));% dividing spikes from 7th to last bin from first by max sweeps 
     end              
-    I = SwpAmps.load(find(ismember(SwpIDs,cellfun(@str2num,LPsupraIDs)))); % Get all stimulus amplitudes of suprathershold long pulse sweeps
+    I = round(SwpAmps.load(find(...
+                         ismember(SwpIDs,cellfun(@str2num,LPsupraIDs))))); % Get all stimulus amplitudes of suprathershold long pulse sweeps
     if length(I)>2
      P = robustfit(I, passRts);                                            % create a linear fit of I f curve                
      icSum.fIslope(ClNr,1) = round(P(1),3);                                % save slope as feature for cell
@@ -157,7 +158,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    else
     temp = find(LPIdx,tempIdx, 'first');
     PS.sagSwpTabPos = temp(end);
-    sagSwpID = regexp([SwpRespTbl(PS.sagSwpTabPos).path],'\d*','Match');  % gets the sweep name from the last chunck                          
+    sagSwpID = regexp([SwpRespTbl(PS.sagSwpTabPos).path],'\d*','Match');   % gets the sweep name from the last chunck                          
     sagSwpDat = SubThres.values{endsWith(...
                         SubThres.keys,['_',sagSwpID{1}])}.vectordata;      % get sag sweep data
     if ~isempty(sagSwpDat)                                                 % if there is sag sweep data
@@ -171,7 +172,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    end
   end
   %% rheobase sweeps and parameters of first spike
-  if iscell(LPsupraIDs) && ~isempty(passRts)
+  if exist('LPsupraIDs') && iscell(LPsupraIDs) && ~isempty(passRts)
    [icSum.rheoRt(ClNr,1), rheoIdx] = ...
        min(SpPatrTab.map('firRt').data(passSuprIdx));
    RheoSwpID = LPsupraIDs(rheoIdx);
@@ -218,21 +219,27 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      target = round(icSum.Rheo(ClNr,1),-1)+30;                             % target current is Rheo + 30 pA
      targets = [ target-10 target target+10 target+20 target+30 ];
     elseif icSum.Rheo(ClNr,1) < 180 
-     target = icSum.Rheo(ClNr,1)+80;                                       % target current is Rheo + 70 pA
+     target = icSum.Rheo(ClNr,1)+80;                                       % target current is Rheo + 80 pA
      targets = [target+10 target+20 target+30 target+40 target+50];
     else 
-     target = icSum.Rheo(ClNr,1)+140;                                      % target current is Rheo + 70 pA
+     target = icSum.Rheo(ClNr,1)+140;                                      % target current is Rheo + 140 pA
      targets = [target+10 target+20 target+30 target+40 target+50];
-    end            
-    PoHeroAmps = LPampsQC(ismember(LPampsQC,targets));
+    end 
+    while ~any(passRts(ismember(I,targets))>1)  && max(targets) < 1200      % if any of the potential hero sweep has more than one spike
+        target = unique(max(targets));                                     % get current steps that are both target for a herosweep and part of the LP protocols that passed QC      
+        targets = [target+10 target+20 target+30 target+40 target+50];      
+    end
+    temp = I(ismember(I,targets));
+    PoHeroAmps = LPampsQC(ismember(LPampsQC,...
+                                 temp(passRts(ismember(I,targets))>1)));   
     if ~isempty(PoHeroAmps)
-    PoHeroAmpsPos = find(abs(PoHeroAmps-target)==...
-        min(abs(PoHeroAmps-target)),1,'last');
-    [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps(PoHeroAmpsPos)));        % get position of potential hero sweeps  
-    PS.heroSwpTabPos = find(all([round(SwpAmps.load)==LPampsQC(heroSwpPos), ...
-                                                                LPIdx],2));% get potential hero sweep table position
-    heroID = str2double(regexp([SwpRespTbl(PS.heroSwpTabPos).path], '\d*','Match'));%   
-    heroProModAPPos = endsWith(APwave.keys,['_',num2str(heroID(1))]);      % position of hero sweep in AP wave processing moduls
+      PoHeroAmpsPos = find(abs(PoHeroAmps-target)==...
+        min(abs(PoHeroAmps-target)),1,'last');                             % find position of the current step that is the closest to the target, take the last if there are multiple
+      [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps(PoHeroAmpsPos)));      % get position of potential hero sweeps 
+      PS.heroSwpTabPos = find(all([round(SwpAmps.load)==LPampsQC(heroSwpPos), ...
+                                                       LPIdx],2));         % get potential hero sweep table position
+      heroID = str2double(regexp([SwpRespTbl(PS.heroSwpTabPos).path], '\d*','Match'));%   
+      heroProModAPPos = endsWith(APwave.keys,['_',num2str(heroID(1))]);      % position of hero sweep in AP wave processing moduls
       if isempty(find(heroProModAPPos))
        heroID = [];
       else
@@ -240,13 +247,13 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       end    
     end
     if exist("heroID") && ~isempty(heroID)                                 % if there are potential hero sweep names
-     PosSpTrain = find(str2double(LPsupraIDs)==heroID(1));                    % saves the position of the spPatr module that matches the first current potential hero sweep
+     PosSpTrain = find(str2double(LPsupraIDs)==heroID(1));                 % saves the position of the spPatr module that matches the first current potential hero sweep
      if ~isempty(PosSpTrain)
       PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
      end
     end
     if ~isempty(PS.heroSwpAPPDat)                                          % if there is a hero sweep
-     PS.heroSwpSers = nwb.resolve(SwpPaths(PS.heroSwpTabPos(end)));        % get CCSeries of hero sweep 
+     PS.heroSwpSers = nwb.resolve(SwpPaths(PS.heroSwpTabPos(1)));          % get CCSeries of hero sweep 
      HeroStart = IcephysTab.responses.response.data.load(...
                                     PS.heroSwpTabPos(end)).idx_start;      % getting StimOnset for Hero sweep                                
      baseline = mean(PS.heroSwpSers.data.load(1:HeroStart));               % getting baseline Vm of herosweep for through ratio

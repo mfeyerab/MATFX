@@ -38,7 +38,7 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     f = polyfit(inputX,inputY,1);
     resistance = round(f(1) * (10^3),2);
     offset = round(f(2),2);
-    if PS.plot_all == 1 && check == 1
+    if PS.plot_all >= 1 && check == 1
         figure('visible','off'); 
         hold on
         plot(inputX,(f(1)*inputX+f(2))','k','LineWidth',1)
@@ -58,7 +58,7 @@ elseif length(nonzeros(tempX)) == 1
     f = polyfit([0; tempX],[0; tempY],1);
     resistance = round(f(1) * (10^3));
     offset = 0;
-    if PS.plot_all == 1 && check == 1
+    if PS.plot_all >= 1 && check == 1
         figure('visible','off'); 
         hold on
         plot([0; tempX],(f(1)*[0; tempX]+f(2))','k','LineWidth',1)

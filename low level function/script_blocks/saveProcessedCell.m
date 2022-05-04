@@ -2,6 +2,7 @@
  %still missing     
  %% Save QC results in Sweeptable and external   
  QC.pass.bad_spikes(isnan(QC.pass.bad_spikes)) = 1;                        % replace nans with 1s for pass in the bad spike column these are from sweeps without sweeps
+ QC.pass.manuTP(isnan(QC.pass.manuTP)) = 1;                                % replace nans with 1s for pass in the bad spike column these are from sweeps without sweeps
  tbl = util.table2nwb(QC.params, 'QC parameter table');                    % convert QC parameter to DynamicTable
  modQC.dynamictable.set('QC_parameter_table', tbl);                        % add DynamicTable to QC processing module
  nwb.processing.set('QC parameter', modQC);                                % add QC processing module to nwb object
@@ -18,6 +19,7 @@ for s = 1:height(QC.pass)                                                  % loo
 end
 
 QC.pass.QC_total_pass(QC.pass.manuTP == 0) = 0;                            % replace nans for total evaulation with fails if it was failed by manual TP review 
+QC.pass.QC_total_pass(isnan(QC.pass.QC_total_pass))=0;
 
 for t = 1:length(keys)                                                     % loop through columns of QC pass
     if any(contains(fieldnames(QC.pass),keys(t)))

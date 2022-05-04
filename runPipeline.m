@@ -133,8 +133,7 @@ for n = 1:length(cellList)                                                 % for
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
  %% Looping through sweeps    
- for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable           
-     
+ for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable             
   InitSweep                                                                % Initalizes sweep-wide variables 
   if ~contains(ProtoTags(SwpCt,:), PS.SkipTags) && ...                     % only continues if protocol name is not on the list in PS.SkipTags AND 
     (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manuTP(SwpCt)))      % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
@@ -155,7 +154,7 @@ for n = 1:length(cellList)                                                 % for
 
     [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC);      % detection and processing of spikes 
     
-    if ~isempty(sp) && length(sp.peak) > 0                                 % if sweep has more than one spike
+    if ~isempty(sp) && ~isempty(sp.peak)                                   % if sweep has more than one spike
       SpPattrn.spTrainIDs(PS.supraCount,1) = {PS.SwDat.CurrentName};       % sweep name is saved under spike train IDs
       SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);          % getting spike train parameters
     end

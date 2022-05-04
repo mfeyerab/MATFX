@@ -25,7 +25,7 @@ if exist('OrigV')
       end
     end
 
-    if PS.plot_all == 1
+    if PS.plot_all >= 1
         ind = 1:height(QC.params) ;
         figure('Position',[50 50 300 250],'visible','off'); set(gcf,'color','w');          % generate figure
         hold on

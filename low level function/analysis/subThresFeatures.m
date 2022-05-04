@@ -16,7 +16,7 @@ if length(y)>=4
     temp = .63*(abs(f(1)-f(length(x))));
     vecin = find(f(1:length(x))<(f(1)-temp), 1, 'first');
     if ~isempty(vecin)
-        if PS.plot_all == 1
+        if PS.plot_all >= 1
             figure('visible','off'); hold on
             plot(CCSers.data.load(PS.SwDat.StimOn-CCSers.starting_time_rate*0.10:subStats.minVt))
             plot(x+CCSers.starting_time_rate*0.10,f(x),'r-.','LineWidth',2)

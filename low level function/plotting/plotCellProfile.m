@@ -133,9 +133,9 @@ if ~isempty(PS.heroSwpSers.data)
 end    
 
 if isa(SwpAmps, 'double')
-   HeroAmp = num2str(unique(SwpAmps(PS.heroSwpTabPos)));
+   HeroAmp = num2str(unique(round(SwpAmps(PS.heroSwpTabPos))));
 else
-   HeroAmp = num2str(unique(SwpAmps.load(PS.heroSwpTabPos)));
+   HeroAmp = num2str(unique(round(SwpAmps.load(PS.heroSwpTabPos))));
 end
 
 title(['Hero sweep (', num2str(HeroAmp), ' pA)'])

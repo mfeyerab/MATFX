@@ -19,9 +19,9 @@
   QC.pass.Properties.VariableNames(3:width(QC.pass)-1) = qc_tags(2:end);   % naming passing parameters variables
   QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};           % initializing additional variable for sweep wise QC encoding manual test pulse review
   if PS.manTPremoval && ...                                                % if manual removal due to test pulse is enabled
-              exist(fullfile(PS.outDest, 'TP', [PS.cellID,'_TP.csv']))     % if table with results of manual test pulse review exists
+              exist(fullfile(mainFolder, 'inputTabsTP', [PS.cellID,'_TP.csv']))     % if table with results of manual test pulse review exists
           
-    TPtab = readtable(fullfile(PS.outDest, 'TP', [PS.cellID,'_TP.csv']));  % read table with results of manual test pulse review
+    TPtab = readtable(fullfile(mainFolder, 'inputTabsTP', [PS.cellID,'_TP.csv']));  % read table with results of manual test pulse review
     QC.pass.manuTP = TPtab.TP;                                             % assign binary from results of test pulse review to QC pass table
   elseif PS.manTPremoval
       disp('No result file for manual test pulse review')
