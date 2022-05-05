@@ -34,7 +34,16 @@
            1}.location==',')-1)};                                          % assign part of the description of as brain area to summary table 
    else
       ICsummary.brainOrigin(n) = {info.values{1}.location};                % assign brain area to summary table          
-      ICsummary.Species(n) = {nwb.general_subject.species};                % assign species to summary table    
+      ICsummary.Species(n) = {nwb.general_subject.species};                % assign species to summary table   
+      if ~isempty(nwb.general_subject.weight)
+        ICsummary.Weight(n) = {str2num(nwb.general_subject.weight)};         % assign weight to summary table    
+      end
+      if ~isempty(nwb.general_subject.sex)
+        ICsummary.Sex(n) = {nwb.general_subject.sex};                        % assign sex to summary table 
+      end
+      if ~isempty(nwb.general_subject.age)
+        ICsummary.Age(n) = {str2num(nwb.general_subject.age)};         % assign weight to summary table    
+      end
    end
     
    if nwb.general.Count ~= 0 && ...
