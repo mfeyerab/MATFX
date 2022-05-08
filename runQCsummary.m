@@ -39,7 +39,7 @@ end
 cellTabs = fieldnames(tables);
 
 %% QC_RMSE part 1: Pre vs Post 
-figure
+figure('Position',[622 462 996 445])
 subplot(2,4,1)
 hold on
 for n = 1:length(cellTabs)
@@ -105,7 +105,7 @@ for n = 1:length(cellTabs)
         tables.(['T', num2str(n)]).ltRMSE_pre,[],[0.5 0.5 0.5], 'MarkerEdgeAlpha',.2)
 end
 xlim([0 0.25])
-ylim([0 1.75])
+ylim([0 0.25])
 xlabel('pre RMSE (short term)')
 ylabel('pre RMSE (long term)')
 
@@ -117,7 +117,7 @@ for n = 1:length(cellTabs)
         tables.(['T', num2str(n)]).ltRMSE_post,[], [0.5 0.5 0.5], 'MarkerEdgeAlpha',.2)
 end
 xlim([0 0.25])
-ylim([0 1.75])
+ylim([0 0.25])
 xlabel('post RMSE (short term)')
 ylabel('post RMSE (long term)')
 
@@ -216,7 +216,7 @@ subplot(3,4,7)
 histogram(RigQC.(char(RigTags(r))).Vrest(~isnan(RigQC.(char(RigTags(r))).Vrest)),[-90:2:-42],'FaceColor','k','Normalization','probability');
 l1 = line([p.maximumRestingPot,p.maximumRestingPot],[0,0.4],'color','r','linewidth',1,'linestyle','--');
 ylabel('probability')
-xlabel('Vrest (mV)')
+xlabel('baseline Vrest (mV)')
 axis tight
 box off
 legend([l1],{'CurrentRun'}) 
@@ -226,7 +226,7 @@ histogram(RigQC.(char(RigTags(r))).betweenSweep(~isnan(RigQC.(char(RigTags(r))).
 l1 = line([p.BwSweepMax,p.BwSweepMax],[0,0.4],'color','r','linewidth',1,'linestyle','--');
 l1 = line([-p.BwSweepMax,-p.BwSweepMax],[0,0.4],'color','r','linewidth',1,'linestyle','--');
 ylabel('probability')
-xlabel('distance to target (mV)')
+xlabel('Between sweep difference (mV)')
 axis tight
 box off
 legend([l1],{'CurrentRun'}) 
@@ -238,9 +238,12 @@ l2 = line([20,20],[0,0.3], 'color','b','linewidth',1,'linestyle','--');
 ylabel('probability')
 xlabel('max bridge ballance')
 axis tight
+xlim([5 30])
 box off
 legend([l1, l2],{'CurrentRun', 'AIBS'}) 
-    
+
+
+
 subplot(3,4,10)
 histogram(RigQC.([char(RigTags(r)),'_CC']),[0:0.4:10],'FaceColor','k','Normalization','probability');
     ylabel('probability')
@@ -255,12 +258,17 @@ end
 %%
 files = dir(fullfile(path,'QC'));
 files = {files(contains({files.name}, 'pass')).name};
-logic_matrix= zeros(length(files),11);
+logic_matrix= zeros(length(files),12);
 
 for c = 1:length(files)
    tables.(['T', num2str(c)]) = readtable(fullfile(path,'QC', files{c}));
-   NrSweeps = sum(~any(ismissing(tables.(['T', num2str(c)])(:,4:12)),2));
-   logic_matrix(c,:) = 1-(sum(table2array(tables.(['T', num2str(c)])(:,4:14)),'omitnan')/NrSweeps);
+   [row, column] = find(ismissing(tables.(['T', num2str(c)])));
+   for r = 1:length(row)
+     tables.(['T', num2str(c)])(row(r),column(r)) = {0};
+   end
+   NrSweeps = sum(~any(ismissing(tables.(['T', num2str(c)])(:,4:end)),2));
+   logic_matrix(c,:) = 1-(sum(table2array(...
+                           tables.(['T', num2str(c)])(:,4:end)))/NrSweeps);
 end
 
 figure('Position',[0 0 300 1000]); 
@@ -269,7 +277,7 @@ xlabel('QC criteria')
 xticks(1:11)
 xticklabels({'stRMSE pre' 'stRMSE post' 'ltRMSE pre' 'ltRMSE post' 'diffVrest' ...
     'Vrest abs' 'holdingI' 'betweenSweep' 'bridge_balance_abs' ...
-    'bridge_balance_rela' 'bad spikes'})
+    'bridge_balance_rela' 'bad spikes' 'man TP review'})
 xtickangle(45)
 colorbar
 colormap('gray');
