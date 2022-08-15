@@ -12,7 +12,7 @@ is necessary to set the betweenSweepQCmode (either 1 or 2): Mode 1, with a targe
 which is the average of the prestimulus interval of the first three sweeps. Mode 2, in
 which betweenSweep QC is assessed by deviations from the grand average. 
 %}
-
+=======
 %Runs quality control and feature analysis on data indicated
 %by input argument
 % 
@@ -114,6 +114,7 @@ which betweenSweep QC is assessed by deviations from the grand average.
 %              open-source website.
 
 warning('off'); dbstop error                                               % for troubleshooting errors
+>>>>>>> Stashed changes
 
 if length(varargin) > 2                                                 
           disp('No overwrite mode') 
@@ -171,6 +172,7 @@ QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
 QCparameterTotal = struct(); QCpassTotal = struct(); QCcellWide = {};
 
 %% Looping through nwb files
+<<<<<<< Updated upstream
 for n = 1:length(cellList)                                                 % for all cells in directory
   nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));            % load nwb file
   params.cellID = cellList(n).name(1:length(cellList(n).name)-4);          % cell ID (used for saving data)
@@ -263,6 +265,7 @@ for n = 1:length(cellList)                                                % for 
    end
    %% Sweep-wise analysis          
    QC = SweepwiseQC(CCSers, PS, QC, SwpCt);                                % Sweep QC of the CurrentClampSeries                              
+>>>>>>> Stashed changes
                                
        if SwData.sweepAmp > 0                                              % if current input is depolarizing
 
@@ -303,7 +306,8 @@ for n = 1:length(cellList)                                                % for 
        BetweenSweepQC(QC_parameter, BwSweepMode, params);                  % execute betweenSweep QC 
    
    %% save SpikeQC in ragged array    
-
+      
+<<<<<<< Updated upstream
    %% Save QC results in Sweeptable and external   
    QCpass.bad_spikes(isnan(QCpass.bad_spikes)) = 1;                        % replace nans with 1s for pass in the bad spike column these are from sweeps without sweeps
    QCparameterTotal.(['ID_' params.cellID ]) = QC_parameter;               % add QC parameter table of the cell to structure for saving those  
@@ -322,6 +326,7 @@ for n = 1:length(cellList)                                                % for 
       else
          QCpass(s,3) = {0};                                                % sweep has not passed the total QC
       end
+=======
   if str2double(info.values{1}.('initial_access_resistance')) ...
     <= PS.cutoffInitRa && str2double(info.values{1}.('initial_access_resistance')) ...                                        
                  <= Ri_preqc*PS.factorRelaRa                               % if ini access resistance is below absolute and relative threshold     
@@ -350,6 +355,7 @@ for n = 1:length(cellList)                                                % for 
         disp('excluded by cell-wide QC for no suprathreshold data') 
         ICsummary(n,1:7) = {NaN};                                          % replace subthreshold features with NaNs
         QCcellWide{end+1} = PS.cellID ;                                    % save cellID for failing cell-wide QC
+>>>>>>> Stashed changes
   end
   for t = 1:length(keys)                                                   %loop columns of QC pass 
     if any(contains(fieldnames(QCpass),keys(t)))
@@ -358,6 +364,7 @@ for n = 1:length(cellList)                                                % for 
                   QCpass.(char(keys(t)))';   
     end
   end
+<<<<<<< Updated upstream
   
   totalSweeps = height(QCpass)-sum(isnan(QCpass.QC_total_pass));           % calculates the number of sweeps being considered during the analysis
   QC_removalsPerTag(n,1) = {totalSweeps};                                  % adding total number of sweeps to the removals-per-tag table
@@ -412,6 +419,7 @@ for n = 1:length(cellList)                                                % for 
     ICsummary.SomaLayerLoc(n) = ...
        {nwb.processing.values{3}.dynamictable.values{1}.vectordata.map(...
                'SomaLayerLoc').data.load};                                 % assigning soma layer location to summary table
+=======
   %% Write NWB file
  if  ~any(contains(QCcellWide,PS.cellID))                                  % if the cell is not excluded by cell wide QC
    if overwrite == 1
@@ -421,6 +429,7 @@ for n = 1:length(cellList)                                                % for 
       delete(fullfile(PS.outDest, '\', cellList(n).name));
       disp(['Overwriting file ', cellList(n).name, ' in output folder'])
       nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file 
+>>>>>>> Stashed changes
    else
        [ICsummary.dendriticType(n),ICsummary.SomaLayerLoc(n)] = ...
            deal({'NA'});                                                   % NA for soma layer location and dendritic type of cells without entries 
