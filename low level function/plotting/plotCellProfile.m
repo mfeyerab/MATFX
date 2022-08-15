@@ -32,6 +32,43 @@ if ~isempty(cellFile.general_intracellular_ephys.values{1}.slice)
 end
 
 %% Get stimulus onsets and end for plotting first subfigure: rheo and sag sweep
+<<<<<<< Updated upstream
+=======
+if length(PS.sagSwpSers) > 1 && length(PS.sagSwpSers) < 3
+   data = mean([PS.sagSwpSers{1}.data.load, ...
+                              PS.sagSwpSers{2}.data.load],2);
+   sagSwpOn = double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),1)));
+   sagSwpOff = double(sagSwpOn + ...
+                    double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),2))));
+   p = plot([0:1000/PS.sagSwpSers{1}.starting_time_rate: ...
+        (sagSwpOff-sagSwpOn+(0.3*PS.sagSwpSers{1}.starting_time_rate))...
+        /PS.sagSwpSers{1}.starting_time_rate*1000],...
+        data(sagSwpOn-0.1*PS.sagSwpSers{1}.starting_time_rate...
+          :sagSwpOff+0.2*PS.sagSwpSers{1}.starting_time_rate));                                          
+elseif length(PS.sagSwpSers) > 1 && length(PS.sagSwpSers) < 4
+   data = mean([PS.sagSwpSers{1}.data.load, ...
+                              PS.sagSwpSers{2}.data.load, ...
+                                 PS.sagSwpSers{3}.data.load],2);
+   sagSwpOn = double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),1)));
+   sagSwpOff = double(sagSwpOn + ...
+                    double(table2array(SwpRespTbl(PS.sagSwpTabPos(1),2))));
+   p = plot([0:1000/PS.sagSwpSers{1}.starting_time_rate: ...
+        (sagSwpOff-sagSwpOn+(0.3*PS.sagSwpSers{1}.starting_time_rate))...
+        /PS.sagSwpSers{1}.starting_time_rate*1000],...
+        data(sagSwpOn-0.1*PS.sagSwpSers{1}.starting_time_rate...
+          :sagSwpOff+0.2*PS.sagSwpSers{1}.starting_time_rate));
+else   
+ if ~isempty(PS.sagSwpSers) && ~isempty(PS.sagSwpSers.data) 
+  sagSwpOn = double(table2array(SwpRespTbl(PS.sagSwpTabPos,1)));
+  sagSwpOff = double(sagSwpOn + double(table2array(SwpRespTbl(PS.sagSwpTabPos,2))));
+  p = plot([0:1000/PS.sagSwpSers.starting_time_rate: ...
+        (sagSwpOff-sagSwpOn+(0.3*PS.sagSwpSers.starting_time_rate))...
+        /PS.sagSwpSers.starting_time_rate*1000],...
+        PS.sagSwpSers.data.load(sagSwpOn-0.1*PS.sagSwpSers.starting_time_rate...
+          :sagSwpOff+0.2*PS.sagSwpSers.starting_time_rate));
+ end
+end
+>>>>>>> Stashed changes
 
 if ~isempty(sagSweepSeries) 
     sagSweepOn = double(table2array(SweepResponseTbl(SagSweepTablePos,1)));
@@ -70,6 +107,7 @@ if ~isempty(RheoSweepSeries)
       ylabel('Voltage (mV)')
      end
 end    
+<<<<<<< Updated upstream
  
 if isa(cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
              1}.data, 'double')
@@ -80,6 +118,17 @@ else
    RheoAmp = num2str(unique(...
        cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
              1}.data.load(RheoSweepTablePos)));
+=======
+
+if ~isempty(PS.rheoSwpSers.data) 
+    if isa(SwpAmps, 'double')
+       RheoAmp = num2str(unique(SwpAmps(PS.rheoSwpTabPos)));
+    else
+       RheoAmp = num2str(unique(SwpAmps.load(PS.rheoSwpTabPos)));
+    end
+else
+    RheoAmp = [];
+>>>>>>> Stashed changes
 end
 
 title(['LP rheo (', RheoAmp,' pA) and sag sweep'])
@@ -106,6 +155,7 @@ if ~isempty(HeroSweepSeries)
      end
 end    
 
+<<<<<<< Updated upstream
 if isa(cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
              1}.data, 'double')
    HeroAmp = num2str(unique(...
@@ -115,6 +165,16 @@ else
    HeroAmp = num2str(unique(...
         cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
              1}.data.load(HeroSweepTablePos)));
+=======
+if ~isempty(PS.heroSwpSers.data)
+    if isa(SwpAmps, 'double')
+       HeroAmp = num2str(unique(round(SwpAmps(PS.heroSwpTabPos))));
+    else
+       HeroAmp = num2str(unique(round(SwpAmps.load(PS.heroSwpTabPos))));
+    end
+else
+    HeroAmp = [];
+>>>>>>> Stashed changes
 end
 
 title(['Hero sweep (', num2str(HeroAmp), ' pA)'])
@@ -145,6 +205,7 @@ if ~isempty(RheoSweepSeries)
       scatter(1,PlotStruct.RheoSweep.vectordata.map('threshold').data(1),100)
     end
 end  
+<<<<<<< Updated upstream
 if ~isempty(SPSweepSeries)
     spStartSP = PlotStruct.SPSweep.vectordata.map('thresholdTime').data(1);
      p = plot([0:1000/SPSweepSeries.starting_time_rate: ...
@@ -167,6 +228,29 @@ else
    SPAmp = num2str(unique(...
         cellFile.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{...
              1}.data.load(PlotStruct.SPSweepTablePos)));
+=======
+if ~isempty(PS.SPSwpSers.data)
+    spStartSP =  PS.SPSwpDat.map('thresTi').data(1);
+     p = plot([0:1000/PS.SPSwpSers.starting_time_rate: ...
+    (0.006*PS.SPSwpSers.starting_time_rate)...
+    /PS.SPSwpSers.starting_time_rate*1000],...
+    PS.SPSwpSers.data.load(round((spStartSP/1000)*PS.SPSwpSers.starting_time_rate) -...
+    1*PS.SPSwpSers.starting_time_rate/1000 ...
+      :round((spStartSP/1000)*PS.SPSwpSers.starting_time_rate) +...
+          5*PS.SPSwpSers.starting_time_rate/1000));
+          p.Color = 'red';
+    scatter(1,PS.SPSwpDat.map('thres').data(1),100)
+end
+
+if ~isempty(PS.SPSwpTbPos)
+  if isa(SwpAmps, 'double')
+    SPAmp = num2str(unique(SwpAmps(PS.SPSwpTbPos)));
+  else
+    SPAmp = num2str(unique(SwpAmps.load(PS.SPSwpTbPos)));
+  end
+else
+    SPAmp = [];
+>>>>>>> Stashed changes
 end
 
 title(['Waveform SP (', SPAmp,'pA) vs LP (', RheoAmp ,'pA)'])

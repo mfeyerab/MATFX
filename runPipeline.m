@@ -1,4 +1,5 @@
 function ICsummary = runPipeline(varargin) %{
+<<<<<<< Updated upstream
 
 warning('off')
 dbstop if error
@@ -11,6 +12,109 @@ is necessary to set the betweenSweepQCmode (either 1 or 2): Mode 1, with a targe
 which is the average of the prestimulus interval of the first three sweeps. Mode 2, in
 which betweenSweep QC is assessed by deviations from the grand average. 
 %}
+=======
+%Runs quality control and feature analysis on data indicated
+%by input argument
+% 
+% Examples:
+%
+%  runPipeline(inputPath, outputPath, BetweenSwpMode) 
+%  Gets all NWB Files from the input path and processes them.  
+%  The between sweep mode sets what kind of between sweep quality  
+%  assurance will be used. After the cell is processed a multitude of 
+%  features is extracted, the processed data is saved in the NWB File and
+%  written into  the output path
+%
+%  runPipeline(Path, BetweenSwpMode) 
+%  Gets all NWB Files from the input path and overwrites files after
+%  processing and feature extraction
+%
+% Inputs:
+%
+%  (input/output)Path - string or character array specifiying 
+%                      location for reading and/or writing NWB files
+%
+%  BetweenSwpMode     - integer of either 1 or 2: Mode 1 has a target
+%                      membrane potential, determined by a robust average  
+%                      of the first five sweeps: between sweep quality 
+%                      control in Mode 2 is assessed by deviations from 
+%                      the robust average of all sweeps.
+% 
+% Creates following files and folders in output folder:
+% 
+% ephys_features  - table with all extraced features per cell; for more   
+%                 information on names and methods for features see the
+%                 feature table under utilities. 
+%              
+% box1            - table without cells that have not passed quality 
+%                control with important anatomical and subject data for the 
+%                purpose of publishing this information on a website.
+%
+% box2_ephys      - table without cells that have not passed quality  
+%                control with a few key electrophysiological features for  
+%                the purpose of publishing this information on a website.
+% 
+% binary_selection - table with binary codes for passing the quality
+%                  control; 1 means the sweep passed; 0 means the sweep 
+%                  failed quality control; NaN means that this cell did not
+%                  contain as many sweeps as columns in the table.
+%
+% ID_lookup       - table with two columns showing correspondence between
+%                 old NWB cell ID and new NWB cell ID. These new cell IDs  
+%                 are introduced to publish the data on an open-source 
+%                 website.
+%
+% QC_sweeps_per_tag_martix  - table that summarizes the results of the 
+%                 sweepwise quality control. 
+%
+% procedure_doc   - table to document all quality control parameters used 
+%                 in the analysis run and some other important enviroment   
+%                 variables.
+%
+% AP_Waveforms   - folder to export voltage data of long pulse rheobase  
+%                 spike for review and display on an open-source website.
+%
+% betweenSweep   - folder to export visualizations of the between sweep  
+%                 quality control.
+%
+% firingPattern  - folder to export visualizations of firing pattern
+%                 analysis.
+%
+% peristim       - folder to export raw voltage traces for evaluating 
+%                membrane potential variability for quality control.
+%              
+% profiles       - folder to export cell profiles showing key sweeps. These   
+%                figures are designed to provide a quick impression of the
+%                cell's biophysical properties. 
+%
+% QC             - folder to export all results of the quality control
+%                analysis. It contains two tables for each individual cell:
+%                one table to encode the results in respect of passing or  
+%                failing, the other to save the values of all relavant 
+%                quality parameters and other additional data for helpful
+%                context.
+%
+% resistance    - folder to export visualizations for determining input    
+%                resistance: one for voltage deflection from baseline to   
+%                highest deflection, the other one for voltage deflection
+%                from baseline to the steady state (postfix: _ss).
+%
+% tauFit        -folder to export visualizations for determining the               
+%               membrane time constant for each individual sweep.
+%
+% TP            -folder to export plots for manual evaluation of pipette
+%               compensation and its changes over time. There are two plots  
+%               for each cell: for one, raw voltage traces of test pulses   
+%               across the entire recording, the other showing the voltage 
+%               data at the onset of the long pulse stimulus.
+%
+% traces       -folder for the export of downsampled long pulse voltage 
+%              traces in a one csv file per cell. This data is for online 
+%              display (not actual sharing) of voltage data on an 
+%              open-source website.
+
+warning('off'); dbstop error                                               % for troubleshooting errors
+>>>>>>> Stashed changes
 
 if length(varargin) > 2                                                 
           disp('No overwrite mode') 
@@ -68,6 +172,7 @@ QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
 QCparameterTotal = struct(); QCpassTotal = struct(); QCcellWide = {};
 
 %% Looping through nwb files
+<<<<<<< Updated upstream
 for n = 1:length(cellList)                                                 % for all cells in directory
   nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));            % load nwb file
   params.cellID = cellList(n).name(1:length(cellList(n).name)-4);          % cell ID (used for saving data)
@@ -137,6 +242,30 @@ for n = 1:length(cellList)                                                 % for
            
        [QC_parameter, QCpass] = SweepwiseQC(CCSeries, SwData, SweepCount, ...
                                         QC_parameter, QCpass, params);     % Sweep QC of the CurrentClampSeries                              
+=======
+for n = 1:length(cellList)                                                % for all cells in directory
+ nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
+ %% Initialize Cell Variables
+ PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
+ InitCellVars                                                              % Initalizes cell-wide variables
+ %% Looping through sweeps    
+ for SwpCt = 1:height(RespTbl)                                             % loop through sweeps of IntracellularRecordinsTable             
+  InitSweep                                                                % Initalizes sweep-wide variables 
+  if ~contains(ProtoTags(SwpCt,:), PS.SkipTags) && ...                     % only continues if protocol name is not on the list in PS.SkipTags AND 
+    (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manTP(SwpCt)))      % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
+            
+   CCSers = nwb.resolve(PS.SwDat.CurrentPath);                             % load the CurrentClampSeries of the respective sweep
+   PS.SwDat.StimOn = double(table2array(RespTbl(SwpCt,1)));                % gets stimulus onset from response table 
+   PS.SwDat.StimOff = double(...
+                          PS.SwDat.StimOn + table2array(RespTbl(SwpCt,2)));% gets end of stimulus from response table  
+   PS.SwDat.swpAmp = ICEtab.stimuli.vectordata.values{1}.data.load(SwpCt); % gets current amplitude from IntracellularRecordingsTable
+                     
+   if contains(CCSers.stimulus_description, PS.LPtags) && PS.Webexport==1  % if sweep is a long pulse protocol           
+     LPexport = exportSweepCSV(CCSers, PS.SwDat, SwpCt, LPexport);         % a certain section of the trace is exported as csv  
+   end
+   %% Sweep-wise analysis          
+   QC = SweepwiseQC(CCSers, PS, QC, SwpCt);                                % Sweep QC of the CurrentClampSeries                              
+>>>>>>> Stashed changes
                                
        if SwData.sweepAmp > 0                                              % if current input is depolarizing
 
@@ -178,6 +307,7 @@ for n = 1:length(cellList)                                                 % for
    
    %% save SpikeQC in ragged array    
       
+<<<<<<< Updated upstream
    %% Save QC results in Sweeptable and external   
    QCpass.bad_spikes(isnan(QCpass.bad_spikes)) = 1;                        % replace nans with 1s for pass in the bad spike column these are from sweeps without sweeps
    QCparameterTotal.(['ID_' params.cellID ]) = QC_parameter;               % add QC parameter table of the cell to structure for saving those  
@@ -196,6 +326,36 @@ for n = 1:length(cellList)                                                 % for
       else
          QCpass(s,3) = {0};                                                % sweep has not passed the total QC
       end
+=======
+  if str2double(info.values{1}.('initial_access_resistance')) ...
+    <= PS.cutoffInitRa && str2double(info.values{1}.('initial_access_resistance')) ...                                        
+                 <= Ri_preqc*PS.factorRelaRa                               % if ini access resistance is below absolute and relative threshold     
+
+          [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);              % extract features from long pulse stimulus
+          [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);              % extract features from short pulse stimulus
+          plotCellProfile(nwb, PS)                                         % plot cell profile 
+          plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
+       else 
+           disp(['excluded by cell-wide QC for initial Ra (', ...
+                 num2str(info.values{1}.('initial_access_resistance')),...
+                ') higher than realtive cutoff (', ...
+                      num2str(Ri_preqc*PS.factorRelaRa), ...
+                ') or absolute cutoff (', num2str(PS.cutoffInitRa),')'... 
+                  ]);
+           QCcellWide{end+1} = PS.cellID ;                                 % save cellID for failing cell-wide QC
+       end        
+  else
+     [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                   % extract features from long pulse stimulus 
+     [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                   % extract features from short pulse stimulus 
+     plotCellProfile(nwb, PS)                                              % plot cell profile
+     plotSanityChecks(QC ,PS, ICsummary, n, ICEtab)
+     disp('No initial access resistance available') 
+  end    
+  if isnan(ICsummary.thresLP(n)) && PS.noSupra == 1                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
+        disp('excluded by cell-wide QC for no suprathreshold data') 
+        ICsummary(n,1:7) = {NaN};                                          % replace subthreshold features with NaNs
+        QCcellWide{end+1} = PS.cellID ;                                    % save cellID for failing cell-wide QC
+>>>>>>> Stashed changes
   end
   for t = 1:length(keys)                                                   %loop columns of QC pass 
     if any(contains(fieldnames(QCpass),keys(t)))
@@ -204,6 +364,7 @@ for n = 1:length(cellList)                                                 % for
                   QCpass.(char(keys(t)))';   
     end
   end
+<<<<<<< Updated upstream
   
   totalSweeps = height(QCpass)-sum(isnan(QCpass.QC_total_pass));           % calculates the number of sweeps being considered during the analysis
   QC_removalsPerTag(n,1) = {totalSweeps};                                  % adding total number of sweeps to the removals-per-tag table
@@ -258,6 +419,17 @@ for n = 1:length(cellList)                                                 % for
     ICsummary.SomaLayerLoc(n) = ...
        {nwb.processing.values{3}.dynamictable.values{1}.vectordata.map(...
                'SomaLayerLoc').data.load};                                 % assigning soma layer location to summary table
+=======
+  %% Write NWB file
+ if  ~any(contains(QCcellWide,PS.cellID))                                  % if the cell is not excluded by cell wide QC
+   if overwrite == 1
+      disp(['Overwriting file ', cellList(n).name])
+       nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))        % export nwb object as file
+   elseif isfile(fullfile(PS.outDest, '\', cellList(n).name))      
+      delete(fullfile(PS.outDest, '\', cellList(n).name));
+      disp(['Overwriting file ', cellList(n).name, ' in output folder'])
+      nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file 
+>>>>>>> Stashed changes
    else
        [ICsummary.dendriticType(n),ICsummary.SomaLayerLoc(n)] = ...
            deal({'NA'});                                                   % NA for soma layer location and dendritic type of cells without entries 

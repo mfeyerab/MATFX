@@ -1,4 +1,37 @@
+<<<<<<< Updated upstream
 function [QC_parameter, QC_pass]  = SweepwiseQC(CCSeries, SwData, SweepCount, QC_parameter, QC_pass, params)
+=======
+function [QC]  = SweepwiseQC(CCSers,PS,QC,SwpCt)
+%SweepwiseQC
+%- takes two vectors, pre- and post-stimulus (400 ms each)
+%- takes two measures of noise, short (1.5 ms) and long (500 ms) term
+%- measures resting potential
+%- measures difference in resting potential at pre- and post-stimulus
+%
+
+%% Determining protocol type 
+if contains(CCSers.stimulus_description, PS.LPtags) 
+    Wind = PS.LPqc_samplWind;
+    recvTi = PS.LPqc_recovTime;                         %   
+elseif contains(CCSers.stimulus_description, PS.SPtags) 
+    Wind = PS.SPqc_samplWind;
+    recvTi = PS.SPqc_recovTime;  
+else
+    disp([PS.SwDat.CurrentName, ' has no identified protocol type', ...
+       ' which is called ',CCSers.stimulus_description])
+end
+
+%% getting data and possible filter               
+data = CCSers.data.load;                                                   % load the data into another variable; this is helpful in case it is compressed in a datapipe object
+if PS.filterVectors
+   data = lowpass(data,PS.filterFreq,CCSers.starting_time_rate); 
+end
+
+%% Getting test pulse onset and saving voltage data
+if range(PS.SwDat.StimData)>2
+ PS.SwDat.StimData = PS.SwDat.StimData/1000;
+end
+>>>>>>> Stashed changes
 
 %{
 SweepwiseQC
@@ -8,6 +41,7 @@ SweepwiseQC
 - measures difference in resting potential at pre- and post-stimulus
 %}
 
+<<<<<<< Updated upstream
 %% selecting time windows and determining long-term noise/membrane voltage stability    
 if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
 
@@ -27,8 +61,47 @@ else
     vec_post = CCSeries.data.load((end-0.25*CCSeries.starting_time_rate)+1:...
     length(CCSeries.data.load));
     end
-end
+=======
+%% Getting voltage trace at stimulus onset
 
+QC.VStimOn(SwpCt) = {data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
+                      0.002*CCSers.starting_time_rate+PS.SwDat.StimOn)};
+
+QC.VStimOff(SwpCt) = {data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
+                       0.002*CCSers.starting_time_rate+PS.SwDat.StimOff)}; 
+
+%% selecting time windows and determining long-term noise/membrane voltage stability    
+if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
+
+ vec_pre = (data(PS.SwDat.StimOn-Wind*...
+           CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000)';
+      
+ if PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
+           Wind*CCSers.starting_time_rate > length(data)  
+       
+       error('Recovery period and/or integration window are too long. Please adjust in loadParams')
+ else
+     vec_post = (data(PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+1:...
+                       PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
+                           Wind*CCSers.starting_time_rate).*1000)';
+ end
+else   
+  if PS.SwDat.StimOn < PS.LPqc_samplWind*CCSers.starting_time_rate
+    disp(['Sweep Nr ', num2str(CCSers.sweep_number), ...
+                         ' has peristimulus lengths shorter than desired'])
+    vec_pre = data(1:PS.SwDat.StimOn)'; 
+    vec_post = data(PS.SwDat.StimOff:end)';
+    
+  else
+    vec_pre = data(PS.SwDat.StimOn-Wind*CCSers.starting_time_rate-1:...
+                                    PS.SwDat.StimOn-1)';
+    vec_post = data(PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+1:...
+                    PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
+                     Wind*CCSers.starting_time_rate)';
+  end
+>>>>>>> Stashed changes
+end
+%%
 restVPre = mean(vec_pre);
 rmse_pre = sqrt(mean((vec_pre - restVPre).^2));
 restVPost = mean(vec_post);
