@@ -7,6 +7,7 @@ SweepResponseTbl = ...
 if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
         'quality_control_pass').vectordata.values{1}.data, 'double')
     
+<<<<<<< Updated upstream
     if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
             'protocol_type').vectordata.values{1}.data, 'double')
        IdxPassedSweeps = find(all(...
@@ -18,6 +19,25 @@ if isa(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictabl
         'quality_control_pass').vectordata.values{1}.data', ...
         contains(cellstr(cellFile.general_intracellular_ephys_intracellular_recordings.dynamictable.map(...
             'protocol_type').vectordata.values{1}.data.load), params.SPtags)],2));  
+=======
+    if ~isempty(PS.SPSwpDat.values{1}.data)
+      icSum.latencySP(cellNr,1) = PS.SPSwpDat.map('thresTi').data(1) - ...
+       (double(IcephysTab.responses.response.data.load_h5_style.idx_start(PS.SPSwpTbPos))*...
+            1000/nwb.resolve(SwpRespTbl(PS.SPSwpTbPos).path).starting_time_rate);        
+
+      icSum.CurrentStepSP(cellNr,1) = tempSPstep;
+      icSum.widthTP_SP(cellNr,1) = PS.SPSwpDat.map('wiTP').data(1);
+      icSum.peakSP(cellNr,1) = PS.SPSwpDat.map('peak').data(1);    
+      icSum.thresholdSP(cellNr,1) = PS.SPSwpDat.map('thres').data(1);
+      icSum.fastTroughSP(cellNr,1) = PS.SPSwpDat.map('fTrgh').data(1);
+      icSum.slowTroughSP(cellNr,1) = PS.SPSwpDat.map('sTrgh').data(1);
+      icSum.peakUpStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakUpStrk').data(1); 
+      icSum.peakDownStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakDwStrk').data(1);
+      icSum.peakStrokeRatioSP(cellNr,1) = PS.SPSwpDat.map('peakStrkRat').data(1);   
+      icSum.heightTP_SP(cellNr,1) = PS.SPSwpDat.map('htTP').data(1);     
+      PS.SPSwpSers =  nwb.resolve(SwpPaths(PS.SPSwpTbPos(contains(...
+                                    SwpPaths(PS.SPSwpTbPos),'acquisition'))));
+>>>>>>> Stashed changes
     end
 
     SweepPaths = {SweepResponseTbl.timeseries.path};
