@@ -32,9 +32,10 @@
   SpPattrn.RowNames = {};                                                  %
   LPexport = table();                                                      % initializing table for exporting raw data traces as csv 
  %% Improve readability by creating additonal variables with shorter names
- ICEtab = nwb.general_intracellular_ephys_intracellular_recordings;   % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
- RespTbl = ICEtab.responses.response.data.load;                   % loading all sweep response from IntracellularRecordingsTable
- ProtoTags = ICEtab.dynamictable.values{1}.vectordata.values{1}.data.load;
+ ICEtab = nwb.general_intracellular_ephys_intracellular_recordings;        % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
+ RespTbl = ICEtab.responses.response.data.load;                            % loading all sweep response from IntracellularRecordingsTable
+ ProtoTags = deblank(string(...
+             ICEtab.dynamictable.values{1}.vectordata.values{1}.data.load));% Gets all protocol names without white space
  info = nwb.general_intracellular_ephys;   
 
  

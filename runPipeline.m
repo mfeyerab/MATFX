@@ -149,8 +149,8 @@ for n = 1:length(cellList)                                                 % for
    end
    
    %% Sweep-wise analysis          
-   if (PS.([ProtoTags(SwpCt,:),'qc_recovTime'])+ ...                       % checks if the sweep is of sufficient size for the respective protocol
-        PS.([ProtoTags(SwpCt,:),'length']))*CCSers.starting_time_rate...
+   if (PS.([char(ProtoTags(SwpCt,:)),'qc_recovTime'])+ ...                       % checks if the sweep is of sufficient size for the respective protocol
+        PS.([char(ProtoTags(SwpCt,:)),'length']))*CCSers.starting_time_rate...
         < CCSers.data.dims                                                    
           
      QC = SweepwiseQC(CCSers, PS, QC, SwpCt);                              % Sweep QC of the CurrentClampSeries                              
@@ -165,7 +165,7 @@ for n = 1:length(cellList)                                                 % for
        end
        PS.supraCount = PS.supraCount + 1;                         
 
-     elseif PS.SwDat.swpAmp < 0                                            % if current input is hyperpolarizing
+     elseif PS.SwDat.swpAmp < 0  && ProtoTags(SwpCt,:)=="LP"               % if current input is hyperpolarizing and protocol is long pulse
       modSubStats = subThresFeatures(CCSers,modSubStats,PS);               % getting subthreshold parameters                          
       PS.subCount = PS.subCount +1;
      end
