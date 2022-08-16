@@ -136,8 +136,8 @@ for n = 1:length(cellList)                                                 % for
  for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable             
   InitSweep                                                                % Initalizes sweep-wide variables 
   if ~contains(ProtoTags(SwpCt,:), PS.SkipTags) && ...                     % only continues if protocol name is not on the list in PS.SkipTags AND 
-    (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manuTP(SwpCt)))      % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
-            
+  (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manuTP(SwpCt)))        % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
+
    CCSers = nwb.resolve(PS.SwDat.CurrentPath);                             % load the CurrentClampSeries of the respective sweep
    PS.SwDat.StimOn = double(table2array(RespTbl(SwpCt,1)));                % gets stimulus onset from response table 
    PS.SwDat.StimOff = double(...
@@ -147,24 +147,33 @@ for n = 1:length(cellList)                                                 % for
    if contains(CCSers.stimulus_description, PS.LPtags) && PS.Webexport==1  % if sweep is a long pulse protocol           
      LPexport = exportSweepCSV(CCSers, PS.SwDat, SwpCt, LPexport);         % a certain section of the trace is exported as csv  
    end
+   
    %% Sweep-wise analysis          
-   QC = SweepwiseQC(CCSers, PS, QC, SwpCt);                                % Sweep QC of the CurrentClampSeries                              
+   if (PS.([ProtoTags(SwpCt,:),'qc_recovTime'])+ ...                       % checks if the sweep is of sufficient size for the respective protocol
+        PS.([ProtoTags(SwpCt,:),'length']))*CCSers.starting_time_rate...
+        < CCSers.data.dims                                                    
+          
+     QC = SweepwiseQC(CCSers, PS, QC, SwpCt);                              % Sweep QC of the CurrentClampSeries                              
                                
-   if PS.SwDat.swpAmp > 0                                                  % if current input is depolarizing
+     if PS.SwDat.swpAmp > 0                                                % if current input is depolarizing
 
-    [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC);      % detection and processing of spikes 
+       [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC);   % detection and processing of spikes 
     
-    if ~isempty(sp) && ~isempty(sp.peak)                                   % if sweep has more than one spike
-      SpPattrn.spTrainIDs(PS.supraCount,1) = {PS.SwDat.CurrentName};       % sweep name is saved under spike train IDs
-      SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);          % getting spike train parameters
-    end
-    PS.supraCount = PS.supraCount + 1;                         
+       if ~isempty(sp) && ~isempty(sp.peak)                                % if sweep has more than one spike
+         SpPattrn.spTrainIDs(PS.supraCount,1) = {PS.SwDat.CurrentName};    % sweep name is saved under spike train IDs
+         SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);       % getting spike train parameters
+       end
+       PS.supraCount = PS.supraCount + 1;                         
 
-   elseif PS.SwDat.swpAmp < 0                                              % if current input is hyperpolarizing
-    modSubStats = subThresFeatures(CCSers,modSubStats,PS);                 % getting subthreshold parameters                          
-    PS.subCount = PS.subCount +1;
+     elseif PS.SwDat.swpAmp < 0                                            % if current input is hyperpolarizing
+      modSubStats = subThresFeatures(CCSers,modSubStats,PS);               % getting subthreshold parameters                          
+      PS.subCount = PS.subCount +1;
+     end
+   else
+       disp([PS.SwDat.CurrentPath, ...
+           ' has insufficient length for QC analysis'])
    end
-  end    
+  end
  end
  %% QC bridge balance relative to input resistance
  Ri_preqc = inputResistance(modSubStats.dynamictable, PS);                 % calculate input resistance before QC 
