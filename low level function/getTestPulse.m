@@ -17,6 +17,6 @@ if ~isempty(testOn) && PS.preTP*CCSers.starting_time_rate>testOn
     
  TPtrace = CCSers.data.load(1:testOn+(PS.TPtrace*CCSers.starting_time_rate));
 elseif  ~isempty(testOn)   
- TPtrace = CCSers.data.load(testOn-(PS.preTP*CCSers.starting_time_rate):...
+ TPtrace = CCSers.data.load(testOn-(PS.preTP*CCSers.starting_time_rate-1):...
                        testOn+(PS.TPtrace*CCSers.starting_time_rate));
 end
