@@ -42,22 +42,27 @@ for n = 1:length(cellList)                                                 % for
      CCSers = nwb.resolve(CurrentPath);                                    % load the CurrentClampSeries of the respective sweep   
      PS.SwDat.CurrentName = CurrentPath;
      if range(PreStimData)<15
-       disp([CurrentPath, 'has no test pulse'])
-       QC.pass.TP = ones(height(QC.pass),1);
+       disp([CurrentPath, ' has no test pulse'])
      else
        [~, QC.testpulse(Idx(i),:)] = getTestPulse(PS,CCSers, PreStimData);         
      end
    end
-   tempTPvec = QC.testpulse; save('tempTPvec', 'tempTPvec'); TestPulseComparision
-   prompt = ' from which sweep onwards are test pulses unacceptable? Enter 0 if no manual removal necessary';
-   x = input(['For ', cellID, prompt]);
-   if x == 0
-     QC.pass.TP(Idx) = num2cell(ones(length(Idx),1));
+   if all(QC.testpulse==0, 'all')
+      QC.pass.TP(Idx) = num2cell(ones(length(Idx),1)); 
+      disp(['No TP review'])
    else
-     QC.pass.TP(Idx) = num2cell([ones(x-1,1); zeros(length(Idx)-x+1,1)]);
+      tempTPvec = QC.testpulse; save('tempTPvec', 'tempTPvec'); 
+      TestPulseComparision
+      prompt = ' from which sweep onwards are test pulses unacceptable? Enter 0 if no manual removal necessary';
+      x = input(['For ', cellID, prompt]);
+      if x == 0
+        QC.pass.TP(Idx) = num2cell(ones(length(Idx),1));
+      else
+        QC.pass.TP(Idx) = num2cell([ones(x-1,1); zeros(length(Idx)-x+1,1)]);
+      end
    end
-  writetable(QC.pass, fullfile(path,'inputTabsTP',[cellID,'_TP.csv']))
-  disp(['exporting ', cellID])
-  close all
+   writetable(QC.pass, fullfile(path,'inputTabsTP',[cellID,'_TP.csv']))
+   disp(['exporting ', cellID])
+   close all
  end
 end
