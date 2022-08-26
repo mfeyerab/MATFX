@@ -149,7 +149,7 @@ for n = 1:length(cellList)                                                 % for
    end
    
    %% Sweep-wise analysis          
-   if (PS.([char(ProtoTags(SwpCt,:)),'qc_recovTime'])+ ...                       % checks if the sweep is of sufficient size for the respective protocol
+   if (PS.([char(ProtoTags(SwpCt,:)),'qc_recovTime'])+ ...                 % checks if the sweep is of sufficient size for the respective protocol
         PS.([char(ProtoTags(SwpCt,:)),'length']))*CCSers.starting_time_rate...
         < CCSers.data.dims                                                    
           
@@ -186,47 +186,60 @@ for n = 1:length(cellList)                                                 % for
  QC = BetweenSweepQC(QC, BwSwpMode, PS);                                   % execute betweenSweep QC  
  %% Save QC into nwb file and summary structures
  saveProcessedCell
- %% Feature Extraction and Summary
- if ~isempty(info.values{1}.('initial_access_resistance')) && length(...
-   regexp(info.values{1}.('initial_access_resistance'),'\d*','Match')) >= 1% if ini access resistance is non empty and has a number as character
-      
-  if str2double(info.values{1}.('initial_access_resistance')) ...
-    <= PS.cutoffInitRa && str2double(info.values{1}.('initial_access_resistance')) ...                                        
-                 <= Ri_preqc*PS.factorRelaRa                               % if ini access resistance is below absolute and relative threshold     
-
-          [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);              % extract features from long pulse stimulus
-          [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);              % extract features from short pulse stimulus
-          plotCellProfile(nwb, PS)                                         % plot cell profile 
-          plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
-       else 
-           display(['excluded by cell-wide QC for initial Ra (', ...
-                 num2str(info.values{1}.('initial_access_resistance')),...
-                ') higher than realtive cutoff (', ...
-                      num2str(Ri_preqc*PS.factorRelaRa), ...
-                ') or absolute cutoff (', num2str(PS.cutoffInitRa),')'... 
-                  ]);
-           QCcellWide{end+1} = PS.cellID ;                                 % save cellID for failing cell-wide QC
-       end        
-  else
-     [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                   % extract features from long pulse stimulus 
-     [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                   % extract features from short pulse stimulus 
-     plotCellProfile(nwb, PS)                                              % plot cell profile
-     plotSanityChecks(QC ,PS, ICsummary, n, ICEtab)
+ %% Cell-wise QC 1: initial access resistance
+ InitRa = info.values{1}.('initial_access_resistance');
+ QCcellWise.ID(n) = {PS.cellID};                                           % save cellID for failing cell-wide QC
+ QCcellWise.Vm(n) =  {mean(QC.params.Vrest(1:3))};                                 % 
+ QCcellWise.Ra(n) =  {InitRa};                                             % 
+ QCcellWise.Fail(n) = 0;                                                   % 
+ 
+ if ~isempty(InitRa) && length(regexp(InitRa,'\d*','Match')) >= 1          % if ini access resistance is non empty and has a number as character
+   InitRa = str2double(InitRa);
+   if InitRa > PS.cutoffInitRa && InitRa > Ri_preqc*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
+     display(['excluded by cell-wide QC for initial Ra (', ...
+        num2str(InitRa),') higher than realtive cutoff (', ...
+        num2str(Ri_preqc*PS.factorRelaRa), ') or absolute cutoff (', ...
+        num2str(PS.cutoffInitRa),')']);
+        QCcellWise.Fail(n) = 1;                                            % save cellID for failing cell-wide QC
+   end
+ else
      disp('No initial access resistance available') 
-  end    
-  if isnan(ICsummary.thresLP(n)) && PS.noSupra == 1                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
-        disp('excluded by cell-wide QC for no suprathreshold data') 
-        ICsummary(n,1:7) = {NaN};                                          % replace subthreshold features with NaNs
-        QCcellWide{end+1} = PS.cellID ;                                    % save cellID for failing cell-wide QC
-  end
-  %% Add subject data, dendritic type and reporter status   
-   AddSubjectCellData 
-  %% Export downsampled traces for display on website  
-  if PS.Webexport==1 && ~isempty(LPexport)                                 % if there raw traces in the table for export
-       exportCells
-  end
+ end
+ %% Feature Extraction and Summary     
+ if CellQC==0
+      [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                  % extract features from long pulse stimulus
+      [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                  % extract features from short pulse stimulus
+      plotCellProfile(nwb, PS)                                             % plot cell profile 
+      plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
+ end  
+  %% Cell-wise QC 2: Too depolarized after breaktrough
+ if isnan(ICsummary.RinSS(n))
+    QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
+     (QC.params.holdingI(1)*1e-09*ICsummary.RinHD(n)*1e06)};  
+ else
+     QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
+     (QC.params.holdingI(1)*1e-09*ICsummary.RinSS(n)*1e06)};    
+ end 
+ QCcellWise.Rm(n) =  {ICsummary.RinSS(n)};
+ if QCcellWise.Vm{n} > QCcellWise.VmCutOff{n}
+    disp("first recorded Vrest after breakthrough too depolarized")
+     QCcellWise.Fail(n) = 1; 
+     ICsummary(n,1:end-8) = {NaN};
+ end
+ %% Cell-wise QC 3: No suprathreshold LP sweeps 
+ if QCcellWise.Fail(n)~= 1 && isnan(ICsummary.thresLP(n)) && PS.noSupra == 1               % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
+    disp('excluded by cell-wide QC for no suprathreshold data') 
+     QCcellWise.Fail(n) = 1; 
+     ICsummary(n,1:end-8) = {NaN};
+ end                                 %    
+%% Add subject data, dendritic type and reporter status   
+ AddSubjectCellData 
+%% Export downsampled traces for display on website  
+ if PS.Webexport==1 && ~isempty(LPexport)                                  % if there raw traces in the table for export
+     exportCells
+ end
   %% Write NWB file
- if  ~any(contains(QCcellWide,PS.cellID))                                  % if the cell is not excluded by cell wide QC
+ if QCcellWise.Fail(n)==0                                                  % if the cell is not excluded by cell wide QC
    if overwrite == 1
       disp(['Overwriting file ', cellList(n).name])
       nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file

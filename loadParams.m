@@ -28,7 +28,7 @@ PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", ...
 %1 for standard visualization, 2 for extensive visualizations (includes 
 %raw voltage data of RMSE integration window for each sweep)
 
-PS.plot_all = 1;
+PS.plot_all = 0;
 PS.pltForm = '.png';
 PS.Webexport=0; 
 
@@ -43,10 +43,11 @@ PS.sampleRT = 5e4;                                                         % sam
 PS.sampleRTdt = 1000/PS.sampleRT;                                          % sample rate we want
 
 %% cell-wise quality control parameters
-PS.cutoffInitRa = 24.9;                                                    % cut off for absolute value of intial access resistance  
-PS.factorRelaRa = 0.25;                                                    % cut off for relative value of intial access resistance  
+PS.cutoffInitRa = 60;                                                      % cut off for absolute value of intial access resistance  
+PS.factorRelaRa = 0.5;                                                     % cut off for relative value of intial access resistance  
 PS.noSupra = 1;                                                            % binary variable for kicking cells without suprathreshold features
 PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
+PS.maxCellBasLinPot = -57.5;                                               %
 
 %% sweep-wise quality control parameters and integration windows
 PS.LPqc_samplWind = 0.4; PS.LPqc_recovTime = 4.75;                         % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the long pulse  
@@ -56,7 +57,7 @@ PS.RMSEst = 0.3;                                                           % max
 PS.RMSElt = 0.75;                                                          % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
 PS.maxDiffBwBeginEnd = 4.75;                                               % maximum difference between beginning and end of sweep
-PS.maximumRestingPot = -50;                                                % minimum resting potential
+PS.maxSwpBasLinPot = -55;                                                  % minimum resting potential
 PS.holdingI = 100;                                                         % maximum holding current
 PS.bridge_balance = 24.9;                                                  % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC

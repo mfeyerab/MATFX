@@ -34,9 +34,13 @@ QC_removalsPerTag(n,2) = {sum(rmmissing(QC.pass{:,3}))};                   % add
 QC_removalsPerTag(n,3:end) = array2table(abs(sum(...
                    rmmissing(QC.pass{:,4:14}),1)-totalSweeps));            % adding the number of failed sweeps per QC criterium to the removals-per-tag table
 QC.pass(isnan(QC.pass.QC_total_pass),13:14)={NaN};
-QCparameterTotal.(['ID_' PS.cellID(1:end-4) ]) = QC.params;                % add QC parameter table of the cell to structure for saving those  
-QCpassTotal.(['ID_' PS.cellID(1:end-4)  ]) = QC.pass;                      % add QC pass table of the cell to structure for saving those  
-  
+if contains(PS.cellID, ".")
+   PS.cellID = extractBefore(PS.cellID,".");
+end
+writetable(QC.pass,[PS.outDest, '\QC\', PS.cellID,'_QCpass_',date,'.csv']);  
+writetable(QC.params,[...
+                   PS.outDest, '\QC\',PS.cellID,'_QCvalues_',date,'.csv']);  
+
 %% save all sweep processing in NWB file
 
 modAPP = fillAPP_Mod(modAPP,SpPattrn,nwb.nwb_version);                     % make AP pattern processing module  

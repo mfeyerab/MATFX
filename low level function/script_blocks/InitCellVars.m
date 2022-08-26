@@ -4,7 +4,7 @@
  [PS.sagSwpSers,PS.rheoSwpSers, PS.heroSwpSers, PS.SPSwpSers] = ...
       deal(types.core.CurrentClampSeries); 
 %% Setting up QC tables and initializing variables
-  QC.params = table(); QC.testpulse = cell(0,0);                           % creating empty MATLAB table for QC paramters
+  QC.params = table(); QC.testpulse = cell(0,0); CellQC=0;                 % creating empty MATLAB table for QC paramters
   QC.params.SweepID = repmat({''},length(nwb.acquisition.keys),1);         % initializing SweepID column of QC paramters table
   QC.params.Protocol = repmat({''},length(nwb.acquisition.keys),1);        % initializing Protocol column of QC paramters table
   QC.params(:,3:length(qc_tags(2:end))+2) = array2table(NaN(...         

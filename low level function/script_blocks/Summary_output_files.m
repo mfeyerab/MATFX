@@ -1,46 +1,18 @@
 %% Summary analysis output
 
 writetable(ICsummary,[PS.outDest, '\','ephys_features_', date,'.csv'], 'WriteRowNames',true)
+QCcellWise
+writetable(QCcellWise,[PS.outDest, '\','CellWideQC_', date,'.csv'], 'WriteRowNames',true)
 
 ICsummary = rmmissing(ICsummary,'DataVariables',{'htTP_LP','tau'}); %prune cells without spikes and time constant
 
 %% QC parameter for each cell
-cells = fieldnames(QCparameterTotal);
-MaxSweepNr = 0;
 
-for c = 1:length(cells)
-  if MaxSweepNr < height(QCparameterTotal.(cell2mat(cells(c))))
-     MaxSweepNr = height(QCparameterTotal.(cell2mat(cells(c))));
-  end
-end
-
-sweepBinary = array2table(NaN(length(cells),MaxSweepNr));
+MaxSweepNr = max(QC_removalsPerTag.SweepsTotal);
+sweepBinary = array2table(NaN(height(QC_removalsPerTag),MaxSweepNr));
 ColumnNames = regexp(cellstr(sprintf('Sweep_%d ',0:MaxSweepNr-1)),' ','split');
 sweepBinary.Properties.VariableNames  = ColumnNames{:};
-sweepBinary.Properties.RowNames  = cells;
-
-for c = 1:length(cells)
-  count = 1;
-  for s = 1:MaxSweepNr     
-     if s <= height(QCpassTotal.(cell2mat(cells(c)))) && ...
-             string(sweepBinary.Properties.VariableNames{s}) == ...
-          string(cell2mat(table2array(QCpassTotal.(cell2mat(cells(c)))(count,1))))
-              
-          QC_temp = table2array(QCpassTotal.(cell2mat(cells(c)))(count,3:13)); 
-          QC_temp(isnan(QC_temp)) = 1;
-          if sum(QC_temp) == length(QC_temp)
-              sweepBinary(c,s) = {1};
-          else
-              sweepBinary(c,s) = {0};
-          end    
-          count = count + 1;
-     end
-  end
-    writetable(QCparameterTotal.(cell2mat(cells(c))), ...
-                  [PS.outDest, '\QC\', cell2mat(cells(c)),'_QC_parameter_',date,'.csv']);  
-    writetable(QCpassTotal.(cell2mat(cells(c))), ...
-                       [PS.outDest, '\QC\',cell2mat(cells(c)),'_QC_pass_',date,'.csv']);  
-end
+sweepBinary.Properties.RowNames  = QC_removalsPerTag.Properties.RowNames;
 
 writetable(sweepBinary, fullfile(PS.outDest, ['binary_selection_',date,'.csv']), ...
     'WriteRowNames',true)  
@@ -113,7 +85,7 @@ T= array2table([["Current Run", "Allen White Paper"];...
     [string(PS.bridge_balance) , "20"]; ...
     [PS.factorRelaRa , "0.2(human);0.15(mouse)"]; ...
     ["100 (abs)", "100 (abs)"]; ...
-    [PS.maximumRestingPot , "not implemented"]; ...
+    [PS.maxCellBasLinPot, "not implemented"]; ...
     [PS.BwSweepMax, "not implemented"]; ...
     [PS.maxDiffBwBeginEnd, "1"]; ...
     [PS.RMSEst, "0.07"]; ...

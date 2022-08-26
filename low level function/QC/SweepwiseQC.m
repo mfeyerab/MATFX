@@ -154,7 +154,7 @@ QC.pass.stRMSE_post(SwpCt) = QC.params.stRMSE_post(SwpCt) < PS.RMSEst;
 QC.pass.ltRMSE_pre(SwpCt)  = QC.params.ltRMSE_pre(SwpCt) < PS.RMSElt;
 QC.pass.ltRMSE_post(SwpCt) = QC.params.ltRMSE_post(SwpCt) < PS.RMSElt;
 QC.pass.diffVrest(SwpCt)   = QC.params.diffVrest(SwpCt) < PS.maxDiffBwBeginEnd;
-QC.pass.Vrest(SwpCt)       = QC.params.Vrest(SwpCt) < PS.maximumRestingPot;
+QC.pass.Vrest(SwpCt)       = QC.params.Vrest(SwpCt) < PS.maxSwpBasLinPot;
 QC.pass.holdingI(SwpCt)    = abs(QC.params.holdingI(SwpCt)) < PS.holdingI;
 QC.pass.bridge_balance_abs(SwpCt) = ...
     QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance;
