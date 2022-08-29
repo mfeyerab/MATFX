@@ -37,20 +37,20 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
     PS.SPSwpDat = APwave.values{tempSPstepLoc}.vectordata;
     
     if ~isempty(PS.SPSwpDat.values{1}.data)
-      icSum.latencySP(cellNr,1) = PS.SPSwpDat.map('thresTi').data - ...
+      icSum.latencySP(cellNr,1) = PS.SPSwpDat.map('thresTi').data(1) - ...
             (IcephysTab.responses.response.data.load(PS.SPSwpTbPos).idx_start*...
             1000/nwb.resolve(SwpRespTbl(PS.SPSwpTbPos).path).starting_time_rate);        
 
       icSum.CurrentStepSP(cellNr,1) = tempSPstep;
-      icSum.widthTP_SP(cellNr,1) = PS.SPSwpDat.map('wiTP').data;
-      icSum.peakSP(cellNr,1) = PS.SPSwpDat.map('peak').data;    
-      icSum.thresholdSP(cellNr,1) = PS.SPSwpDat.map('thres').data;
-      icSum.fastTroughSP(cellNr,1) = PS.SPSwpDat.map('fTrgh').data;
-      icSum.slowTroughSP(cellNr,1) = PS.SPSwpDat.map('sTrgh').data;
-      icSum.peakUpStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakUpStrk').data; 
-      icSum.peakDownStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakDwStrk').data;
-      icSum.peakStrokeRatioSP(cellNr,1) = PS.SPSwpDat.map('peakStrkRat').data;   
-      icSum.heightTP_SP(cellNr,1) = PS.SPSwpDat.map('htTP').data;     
+      icSum.widthTP_SP(cellNr,1) = PS.SPSwpDat.map('wiTP').data(1);
+      icSum.peakSP(cellNr,1) = PS.SPSwpDat.map('peak').data(1);    
+      icSum.thresholdSP(cellNr,1) = PS.SPSwpDat.map('thres').data(1);
+      icSum.fastTroughSP(cellNr,1) = PS.SPSwpDat.map('fTrgh').data(1);
+      icSum.slowTroughSP(cellNr,1) = PS.SPSwpDat.map('sTrgh').data(1);
+      icSum.peakUpStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakUpStrk').data(1); 
+      icSum.peakDownStrokeSP(cellNr,1) = PS.SPSwpDat.map('peakDwStrk').data(1);
+      icSum.peakStrokeRatioSP(cellNr,1) = PS.SPSwpDat.map('peakStrkRat').data(1);   
+      icSum.heightTP_SP(cellNr,1) = PS.SPSwpDat.map('htTP').data(1);     
       PS.SPSwpSers =  nwb.resolve(SwpPaths(PS.SPSwpTbPos(contains(...
                                     SwpPaths(PS.SPSwpTbPos),'acquisition'))));
     end
