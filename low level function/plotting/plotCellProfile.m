@@ -259,9 +259,9 @@ end
 % box off
 % end
 %% Saving the figure
-exportgraphics(gcf,fullfile(PS.outDest, 'profiles', ...
+F=getframe(gcf);
+imwrite(F.cdata,fullfile(PS.outDest, 'profiles', ...
                                    [PS.cellID,' Cell profile',PS.pltForm]))
-
 %% Export LP rheo waveform 4 website
 if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)
     figure('visible','off')
