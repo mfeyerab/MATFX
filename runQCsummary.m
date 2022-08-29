@@ -24,7 +24,7 @@ function runQCsummary(path)
 %% Start
 p = loadParams;tables = struct();
 files = dir(fullfile(path,'QC'));
-files = {files(contains({files.name}, 'parameter')).name};
+files = {files(contains({files.name}, 'values')).name};
 
 for c = 1:length(files)
    tables.(['T', num2str(c)]) = readtable(fullfile(path,'QC', files{c}));
@@ -71,8 +71,8 @@ subplot(2,4,3)
 hold on
 for n = 1:length(cellTabs)
     Idx = find(~contains(tables.(['T', num2str(n)]).Protocol,"unknown"));    
-    plot([1 2],[tables.(['T', num2str(n)]).ltRMSE_pre(Idx(10)) ...
-        tables.(['T', num2str(n)]).ltRMSE_post(Idx(10))],'k','linewidth',0.25)
+    plot([1 2],[tables.(['T', num2str(n)]).ltRMSE_pre(Idx(8)) ...
+        tables.(['T', num2str(n)]).ltRMSE_post(Idx(8))],'k','linewidth',0.25)
 end
 plot([1 2],[p.RMSElt p.RMSElt],'r-.','linewidth',1)
 xlabel('10th sweep')
@@ -124,7 +124,7 @@ ylabel('post RMSE (long term)')
 exportgraphics(gcf,fullfile(path, 'QC', 'QC_RMSEplots.png'))
 
 %%
-RigTags = unique(cellfun(@(x) x(8:9), files,'UniformOutput',false));
+RigTags = unique(cellfun(@(x) x(5:6), files,'UniformOutput',false));
 RigTags{length(RigTags)+1} = 'Total';
 RigQC = struct();
 
@@ -140,12 +140,12 @@ for t = 1:length(cellTabs)
  RigQC.Total_I = [RigQC.Total_I; max(tables.(['T', num2str(t)]).holdingI)];
  RigQC.Total_BB =[RigQC.Total_BB; max(tables.(['T', num2str(t)]).bridge_balance_abs)];
  RigQC.Total_CC = [RigQC.Total_CC; max(tables.(['T', num2str(t)]).CapaComp)];
- RigQC.(files{t}(8:9)) = [RigQC.(files{t}(8:9)); tables.(['T', num2str(t)])];   
- RigQC.([files{t}(8:9), '_I']) = [RigQC.([files{t}(8:9), '_I']); ...
+ RigQC.(files{t}(5:6)) = [RigQC.(files{t}(5:6)); tables.(['T', num2str(t)])];   
+ RigQC.([files{t}(5:6), '_I']) = [RigQC.([files{t}(5:6), '_I']); ...
                                 max(tables.(['T', num2str(t)]).holdingI)];
- RigQC.([files{t}(8:9), '_BB']) = [RigQC.([files{t}(8:9), '_BB']); ...
+ RigQC.([files{t}(5:6), '_BB']) = [RigQC.([files{t}(5:6), '_BB']); ...
                                 max(tables.(['T', num2str(t)]).bridge_balance_abs)];
- RigQC.([files{t}(8:9), '_CC']) = [RigQC.([files{t}(8:9), '_CC']); ...
+ RigQC.([files{t}(5:6), '_CC']) = [RigQC.([files{t}(5:6), '_CC']); ...
                                  max(tables.(['T', num2str(t)]).CapaComp)];
 end
 
@@ -214,7 +214,7 @@ legend([l1, l2],{'CurrentRun', 'AIBS'})
 
 subplot(3,4,7)
 histogram(RigQC.(char(RigTags(r))).Vrest(~isnan(RigQC.(char(RigTags(r))).Vrest)),[-90:2:-42],'FaceColor','k','Normalization','probability');
-l1 = line([p.maximumRestingPot,p.maximumRestingPot],[0,0.4],'color','r','linewidth',1,'linestyle','--');
+l1 = line([p.maxCellBasLinPot,p.maxCellBasLinPot],[0,0.4],'color','r','linewidth',1,'linestyle','--');
 ylabel('probability')
 xlabel('baseline Vrest (mV)')
 axis tight

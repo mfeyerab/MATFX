@@ -67,9 +67,11 @@ else
 end
 
 restVPre = mean(vec_pre);
-rmse_pre = sqrt(mean((vec_pre - restVPre).^2));
+temp = lowpass(vec_pre, 8000, CCSers.starting_time_rate);
+rmse_pre = sqrt(mean((temp(25:end-25) - restVPre).^2));
 restVPost = mean(vec_post);
-rmse_post = sqrt(mean((vec_post - restVPost).^2));
+temp = lowpass(vec_post, 8000, CCSers.starting_time_rate);
+rmse_post = sqrt(mean((temp(25:end-25) - restVPost).^2));
 diffV_b_e = abs(restVPre-restVPost); % differnce between end and stim onset 
 %% Determining short-term noise
 

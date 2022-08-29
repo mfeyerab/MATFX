@@ -128,10 +128,38 @@ InitRun;                                                                   % Ini
 tic
 %% Looping through nwb files
 for n = 1:length(cellList)                                                 % for all cells in directory
- nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
- %% Initialize Cell Variables
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
+ if PS.manTPremoval && all(TPtab.TP==0)
+   disp([PS.cellID, ' skipped'])
+ else
+ nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
+ %% Initialize QC
+ QC.params = table(); QC.pass = table(); QC.testpulse = cell(0,0);         % creating empty MATLAB table for QC paramters
+ QC.params.SweepID = repmat({''},length(nwb.acquisition.keys),1);          % initializing SweepID column of QC paramters table
+ QC.params.Protocol = repmat({''},length(nwb.acquisition.keys),1);         % initializing Protocol column of QC paramters table
+ QC.params(:,3:length(qc_tags(2:end))+2) = array2table(NaN(...         
+    length(nwb.acquisition.keys), length(qc_tags)-1));                     % initializing actual parameter variables with NaNs
+ QC.params.Properties.VariableNames(3:width(QC.params)) = ...        
+      [qc_tags(3:end), {'CapaComp'}];                                      % naming parameter variables
+ QC.pass.SweepID = repmat({''},length(nwb.acquisition.keys),1);            % initializing SweepID column of QC passing table 
+ QC.pass.Protocol = repmat({''},length(nwb.acquisition.keys),1);           % initializing Protocol column of QC passing table
+ QC.pass(:,3:length(qc_tags)+2) = ...
+      array2table(NaN(length(nwb.acquisition.keys), length(qc_tags)));     % initializing logic values for passing table
+ QC.pass.Properties.VariableNames(3:width(QC.pass)-1) = qc_tags(2:end);    % naming passing parameters variables
+ QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};            % initializing additional variable for sweep wise QC encoding manual test pulse review
+ if PS.manTPremoval
+   QC.pass.manuTP = TPtab.TP;                                              % assign binary from results of test pulse review to QC pass table
+ end
+ %% Improve readability by creating additonal variables with shorter names
+ ICEtab = nwb.general_intracellular_ephys_intracellular_recordings;        % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
+ RespTbl = ICEtab.responses.response.data.load;                            % loading all sweep response from IntracellularRecordingsTable
+ ProtoTags = deblank(string(...
+             ICEtab.dynamictable.values{1}.vectordata.values{1}.data.load));% Gets all protocol names without white space
+ info = nwb.general_intracellular_ephys;   
+ %% Initialize processing moduls and new columns for Sweep table
+ initProceModules                                                         % initialize processing modules
+ nwb  = addColumns2SwTabl(nwb,qc_tags);                                   % add initialized QC to sweep table 
  %% Looping through sweeps    
  for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable             
   InitSweep                                                                % Initalizes sweep-wide variables 
@@ -146,8 +174,7 @@ for n = 1:length(cellList)                                                 % for
                      
    if contains(CCSers.stimulus_description, PS.LPtags) && PS.Webexport==1  % if sweep is a long pulse protocol           
      LPexport = exportSweepCSV(CCSers, PS.SwDat, SwpCt, LPexport);         % a certain section of the trace is exported as csv  
-   end
-   
+   end  
    %% Sweep-wise analysis          
    if (PS.([char(ProtoTags(SwpCt,:)),'qc_recovTime'])+ ...                 % checks if the sweep is of sufficient size for the respective protocol
         PS.([char(ProtoTags(SwpCt,:)),'length']))*CCSers.starting_time_rate...
@@ -189,10 +216,9 @@ for n = 1:length(cellList)                                                 % for
  %% Cell-wise QC 1: initial access resistance
  InitRa = info.values{1}.('initial_access_resistance');
  QCcellWise.ID(n) = {PS.cellID};                                           % save cellID for failing cell-wide QC
- QCcellWise.Vm(n) =  {mean(QC.params.Vrest(1:3))};                                 % 
+ QCcellWise.Vm(n) =  {median(QC.params.Vrest(1:3))};                       % 
  QCcellWise.Ra(n) =  {InitRa};                                             % 
- QCcellWise.Fail(n) = 0;                                                   % 
- 
+ QCcellWise.Fail(n) = 0;                                                   %  
  if ~isempty(InitRa) && length(regexp(InitRa,'\d*','Match')) >= 1          % if ini access resistance is non empty and has a number as character
    InitRa = str2double(InitRa);
    if InitRa > PS.cutoffInitRa && InitRa > Ri_preqc*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
@@ -206,32 +232,41 @@ for n = 1:length(cellList)                                                 % for
      disp('No initial access resistance available') 
  end
  %% Feature Extraction and Summary     
- if CellQC==0
+ if QCcellWise.Fail(n)==0
       [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                  % extract features from long pulse stimulus
       [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                  % extract features from short pulse stimulus
       plotCellProfile(nwb, PS)                                             % plot cell profile 
-      plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
+      if PS.plot_all >0
+       plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
+      end
  end  
   %% Cell-wise QC 2: Too depolarized after breaktrough
  if isnan(ICsummary.RinSS(n))
     QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (QC.params.holdingI(1)*1e-09*ICsummary.RinHD(n)*1e06)};  
+     (0.25*QC.params.holdingI(1)*1e-09*ICsummary.RinHD(n)*1e06)};  
  else
      QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (QC.params.holdingI(1)*1e-09*ICsummary.RinSS(n)*1e06)};    
+     (0.33*QC.params.holdingI(1)*1e-09*ICsummary.RinSS(n)*1e06)};    
  end 
  QCcellWise.Rm(n) =  {ICsummary.RinSS(n)};
  if QCcellWise.Vm{n} > QCcellWise.VmCutOff{n}
     disp("first recorded Vrest after breakthrough too depolarized")
      QCcellWise.Fail(n) = 1; 
      ICsummary(n,1:end-8) = {NaN};
+     theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
  %% Cell-wise QC 3: No suprathreshold LP sweeps 
  if QCcellWise.Fail(n)~= 1 && isnan(ICsummary.thresLP(n)) && PS.noSupra == 1               % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
     disp('excluded by cell-wide QC for no suprathreshold data') 
      QCcellWise.Fail(n) = 1; 
      ICsummary(n,1:end-8) = {NaN};
- end                                 %    
+     theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
+ end
+ if QCcellWise.Fail(n)== 1 && exist('theFiles')
+   for k = 1 : length(theFiles)
+       delete(fullfile(theFiles(k).folder,theFiles(k).name));
+   end
+ end%
 %% Add subject data, dendritic type and reporter status   
  AddSubjectCellData 
 %% Export downsampled traces for display on website  
@@ -255,6 +290,7 @@ for n = 1:length(cellList)                                                 % for
    disp([cellList(n).name, ' not saved for failing cell-wide QC'])
  end
  toc
+ end
 end                                                                        % end cell level for loop
 %% Output summary fiels and figures 
 Summary_output_files

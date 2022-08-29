@@ -173,9 +173,11 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %% rheobase sweeps and parameters of first spike
   if exist('LPsupraIDs') && iscell(LPsupraIDs) && ~isempty(passRts)
-   [icSum.rheoRt(ClNr,1), rheoIdx] = ...
-       min(SpPatrTab.map('firRt').data(passSuprIdx));
-   RheoSwpID = LPsupraIDs(rheoIdx);
+   AllSuprAmps = SwpAmps.load(find(...
+                              ismember(cellstr(string(SwpIDs)),SuprIDs)));
+   rheoIdx = find(passSuprIdx & AllSuprAmps < min(I)*1.5,1,'first');    
+   icSum.rheoRt(ClNr,1) = SpPatrTab.map('firRt').data(rheoIdx);
+   RheoSwpID = SuprIDs(rheoIdx);
    if length(RheoSwpID) > 1
     for r=1:length(RheoSwpID)
     PS.rheoSwpTabPos(r) = find(endsWith(SwpPaths,['_', RheoSwpID{r}]));    % save position of rheo sweep in sweep table   
@@ -217,15 +219,17 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    if ~isnan(icSum.Rheo(ClNr,1))                                           % if Rheo is not Nan i.e. there is a rheo base sweep
     if icSum.Rheo(ClNr,1) < 60                                             % if the Rheo is lower than 60 pA
      target = round(icSum.Rheo(ClNr,1),-1)+30;                             % target current is Rheo + 30 pA
-     targets = [ target-10 target target+10 target+20 target+30 ];
+     targets = [ target-10 target-5 target target+5 target+10 ...
+              target+15 target+20 target+25 target+30];
     elseif icSum.Rheo(ClNr,1) < 180 
-     target = icSum.Rheo(ClNr,1)+80;                                       % target current is Rheo + 80 pA
-     targets = [target+10 target+20 target+30 target+40 target+50];
+     target = round(icSum.Rheo(ClNr,1),-1)+80;                             % target current is Rheo + 80 pA
+     targets = [target+10 target+15 target+20 target+25 ...
+               target+30 target+35 target+40 target+45 target+50];
     else 
-     target = icSum.Rheo(ClNr,1)+140;                                      % target current is Rheo + 140 pA
+     target = round(icSum.Rheo(ClNr,1),-1)+140;                            % target current is Rheo + 140 pA
      targets = [target+10 target+20 target+30 target+40 target+50];
     end 
-    while ~any(passRts(ismember(I,targets))>1)  && max(targets) < 1200      % if any of the potential hero sweep has more than one spike
+    while ~any(passRts(ismember(I,targets))>1)  && max(targets) < 1200     % if any of the potential hero sweep has more than one spike
         target = unique(max(targets));                                     % get current steps that are both target for a herosweep and part of the LP protocols that passed QC      
         targets = [target+10 target+20 target+30 target+40 target+50];      
     end
@@ -250,6 +254,9 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      PosSpTrain = find(str2double(LPsupraIDs)==heroID(1));                 % saves the position of the spPatr module that matches the first current potential hero sweep
      if ~isempty(PosSpTrain)
       PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
+     elseif length(heroID)>1
+        PosSpTrain = find(str2double(LPsupraIDs)==heroID(end));  
+        PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
      end
     end
     if ~isempty(PS.heroSwpAPPDat)                                          % if there is a hero sweep
