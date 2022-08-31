@@ -154,9 +154,7 @@ for n = 1:length(cellList)                                                 % for
  %% Improve readability by creating additonal variables with shorter names
  ICEtab = nwb.general_intracellular_ephys_intracellular_recordings;        % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
  if isempty(ICEtab)
-     disp([nwb.identifier ' is empty. Cell will be skipped.'])
-     continue
- end
+     disp(['
      
  RespTbl = ICEtab.responses.response.data.load;                            % loading all sweep response from IntracellularRecordingsTable
  ProtoTags = deblank(string(...
