@@ -22,7 +22,8 @@ if length(y)>=4
             plot(x+CCSers.starting_time_rate*0.10,f(x),'r-.','LineWidth',2)
             title(['GOF=', num2str(gof.rsquare)])
             scatter(20000,y(vecin(1)),'r','filled')
-            exportgraphics(gcf,fullfile(PS.outDest, 'tauFit', ...
+            F=getframe(gcf);
+            imwrite(F.cdata,fullfile(PS.outDest, 'tauFit', ...
                 [PS.cellID , '_',PS.SwDat.CurrentName '_tau_fit',PS.pltForm]))
         end
         subStats.tauMin = round(vecin(1)*1000/CCSers.starting_time_rate,3);

@@ -1,5 +1,5 @@
 function [sp] = getSpikeParameter(CCSers,sp,PS)
-
+data=CCSers.data.load;
 if  PS.refPeakSlop==1
     sp.dVdt = lowpass(diff(CCSers.data.load())/...
              (1000/CCSers.starting_time_rate),10000, 50000);
@@ -45,20 +45,20 @@ for i = 1:length(sp.peak)  % for each putative spike
             1, 'last');                                                     % 5% of max dV/dt
         sp.thresholdTime(i) = sp.thresholdTime(i)+sp.peakTime(i) - ...
             (PS.maxDiffThreshold2PeakT/(1000/CCSers.starting_time_rate)) - 1;              % adjust threshold time for window
-        sp.threshold(i) = CCSers.data.load(sp.thresholdTime(i));
+        sp.threshold(i) = data(sp.thresholdTime(i));
     else
         if ~isempty(find(vec < PS.absdVdt, 1, 'last'))
             sp.thresholdTime(i) = find(vec < PS.absdVdt, 1, 'last');      % absolute criterium dV/dt
             sp.thresholdTime(i) = sp.thresholdTime(i) + sp.peakTime(i) - ...
              (PS.maxDiffThreshold2PeakT/...
                  (1000/CCSers.starting_time_rate)) - 1;                  % adjust threshold time for window
-            sp.threshold(i) = CCSers.data.load(sp.thresholdTime(i));           % store threshold for spike
+            sp.threshold(i) = data(sp.thresholdTime(i));           % store threshold for spike
         else
             if ~isempty(find(vec < 5, 1, 'last'))
                 sp.thresholdTime(i) = find(vec < 5, 1, 'last');                % absolute criterium dV/dt
                 sp.thresholdTime(i) = sp.thresholdTime(i) + sp.peakTime(i) - ...
                     round(PS.maxDiffThreshold2PeakT/(1000/CCSers.starting_time_rate)) - 1;      % adjust threshold time for window
-                sp.threshold(i) = CCSers.data.load(sp.thresholdTime(i));                 % store threshold for spike
+                sp.threshold(i) = data(sp.thresholdTime(i));                 % store threshold for spike
             else
                 sp.thresholdTime(i) = 0;
                 sp.threshold(i) = 0;
@@ -70,10 +70,10 @@ for i = 1:length(sp.peak)  % for each putative spike
     
 %% Determining Trough    
     if i < length(sp)
-	  [sp.trough(i),temp] = min(CCSers.data.load(sp.peakTime(i):sp.peakTime(i)));
+	  [sp.trough(i),temp] = min(data(sp.peakTime(i):sp.peakTime(i)));
 		sp.troughTime(i) = sp.peakTime(i)+temp(1)-1;
     else
-       [sp.trough(i),temp] = min(CCSers.data.load(sp.peakTime(i):sp.peakTime(i)+win4Trough));
+       [sp.trough(i),temp] = min(data(sp.peakTime(i):sp.peakTime(i)+win4Trough));
           sp.troughTime(i) = sp.peakTime(i)+temp-1;
     end
     
@@ -81,14 +81,14 @@ for i = 1:length(sp.peak)  % for each putative spike
     peakMinusHeight = sp.peak(i)-(sp.heightPT(i)/2);
     
     if sp.thresholdTime(i)~=0
-      temp2 = find(CCSers.data.load(sp.thresholdTime(i):sp.peakTime(i))<peakMinusHeight, 1, 'last');          
+      temp2 = find(data(sp.thresholdTime(i):sp.peakTime(i))<peakMinusHeight, 1, 'last');          
       temp2 = sp.thresholdTime(i) + temp2;
     else 
       temp2 = [];
     end
     if ~isempty(temp2)
         halfHeightTimeUpPT(i) = temp2; 
-        temp2 = find(CCSers.data.load(sp.peakTime(i):sp.troughTime(i))<peakMinusHeight, 1, 'first');          
+        temp2 = find(data(sp.peakTime(i):sp.troughTime(i))<peakMinusHeight, 1, 'first');          
         temp2 = sp.peakTime(i) + temp2;
         if ~isempty(temp2)
             halfHeightTimeDownPT(i) = temp2(1);
@@ -99,14 +99,14 @@ for i = 1:length(sp.peak)  % for each putative spike
     sp.heightTP(i) = sp.peak(i) - sp.threshold(i);
     peakMinusHeight = sp.peak(i)-(sp.heightTP(i)/2);
     if sp.thresholdTime(i)~=0
-      temp2 = find(CCSers.data.load(sp.thresholdTime(i):sp.peakTime(i))<peakMinusHeight, 1, 'last');          
+      temp2 = find(data(sp.thresholdTime(i):sp.peakTime(i))<peakMinusHeight, 1, 'last');          
       temp2 = sp.thresholdTime(i) + temp2;
     else 
       temp2 = [];
     end
     if ~isempty(temp2)
         halfHeightTimeUpTP(i) = temp2;
-        temp2 = find(CCSers.data.load(sp.peakTime(i):sp.troughTime(i))<peakMinusHeight, 1, 'first');          
+        temp2 = find(data(sp.peakTime(i):sp.troughTime(i))<peakMinusHeight, 1, 'first');          
         temp2 = sp.peakTime(i) + temp2;
         if ~isempty(temp2)
             halfHeightTimeDownTP(i) = temp2(1);
@@ -129,12 +129,12 @@ for i = 1:length(sp.peak)  % for each putative spike
 
     % Short (5ms) and long (between events) troughs
 %     restingPot = mean(CCSeries(CCSeries.stimOn(1,k)-(550/CCSeries.acquireRes):CCSeries.stimOn(1,k)-(50/CCSeries.acquireRes)));
-    [sp.fast_trough(i),sp.fast_trough_dur(i)] = min(CCSers.data.load(sp.peakTime(i):sp.peakTime(i)+(5/(1000/CCSers.starting_time_rate))));
+    [sp.fast_trough(i),sp.fast_trough_dur(i)] = min(data(sp.peakTime(i):sp.peakTime(i)+(5/(1000/CCSers.starting_time_rate))));
     if i < length(sp.peakTime)
-        [sp.slow_trough(i), sp.slow_trough_dur(i)] = min(CCSers.data.load(sp.peakTime(i):sp.peakTime(i+1)));
+        [sp.slow_trough(i), sp.slow_trough_dur(i)] = min(data(sp.peakTime(i):sp.peakTime(i+1)));
     else
         [sp.slow_trough(i), sp.slow_trough_dur(i)] = min(...
-            CCSers.data.load(sp.peakTime(i):...
+            data(sp.peakTime(i):...
               PS.SwDat.StimOff+...
                 (5/(1000/CCSers.starting_time_rate)) ...
                  ));

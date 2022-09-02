@@ -130,7 +130,7 @@ tic
 for n = 1:length(cellList)                                                 % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
- if PS.manTPremoval && all(TPtab.TP==0)
+ if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)
    disp([PS.cellID, ' skipped'])
  else
  nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
@@ -150,6 +150,12 @@ for n = 1:length(cellList)                                                 % for
  QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};            % initializing additional variable for sweep wise QC encoding manual test pulse review
  if PS.manTPremoval
    QC.pass.manuTP = TPtab.TP;                                              % assign binary from results of test pulse review to QC pass table
+ end
+ if ~isempty(nwb.general_devices.values{1}.manufacturer) &&...
+     contains(nwb.general_devices.values{1}.manufacturer,'Heka')
+     PS.isHeka = true;
+ else
+     PS.isHeka = false;
  end
  %% Improve readability by creating additonal variables with shorter names
  ICEtab = nwb.general_intracellular_ephys_intracellular_recordings;        % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
@@ -180,7 +186,7 @@ for n = 1:length(cellList)                                                 % for
         PS.([char(ProtoTags(SwpCt,:)),'length']))*CCSers.starting_time_rate...
         < CCSers.data.dims                                                    
           
-     QC = SweepwiseQC(CCSers, PS, QC, SwpCt);                              % Sweep QC of the CurrentClampSeries                              
+     QC = SweepwiseQC(CCSers, PS, QC, SwpCt, LPfilt);                      % Sweep QC of the CurrentClampSeries                              
                                
      if PS.SwDat.swpAmp > 0                                                % if current input is depolarizing
 
@@ -243,10 +249,10 @@ for n = 1:length(cellList)                                                 % for
   %% Cell-wise QC 2: Too depolarized after breaktrough
  if isnan(ICsummary.RinSS(n))
     QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (0.25*QC.params.holdingI(1)*1e-09*ICsummary.RinHD(n)*1e06)};  
+     (0.33*QC.params.holdingI(1)*1e-09*ICsummary.RinHD(n)*1e06)};  
  else
      QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (0.33*QC.params.holdingI(1)*1e-09*ICsummary.RinSS(n)*1e06)};    
+     (0.4*QC.params.holdingI(1)*1e-09*ICsummary.RinSS(n)*1e06)};    
  end 
  QCcellWise.Rm(n) =  {ICsummary.RinSS(n)};
  if QCcellWise.Vm{n} > QCcellWise.VmCutOff{n}
@@ -256,7 +262,8 @@ for n = 1:length(cellList)                                                 % for
      theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
  %% Cell-wise QC 3: No suprathreshold LP sweeps 
- if QCcellWise.Fail(n)~= 1 && isnan(ICsummary.thresLP(n)) && PS.noSupra == 1               % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
+ if QCcellWise.Fail(n)~= 1  && PS.noSupra == 1 &&  ...                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
+       (isnan(ICsummary.thresLP(n)) || isnan(ICsummary.RinHD(n)))                               
     disp('excluded by cell-wide QC for no suprathreshold data') 
      QCcellWise.Fail(n) = 1; 
      ICsummary(n,1:end-8) = {NaN};
@@ -277,13 +284,13 @@ for n = 1:length(cellList)                                                 % for
  if QCcellWise.Fail(n)==0                                                  % if the cell is not excluded by cell wide QC
    if overwrite == 1
       disp(['Overwriting file ', cellList(n).name])
-      nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file
+      %nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file
    elseif isfile(fullfile(PS.outDest, '\', cellList(n).name))      
       delete(fullfile(PS.outDest, '\', cellList(n).name));
       disp(['Overwriting file ', cellList(n).name, ' in output folder'])
-      nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file 
+      %nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file 
    else
-      nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file
+      %nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file
       disp(['saving file ', cellList(n).name, ' in output folder'])
    end
  else

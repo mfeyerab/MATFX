@@ -29,3 +29,4 @@ QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
     'VariableNames', qc_tags,'RowNames', {cellList.name});
 
 QCcellWise = table();                                
+LPfilt = lowPassFilt;

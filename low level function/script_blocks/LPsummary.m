@@ -74,7 +74,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      figure('visible','off');         cdfplot(1000./ISIs);
      grid off; box off; xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
      title('Dynamic frequency range');
-     exportgraphics(gcf,fullfile(PS.outDest, 'firingPattern', [PS.cellID,' TP profile',PS.pltForm]))     
+     exportgraphics(gcf, ...
+         fullfile(PS.outDest, 'firingPattern', [PS.cellID,' TP profile',PS.pltForm]))     
    end            
    % adaptation   
    icSum.AdaptRatB1B2(ClNr,1) = ...                                        % divides the sum of all spikes in the second bin
@@ -112,8 +113,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       yfit = P(2)*I+P(1);             plot(I,yfit,'r-.');
       xlabel('input current (pA)');   ylabel('firing frequency (Hz)')
       title('f/I curve');             box off; axis tight 
-      exportgraphics(gcf, fullfile(PS.outDest, 'firingPattern', ...
-                         [PS.cellID , ' fI_curve', PS.pltForm]));
+      exportgraphics(gcf,fullfile(fullfile(PS.outDest, 'firingPattern', ...
+                         [PS.cellID , ' fI_curve', PS.pltForm])));
      end
     end
    end

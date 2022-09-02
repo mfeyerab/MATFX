@@ -1,10 +1,12 @@
-function [QC]  = SweepwiseQC(CCSers,PS,QC,SwpCt)
+function [QC]  = SweepwiseQC(CCSers,PS,QC,SwpCt,LPfilt)
 %SweepwiseQC
 %- takes two vectors, pre- and post-stimulus (400 ms each)
 %- takes two measures of noise, short (1.5 ms) and long (500 ms) term
 %- measures resting potential
 %- measures difference in resting potential at pre- and post-stimulus
 %
+
+data = CCSers.data.load;
 
 %% Determining protocol type 
 if contains(CCSers.stimulus_description, PS.LPtags) 
@@ -27,16 +29,16 @@ end
                                   PS.SwDat.StimData(1:PS.SwDat.StimOn-10));
 
 %% Getting voltage trace at stimulus onset
-QC.VStimOn(SwpCt) = {CCSers.data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
+QC.VStimOn(SwpCt) = {data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
                          0.002*CCSers.starting_time_rate+PS.SwDat.StimOn)};
 
-QC.VStimOff(SwpCt) = {CCSers.data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
+QC.VStimOff(SwpCt) = {data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
                        0.002*CCSers.starting_time_rate+PS.SwDat.StimOff)};
 
 %% selecting time windows and determining long-term noise/membrane voltage stability    
 if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
 
- vec_pre = CCSers.data.load(PS.SwDat.StimOn-Wind*...
+ vec_pre = data(PS.SwDat.StimOn-Wind*...
            CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000;
       
  if PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
@@ -44,7 +46,7 @@ if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
        
        error('Recovery period and/or integration window are too long. Please adjust in loadParams')
  else
-     vec_post = CCSers.data.load(PS.SwDat.StimOff+recvTi*...
+     vec_post = data(PS.SwDat.StimOff+recvTi*...
            CCSers.starting_time_rate+1:...
            PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
            Wind*CCSers.starting_time_rate).*1000;
@@ -53,13 +55,13 @@ else
   if PS.SwDat.StimOn < PS.LPqc_samplWind*CCSers.starting_time_rate
     disp(['Sweep Nr ', num2str(CCSers.sweep_number), ...
                          ' has peristimulus lengths shorter than desired'])
-    vec_pre = CCSers.data.load(1:PS.SwDat.StimOn);
-    vec_post = CCSers.data.load(PS.SwDat.StimOff:end);
+    vec_pre = data(1:PS.SwDat.StimOn);
+    vec_post = data(PS.SwDat.StimOff:end);
     
   else
-    vec_pre = CCSers.data.load(PS.SwDat.StimOn-...
+    vec_pre = data(PS.SwDat.StimOn-...
         Wind*CCSers.starting_time_rate-1:PS.SwDat.StimOn-1);
-    vec_post = CCSers.data.load(...
+    vec_post = data(...
         PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+1:...
         PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
           Wind*CCSers.starting_time_rate);
@@ -67,10 +69,10 @@ else
 end
 
 restVPre = mean(vec_pre);
-temp = lowpass(vec_pre, 8000, CCSers.starting_time_rate);
-rmse_pre = sqrt(mean((temp(25:end-25) - restVPre).^2));
+temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_pre);
+rmse_pre = sqrt(mean((temp - restVPre).^2));
 restVPost = mean(vec_post);
-temp = lowpass(vec_post, 8000, CCSers.starting_time_rate);
+temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_post);
 rmse_post = sqrt(mean((temp(25:end-25) - restVPost).^2));
 diffV_b_e = abs(restVPre-restVPost); % differnce between end and stim onset 
 %% Determining short-term noise
@@ -78,15 +80,15 @@ diffV_b_e = abs(restVPre-restVPost); % differnce between end and stim onset
 stWin = round(1.5*(CCSers.starting_time_rate/1000));
 winCount = 1;
 for i = 1:round(stWin/2):length(vec_pre)-stWin
-    yhat = mean(vec_pre(1,i:i+stWin));
-    rmse_pre_st(winCount) = sqrt(mean((vec_pre(1,i:i+stWin) - yhat).^2));
+    yhat = mean(vec_pre(i:i+stWin));
+    rmse_pre_st(winCount) = sqrt(mean((vec_pre(i:i+stWin) - yhat).^2));
 end
 rmse_pre_st = mean(rmse_pre_st);
 
 winCount = 1;
  for i = 1:round(stWin/2):length(vec_post)-stWin
-    yhat = mean(vec_post(1,i:i+stWin));
-    rmse_post_st(winCount) = sqrt(mean((vec_post(1,i:i+stWin) - yhat).^2));
+    yhat = mean(vec_post(i:i+stWin));
+    rmse_post_st(winCount) = sqrt(mean((vec_post(i:i+stWin) - yhat).^2));
     winCount = winCount+1;  
  end   
 
@@ -158,8 +160,14 @@ QC.pass.ltRMSE_post(SwpCt) = QC.params.ltRMSE_post(SwpCt) < PS.RMSElt;
 QC.pass.diffVrest(SwpCt)   = QC.params.diffVrest(SwpCt) < PS.maxDiffBwBeginEnd;
 QC.pass.Vrest(SwpCt)       = QC.params.Vrest(SwpCt) < PS.maxSwpBasLinPot;
 QC.pass.holdingI(SwpCt)    = abs(QC.params.holdingI(SwpCt)) < PS.holdingI;
-QC.pass.bridge_balance_abs(SwpCt) = ...
+
+if PS.isHeka
+  QC.pass.bridge_balance_abs(SwpCt) = ...
+    QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance_HEKA;
+else  
+  QC.pass.bridge_balance_abs(SwpCt) = ...
     QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance;
+end
 
 %% Plotting visualizations (Optional)
  if PS.plot_all > 1

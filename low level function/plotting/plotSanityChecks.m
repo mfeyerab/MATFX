@@ -30,8 +30,8 @@ if ~isempty(QC.testpulse)
     ylabel('Voltage trace (mV)')
     xlabel('samples')
     box off
-
-    exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.png']))
+    F=getframe(gcf);
+    imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.png']))
 end
 %% Stimulus Onset LP
 LPvec = contains(string(ICEtab.dynamictable.values{...
@@ -60,7 +60,8 @@ if ~isempty(PS.rheoSwpSers.data) && checkVolts(PS.rheoSwpSers.data_unit) && ...
   ylabel('Voltage (V)')
 end  
 
-exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
+F=getframe(gcf);
+imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
 %% Stimulus Onset SP
 
 SPvec = contains(string(ICEtab.dynamictable.values{...
@@ -89,4 +90,5 @@ if ~isempty(PS.rheoSwpSers.data) && checkVolts(PS.rheoSwpSers.data_unit) && ...
   ylabel('Voltage (V)')
 end  
 
-exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnSP','.png']))
+F=getframe(gcf);
+imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnSP','.png']))

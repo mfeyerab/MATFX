@@ -47,21 +47,22 @@ PS.cutoffInitRa = 60;                                                      % cut
 PS.factorRelaRa = 0.5;                                                     % cut off for relative value of intial access resistance  
 PS.noSupra = 1;                                                            % binary variable for kicking cells without suprathreshold features
 PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
-PS.maxCellBasLinPot = -57.5;                                               %
+PS.maxCellBasLinPot = -57;                                                 %
 
 %% sweep-wise quality control parameters and integration windows
-PS.LPqc_samplWind = 0.4; PS.LPqc_recovTime = 4.75;                         % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the long pulse  
+PS.LPqc_samplWind = 0.375; PS.LPqc_recovTime = 4.75;                       % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the long pulse  
 PS.SPqc_samplWind = 0.25; PS.SPqc_recovTime = 0.65;                        % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the short pulse 
 PS.preTP= 0.015; PS.TPtrace = 0.08;                                        % determine length (in seconds) of prestimulus intervall and length of voltage trace for test pulse
 PS.RMSEst = 0.3;                                                           % maximum RMSE measure short term
-PS.RMSElt = 0.75;                                                          % maximum RMSE measure long term
+PS.RMSElt = 0.8;                                                           % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
 PS.maxDiffBwBeginEnd = 4.75;                                               % maximum difference between beginning and end of sweep
 PS.maxSwpBasLinPot = -55;                                                  % minimum resting potential
 PS.holdingI = 100;                                                         % maximum holding current
-PS.bridge_balance = 24.9;                                                  % maximum bridge balance
+PS.bridge_balance = 22.5;                                                  % maximum bridge balance
+PS.bridge_balance_HEKA = 35;                                               % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
-PS.BwSweepMax = 4.5;                                                       % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
+PS.BwSweepMax = 5;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 
 
 %% parameters for subthreshold analysis
