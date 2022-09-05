@@ -28,7 +28,7 @@ PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", ...
 %1 for standard visualization, 2 for extensive visualizations (includes 
 %raw voltage data of RMSE integration window for each sweep)
 
-PS.plot_all = 0;
+PS.plot_all = 1;
 PS.pltForm = '.png';
 PS.Webexport=0; 
 
@@ -45,7 +45,7 @@ PS.sampleRTdt = 1000/PS.sampleRT;                                          % sam
 %% cell-wise quality control parameters
 PS.cutoffInitRa = 60;                                                      % cut off for absolute value of intial access resistance  
 PS.factorRelaRa = 0.5;                                                     % cut off for relative value of intial access resistance  
-PS.noSupra = 1;                                                            % binary variable for kicking cells without suprathreshold features
+PS.noSupraSub = 1;                                                            % binary variable for kicking cells without suprathreshold features
 PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
 PS.maxCellBasLinPot = -57;                                                 %
 
@@ -56,20 +56,21 @@ PS.preTP= 0.015; PS.TPtrace = 0.08;                                        % det
 PS.RMSEst = 0.3;                                                           % maximum RMSE measure short term
 PS.RMSElt = 0.8;                                                           % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
-PS.maxDiffBwBeginEnd = 4.75;                                               % maximum difference between beginning and end of sweep
+PS.maxDiffBwBeginEnd = 3.5;                                                % maximum difference between beginning and end of sweep
 PS.maxSwpBasLinPot = -55;                                                  % minimum resting potential
 PS.holdingI = 100;                                                         % maximum holding current
 PS.bridge_balance = 22.5;                                                  % maximum bridge balance
 PS.bridge_balance_HEKA = 35;                                               % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
-PS.BwSweepMax = 5;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
+PS.BwSweepMax = 4;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 
 
 %% parameters for subthreshold analysis
 PS.reboundWindow = 100;                                                    % window to find maximum rebound peak
 PS.reboundFitWindow = 150;                                                 % window from max rebound peak to fit / acquireRes
 PS.reboundSpWindow = 50;                                                   % window to look for rebound spikes (ms)
-PS.GF = 0.85;                                                              % goodness of fit for exponential fit for tau
+PS.GF = 0.75;                                                              % goodness of fit for exponential fit for tau
+PS.maxDefl = -12;                                                          % maximum deflection in mV for determining tau
 
 %% spike-wise quality control parameters
 PS.pcentMaxdVdt = 0.1;                                                     % threshold = < % of dVdt

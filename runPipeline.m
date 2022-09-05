@@ -204,7 +204,7 @@ for n = 1:length(cellList)                                                 % for
        PS.supraCount = PS.supraCount + 1;                         
 
      elseif PS.SwDat.swpAmp < 0  && ProtoTags(SwpCt,:)=="LP"               % if current input is hyperpolarizing and protocol is long pulse
-      modSubStats = subThresFeatures(CCSers,modSubStats,PS);               % getting subthreshold parameters                          
+      modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);        % getting subthreshold parameters                          
       PS.subCount = PS.subCount +1;
      end
    else
@@ -254,10 +254,10 @@ for n = 1:length(cellList)                                                 % for
   %% Cell-wise QC 2: Too depolarized after breaktrough
  if isnan(ICsummary.RinSS(n))
     QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (0.33*QC.params.holdingI(1)*1e-09*ICsummary.RinHD(n)*1e06)};  
+     (QC.params.holdingI(1)*1e-09*sqrt(ICsummary.RinHD(n))*1e06)};  
  else
      QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (0.4*QC.params.holdingI(1)*1e-09*ICsummary.RinSS(n)*1e06)};    
+     (QC.params.holdingI(1)*1e-09*sqrt(ICsummary.RinSS(n))*1e06)};    
  end 
  QCcellWise.Rm(n) =  {ICsummary.RinSS(n)};
  if QCcellWise.Vm{n} > QCcellWise.VmCutOff{n}
@@ -267,7 +267,7 @@ for n = 1:length(cellList)                                                 % for
      theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
  %% Cell-wise QC 3: No suprathreshold LP sweeps 
- if QCcellWise.Fail(n)~= 1  && PS.noSupra == 1 &&  ...                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
+ if QCcellWise.Fail(n)~= 1  && PS.noSupraSub == 1 &&  ...                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
        (isnan(ICsummary.thresLP(n)) || isnan(ICsummary.RinHD(n)))                               
     disp('excluded by cell-wide QC for no suprathreshold data') 
      QCcellWise.Fail(n) = 1; 

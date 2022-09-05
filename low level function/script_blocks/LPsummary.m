@@ -34,16 +34,25 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %tau
   SubSwpIdx = find(endsWith(SubThres.keys, ['_',string(IdPassSwps)]));
-  tauVec = nan(length(SubSwpIdx),1);
-  for s = 1:length(SubSwpIdx)                                              % for each subthreshold sweep 
-   if SubThres.values{SubSwpIdx(s)}.vectordata.map('GFtau').data > PS.GF 
-     tauVec(s,1)=SubThres.values{SubSwpIdx(s)}.vectordata.map('tau').data;
-   end         
+  tauVec = deal(nan(length(SubThres.keys),1));
+  minAmp = 200; minAmpSubSwpIdx = [];
+  for s = 1:length(SubThres.keys)                                          % for each subthreshold sweep 
+   if SubThres.values{s}.vectordata.map('GFtau').data > PS.GF &&...
+        SubThres.values{s}.vectordata.map('maxSubDeflection').data > PS.maxDefl
+    
+     tauVec(s,1)=SubThres.values{s}.vectordata.map('tau').data;
+   end
+   if SubThres.values{s}.vectordata.map('GFtau').data > PS.GF && ...
+           minAmp > abs(SubThres.values{s}.vectordata.map('SwpAmp').data) 
+      minAmpSubSwpIdx = s;
+      minAmp = abs(SubThres.values{s}.vectordata.map('SwpAmp').data); 
+   end
   end    
-  if length(tauVec) < 3 && ~isempty(tauVec)                                % if there are less than three values AND vector in not empty
-   icSum.tau(ClNr,1) = round(nanmean(tauVec(length(tauVec))),2);           % cell wide tau is calculated by mean sweep taus
-  elseif ~isempty(tauVec)                                                  % if there are 3 or more sweep taus 
-   icSum.tau(ClNr,1) = round(mean(mink(tauVec,3)),2);                      % cell wide tau is calculated by mean of first three sweep taus
+  if ~isempty(tauVec) && any(~isnan(tauVec))                                                    
+   icSum.tau(ClNr,1) = round(nanmean(tauVec),2);                          
+  elseif ~isempty(tauVec) && ~isempty(minAmpSubSwpIdx)
+   icSum.tau(ClNr,1) = SubThres.values{minAmpSubSwpIdx...
+                                         }.vectordata.map('tau').data;                        
   end
   %% firing patterns
   spPatr = nwb.processing.map('AP Pattern').dynamictable;                  
