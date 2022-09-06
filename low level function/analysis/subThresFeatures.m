@@ -4,7 +4,7 @@ data = CCSers.data.load();
 subStats.subSweepAmRin = PS.SwDat.swpAmp;
 subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));           %does not take into account the testpulse
 [subStats.minV,subStats.minVt] = min(...
-   data(PS.SwDat.StimOn:PS.SwDat.StimOff));
+   data(PS.SwDat.StimOn:PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate));
 
 %% estimate minimum voltage
 subStats.maxSubDeflection = subStats.minV - subStats.baselineVm ;                             

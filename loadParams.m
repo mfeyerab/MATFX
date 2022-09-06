@@ -69,8 +69,9 @@ PS.manTPremoval = 1;                                                       % bin
 PS.reboundWindow = 100;                                                    % window to find maximum rebound peak
 PS.reboundFitWindow = 150;                                                 % window from max rebound peak to fit / acquireRes
 PS.reboundSpWindow = 50;                                                   % window to look for rebound spikes (ms)
-PS.GF = 0.75;                                                              % goodness of fit for exponential fit for tau
+PS.GF = 0.85;                                                              % goodness of fit for exponential fit for tau
 PS.maxDefl = -12;                                                          % maximum deflection in mV for determining tau
+PS.WinHD = 0.2;                                                            % time window from stimulus onset to search for point of highest deflection
 
 %% spike-wise quality control parameters
 PS.pcentMaxdVdt = 0.1;                                                     % threshold = < % of dVdt
