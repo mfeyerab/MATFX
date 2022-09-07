@@ -215,10 +215,14 @@ for n = 1:length(cellList)                                                 % for
  end
  %% QC bridge balance relative to input resistance
  Ri_preqc = inputResistance(modSubStats.dynamictable, PS);                 % calculate input resistance before QC 
- QC.pass.bridge_balance_rela = ...
+ if  PS.isHeka
+     QC.pass.bridge_balance_rela(SwpCt) = true;
+ else
+     QC.pass.bridge_balance_rela = ...
        QC.params.bridge_balance_abs < Ri_preqc*PS.factorRelaRa;            % check if input resistance meets relatice bridge balance criterium
- QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
+     QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
      Ri_preqc*PS.factorRelaRa;
+ end
  QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
  %% Between Sweep QC
  QC = BetweenSweepQC(QC, BwSwpMode, PS);                                   % execute betweenSweep QC  
@@ -230,7 +234,8 @@ for n = 1:length(cellList)                                                 % for
  QCcellWise.Vm(n) =  {median(QC.params.Vrest(1:3))};                       % 
  QCcellWise.Ra(n) =  {InitRa};                                             % 
  QCcellWise.Fail(n) = 0;                                                   %  
- if ~isempty(InitRa) && length(regexp(InitRa,'\d*','Match')) >= 1          % if ini access resistance is non empty and has a number as character
+ if PS.InitRa && ~isempty(InitRa) && ...
+         length(regexp(InitRa,'\d*','Match')) >= 1                         % if ini access resistance is non empty and has a number as character
    InitRa = str2double(InitRa);
    if InitRa > PS.cutoffInitRa && InitRa > Ri_preqc*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
      display(['excluded by cell-wide QC for initial Ra (', ...
@@ -240,7 +245,7 @@ for n = 1:length(cellList)                                                 % for
         QCcellWise.Fail(n) = 1;                                            % save cellID for failing cell-wide QC
    end
  else
-     disp('No initial access resistance available') 
+     disp('No QC by initial access resistance or value not available') 
  end
  %% Feature Extraction and Summary     
  if QCcellWise.Fail(n)==0

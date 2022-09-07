@@ -164,6 +164,7 @@ QC.pass.holdingI(SwpCt)    = abs(QC.params.holdingI(SwpCt)) < PS.holdingI;
 if PS.isHeka
   QC.pass.bridge_balance_abs(SwpCt) = ...
     QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance_HEKA;
+    QC.pass.bridge_balance_rela(SwpCt) = true;
 else  
   QC.pass.bridge_balance_abs(SwpCt) = ...
     QC.params.bridge_balance_abs(SwpCt) < PS.bridge_balance;
