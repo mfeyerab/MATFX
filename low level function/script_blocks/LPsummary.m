@@ -185,7 +185,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   if exist('LPsupraIDs') && iscell(LPsupraIDs) && ~isempty(passRts)
    AllSuprAmps = SwpAmps.load(find(...
                               ismember(cellstr(string(SwpIDs)),SuprIDs)));
-   rheoIdx = find(passSuprIdx & AllSuprAmps < min(I)*1.5,1,'first');    
+   rheoIdx = find(SpPatrTab.map('firRt').data <= ...
+       min(passRts)*2 & AllSuprAmps < min(I)*2,1,'first');    
    icSum.rheoRt(ClNr,1) = SpPatrTab.map('firRt').data(rheoIdx);
    RheoSwpID = SuprIDs(rheoIdx);
    if length(RheoSwpID) > 1
