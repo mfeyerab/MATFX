@@ -1,16 +1,16 @@
 clear
 
-mainfolder = 'D:\conversion\Allen\First_release\cell_types\'; %fullfile(cd, '\test_cell\');
-outputfolder = 'D:\output_AIBS1\'; %[cd, '\'];
+mainfolder = 'D:\conversion\Allen_cell_types\'; %fullfile(cd, '\test_cell\');
+outputfolder = 'D:\AIBS1\'; %[cd, '\'];
 cellList = dir([mainfolder,'*.nwb']);
 T = struct2table(load('cell_types_specimen_details.mat'));
 alignSamplingMode = 0;
 SamplingTarget = 20000;
 
-for n = 1:length(cellList)
-    
-    cellID = regexp(cellList(n).name,'\d*','Match');
-    disp(cellID)  
+for n = 1:length(cellList)    
+  cellID = regexp(cellList(n).name,'\d*','Match');
+  disp(cellID)  
+  if ~isfile(fullfile(outputfolder,[char(cellID), '.nwb']))
     idx = find(strcmp(num2str(T.specimen__id1), cellID));
     %% Initializing variables for Sweep table construction
     
@@ -248,5 +248,5 @@ nwb.general_intracellular_ephys_intracellular_recordings = ic_rec_table;
 %%    
 filename = fullfile([outputfolder ,nwb.identifier]);
 nwbExport(nwb, filename);    
- 
+  end
 end

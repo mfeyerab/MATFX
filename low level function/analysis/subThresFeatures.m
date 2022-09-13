@@ -1,6 +1,13 @@
 function modSubStats = subThresFeatures(CCSers, modSubStats, PS,LPfilt)
 
 data = CCSers.data.load();
+
+if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
+
+ PS.maxDefl = PS.maxDefl/1000;
+end
+
+
 subStats.subSweepAmRin = PS.SwDat.swpAmp;
 subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));           %does not take into account the testpulse
 [subStats.minV,subStats.minVt] = min(...
@@ -10,7 +17,12 @@ subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));           %does not take in
 subStats.maxSubDeflection = subStats.minV - subStats.baselineVm ;                             
 subStats.minVt = subStats.minVt+PS.SwDat.StimOn;
 %% time constant (rest to minimum V)
-y = filtfilt(LPfilt.sos, LPfilt.ScaleValues, data(PS.SwDat.StimOn:subStats.minVt));
+if PS.postFilt
+   y = filtfilt(LPfilt.sos, LPfilt.ScaleValues, ...
+                 data(PS.SwDat.StimOn:subStats.minVt));
+else
+   y =  data(PS.SwDat.StimOn:subStats.minVt);
+end
 x = linspace(1,subStats.minVt-PS.SwDat.StimOn,length(y))';
 if length(y)>=4
     [f,gof] = fit(x,y,'exp2');

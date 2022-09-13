@@ -1,18 +1,35 @@
   %% Add subject data, dendritic type and reporter status   
-   if nwb.processing.isKey('Anatomical data') && ~isempty(...              
+   if string(nwb.general_institution) == "Allen Institute of Brain Science"% if the cell is from the AIBS 
+      ICsummary.brainOrigin(n) = {info.values{...
+        1}.location(1:find(info.values{...
+           1}.location==',')-1)};                                          % assign part of the description of as brain area to summary table 
+   else
+      ICsummary.brainOrigin(n) = {info.values{1}.location};                % assign brain area to summary table          
+      ICsummary.Species(n) = {nwb.general_subject.species};                % assign species to summary table   
+      if ~isempty(nwb.general_subject.weight)
+        ICsummary.Weight(n) = {str2num(nwb.general_subject.weight)};       % assign weight to summary table    
+      end
+      if ~isempty(nwb.general_subject.sex)
+        ICsummary.Sex(n) = {nwb.general_subject.sex};                      % assign sex to summary table 
+      end
+      if ~isempty(nwb.general_subject.age)
+        ICsummary.Age(n) = {str2num(nwb.general_subject.age)};             % assign weight to summary table    
+      end
+      if nwb.processing.isKey('Anatomical data') && ~isempty(...              
            nwb.processing.values{3}.dynamictable.values{...                % if there is an anatomical data processing module
                         1}.vectordata.values{1}.data)                      % and there is data on dendritic type of the cell
                     
-    ICsummary.dendriticType(n) = ...
+         ICsummary.dendriticType(n) = ...
        {nwb.processing.values{3}.dynamictable.values{1}.vectordata.map(...
                'DendriticType').data.load};                                % assigning dendritic type to summary table
-    ICsummary.SomaLayerLoc(n) = ...
+          ICsummary.SomaLayerLoc(n) = ...
        {nwb.processing.values{3}.dynamictable.values{1}.vectordata.map(...
                'SomaLayerLoc').data.load};                                 % assigning soma layer location to summary table
-   else
+      else
        [ICsummary.dendriticType(n),ICsummary.SomaLayerLoc(n)] = ...
            deal({'NA'});                                                   % NA for soma layer location and dendritic type of cells without entries 
-   end
+      end
+   end  
    if nwb.general.Count ~= 0                                               % if  
        ICsummary.Weight(n) = {nwb.general_subject.weight};
        ICsummary.Sex(n) = {nwb.general_subject.sex};
@@ -27,23 +44,6 @@
         else
             ICsummary.Temperature(n) = str2double(cell2mat(temperature));  % assign temperature values to summary table
         end
-   end 
-   if string(nwb.general_institution) == "Allen Institute of Brain Science"% if the cell is from the AIBS 
-      ICsummary.brainOrigin(n) = {info.values{...
-        1}.location(1:find(info.values{...
-           1}.location==',')-1)};                                          % assign part of the description of as brain area to summary table 
-   else
-      ICsummary.brainOrigin(n) = {info.values{1}.location};                % assign brain area to summary table          
-      ICsummary.Species(n) = {nwb.general_subject.species};                % assign species to summary table   
-      if ~isempty(nwb.general_subject.weight)
-        ICsummary.Weight(n) = {str2num(nwb.general_subject.weight)};         % assign weight to summary table    
-      end
-      if ~isempty(nwb.general_subject.sex)
-        ICsummary.Sex(n) = {nwb.general_subject.sex};                        % assign sex to summary table 
-      end
-      if ~isempty(nwb.general_subject.age)
-        ICsummary.Age(n) = {str2num(nwb.general_subject.age)};         % assign weight to summary table    
-      end
    end
     
    if nwb.general.Count ~= 0 && ...

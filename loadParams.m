@@ -20,15 +20,16 @@ PS.LPtags = ["LP","SubThresh", "SupraThresh", "LS", "Long"];
 PS.SPtags = ["SP","C1SS", "Short"];
 PS.LPlength = 1;
 PS.SPlength = 0.003;
-PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", ...
-    "EXPEND", "I-V", "unknown", "Unknown"];
+PS.SkipTags = ["Ramp","Search","SQCAP","C1RP", "CHIRP", "COARSE", "EXPEND"...
+   , "I-V", "unknown", "Unknown", "Noise", "0.5ms", "Triple", ...
+   "2s", "-80mV", "-60mV", "-70mV"];
 
 %% plotting parameters
 %plot_all can be either: 0 for a minimal amount of additional visualization;
 %1 for standard visualization, 2 for extensive visualizations (includes 
 %raw voltage data of RMSE integration window for each sweep)
 
-PS.plot_all = 1;
+PS.plot_all = 0;
 PS.pltForm = '.png';
 PS.Webexport=0; 
 
@@ -47,22 +48,22 @@ PS.cutoffInitRa = 60;                                                      % cut
 PS.factorRelaRa = 0.25;                                                    % cut off for relative value of intial access resistance  
 PS.noSupraSub = 1;                                                         % binary variable for kicking cells without suprathreshold features
 PS.maxRheoSpikes = 100;                                                    % maximum number of spikes the rheobase sweep is allowed to have 
-PS.maxCellBasLinPot = -57;                                                 %
+PS.maxCellBasLinPot = -56;                                                 %
 PS.InitRa = 0;                                                             %
 %% sweep-wise quality control parameters and integration windows
 PS.LPqc_samplWind = 0.375; PS.LPqc_recovTime = 4.75;                       % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the long pulse  
-PS.SPqc_samplWind = 0.25; PS.SPqc_recovTime = 0.65;                        % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the short pulse 
+PS.SPqc_samplWind = 0.25; PS.SPqc_recovTime = 0.650;                       % determine length and distance (in seconds) to stimulus end for window of RMSE calculations for the short pulse 
 PS.preTP= 0.015; PS.TPtrace = 0.08;                                        % determine length (in seconds) of prestimulus intervall and length of voltage trace for test pulse
 PS.RMSEst = 0.3;                                                           % maximum RMSE measure short term
 PS.RMSElt = 0.8;                                                           % maximum RMSE measure long term
 PS.RMSEdiff = 0.2; 
-PS.maxDiffBwBeginEnd = 3;                                                  % maximum difference between beginning and end of sweep
-PS.maxSwpBasLinPot = -55;                                                  % minimum resting potential
+PS.maxDiffBwBeginEnd = 3.5;                                                % maximum difference between beginning and end of sweep
+PS.maxSwpBasLinPot = -54;                                                  % minimum resting potential
 PS.holdingI = 100;                                                         % maximum holding current
-PS.bridge_balance = 22.5;                                                  % maximum bridge balance
+PS.bridge_balance = 25;                                                    % maximum bridge balance
 PS.bridge_balance_HEKA = 35;                                               % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
-PS.BwSweepMax = 4;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
+PS.BwSweepMax = 4.5;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 
 
 %% parameters for subthreshold analysis
@@ -70,9 +71,9 @@ PS.reboundWindow = 100;                                                    % win
 PS.reboundFitWindow = 150;                                                 % window from max rebound peak to fit / acquireRes
 PS.reboundSpWindow = 50;                                                   % window to look for rebound spikes (ms)
 PS.GF = 0.85;                                                              % goodness of fit for exponential fit for tau
-PS.maxDefl = -12;                                                          % maximum deflection in mV for determining tau
+PS.maxDefl = -14;                                                          % maximum deflection in mV for determining tau
 PS.WinHD = 0.2;                                                            % time window from stimulus onset to search for point of highest deflection
-
+PS.postFilt = 0;
 %% spike-wise quality control parameters
 PS.pcentMaxdVdt = 0.1;                                                     % threshold = < % of dVdt
 PS.absdVdt = 2.9;                                                          % threshold = absolute value

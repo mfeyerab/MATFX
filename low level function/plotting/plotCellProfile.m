@@ -103,10 +103,12 @@ end
  
 if isa(SwpAmps, 'double')
    RheoAmp = num2str(unique(SwpAmps(PS.rheoSwpTabPos)));
+   sagAmp = num2str(unique(SwpAmps(PS.sagSwpTabPos)));
 else
    RheoAmp = num2str(unique(SwpAmps.load(PS.rheoSwpTabPos)));
+   sagAmp = num2str(unique(SwpAmps.load(PS.sagSwpTabPos)));
 end
-title(['LP rheo (', RheoAmp,' pA) and sag sweep'])
+title(['LP rheo (', RheoAmp,' pA) and sag sweep (', sagAmp,'pA)'])
 xlabel('time (ms)')
 box off
 

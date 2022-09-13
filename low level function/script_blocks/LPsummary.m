@@ -6,9 +6,9 @@ SwpAmps = IcephysTab.stimuli.vectordata.values{1}.data;                    % Ass
 qcParas = nwb.processing.map('QC parameter'...
                                      ).dynamictable.values{1}.vectordata;
 qcPass = IcephysTab.dynamictable.map('quality_control_pass').vectordata;
-
-LPIdx = contains(cellstr(IcephysTab.dynamictable.map('protocol_type'...
-                     ).vectordata.values{1}.data.load),PS.LPtags);
+Proto = strtrim(string(IcephysTab.dynamictable.map('protocol_type'...
+                     ).vectordata.values{1}.data.load));
+LPIdx = contains(cellstr(Proto),PS.LPtags);
 
 if isa(qcPass.values{1}.data, 'double')                                    % Newly written entries into nwb object are doubles not DataStubs, hence there are two different forms of code needed to access them
   
@@ -84,7 +84,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      grid off; box off; xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
      title('Dynamic frequency range');
      exportgraphics(gcf, ...
-         fullfile(PS.outDest, 'firingPattern', [PS.cellID,' TP profile',PS.pltForm]))     
+         fullfile(PS.outDest, 'firingPattern', [PS.cellID,'_DFR',PS.pltForm]))     
    end            
    % adaptation   
    icSum.AdaptRatB1B2(ClNr,1) = ...                                        % divides the sum of all spikes in the second bin
@@ -101,7 +101,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
        StartIdx = find(SpPatrTab.map('firRt').data==Close2Rheo);
       end
     end    
-    if ~isempty(icSum.maxRt(ClNr,1)) && exist('Close2Rheo') && ~isempty(Close2Rheo)       
+    if ~isempty(icSum.maxRt(ClNr,1)) && ...
+            exist('Close2Rheo', 'var') && ~isempty(Close2Rheo)       
       MaxIdx = find(SpPatrTab.map('firRt').data==icSum.maxRt(ClNr,1));    
       StartSwpBinCount = table2array(getRow(spPatr.values{2},StartIdx));   % spike bin counts for start sweep 
       MaxSwpBinCount = table2array(getRow(spPatr.values{2},MaxIdx));       % spike bin counts for the sweep with maximum firing rate                        
@@ -134,61 +135,63 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   if isa(SwpAmps, 'double')                                                % if current amplitude is double not a DataStub
     LPampsQC = round(SwpAmps(IdxPassSwps));                                % assign current amplitudes  of sweeps that made the QC to variable
   else  
-    LPampsQC = round(SwpAmps.load(find(IdxPassSwps)));                     % assign current amplitudes  of sweeps that made the QC to variable
+    SwpAmps2 = round(SwpAmps.load);
+    LPampsQC = round(SwpAmps2(find(IdxPassSwps)));                         % assign current amplitudes  of sweeps that made the QC to variable
   end
   %% sag sweep                                                                                                                                                                             % the number of runs is lower than the number of sweep amplitudes +1    
-  sagAmp = min(LPampsQC);                                                  % finds sag sweep amplitude 
-  if (sagAmp < -70 && icSum.RinSS(ClNr,1) < 100) || ...
-           (sagAmp <= -50 && icSum.RinSS(ClNr,1) > 100)
-   tempIdx = find(all([round(SwpAmps.load(find(LPIdx)))==sagAmp; ...
-                  qcPass.values{1}.data(LPIdx)],1));                 
-   if length(tempIdx) >1
-     for i=1:length(tempIdx)  
-      temp = find(LPIdx,tempIdx(i), 'first');
-      PS.sagSwpTabPos(i) = temp(end);
-     end                                                                   % get sag sweep table position 
-     sagSwpID = regexp([SwpRespTbl(PS.sagSwpTabPos).path],'\d*','Match');  % gets the sweep name from the last chunck                          
-     StimOn = IcephysTab.responses.response.data.load.idx_start(PS.sagSwpTabPos);
-     SagData = cell(sum(StimOn==mode(StimOn)),1);
-     for s=1:length(sagSwpID)       
-      if StimOn(s)==mode(StimOn)
-         SagData{s,1}  = SubThres.values{endsWith(...
-                              SubThres.keys,['_',sagSwpID{s}])}.vectordata;   
-      end
+  PotSagAmps = sort(LPampsQC(LPampsQC<0), 'descend');                      % finds sag sweep amplitude 
+  tmpSwtc = 0; currSagDefl = 0;
+  for s=1:length(PotSagAmps)
+   tempIdx = find(SwpAmps2==PotSagAmps(s),1,'last');                                % get sag sweep table position 
+   sagSwpID = regexp(SwpPaths{tempIdx},'\d*','Match');                     % gets the sweep name from the last chunck    
+   if any(endsWith(SubThres.keys,['_',char(sagSwpID)]))
+          SagData = SubThres.values{...
+       endsWith(SubThres.keys,['_',char(sagSwpID)])}.vectordata;
+     if (tmpSwtc==0 && SagData.map('maxSubDeflection').data < (PS.maxDefl-2)) || (...
+      abs(SagData.map('maxSubDeflection').data-(PS.maxDefl-2)) < currSagDefl && ...
+       SagData.map('maxSubDeflection').data < (PS.maxDefl-2))
+       
+     currSagDefl = abs(SagData.map('maxSubDeflection').data-PS.maxDefl);
+     tmpSwtc = 1;PS.sagSwpTabPos = tempIdx;
+     icSum.sagAmp(ClNr,1) = PotSagAmps(s);   
+     icSum.sag(ClNr,1) = round(SagData.map('sag').data,2);                 % save sag amplitude of sag sweep
+     icSum.sagRat(ClNr,1) = round(SagData.map('sagRat').data,2);           % save ratio of sag sweep   
+     icSum.sagVrest(ClNr,1) = round(SagData.map('baseVm').data,2);         % save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            
+     PS.sagSwpSers = nwb.resolve(SwpPaths(tempIdx));                       % save CC series to plot it later in the cell profile  
      end
-     SagIdx = StimOn==mode(StimOn);
-     icSum.sagAmp(ClNr,1) = sagAmp;   
-     icSum.sag(ClNr,1) = round(mean(cellfun(@(x) ...
-                     x.map('sag').data,SagData(SagIdx))),2);               % save sag amplitude of sag sweep
-     icSum.sagRat(ClNr,1) = round(mean(cellfun(@(x) ...
-                        x.map('sagRat').data,SagData(SagIdx))),2);         % save ratio of sag sweep   
-     icSum.sagVrest(ClNr,1) = round(mean(qcParas.map('Vrest').data(...
-         PS.sagSwpTabPos(SagIdx))),2);                                     % save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            
-     PS.sagSwpSers = nwb.resolve(SwpPaths(PS.sagSwpTabPos(SagIdx)));       % save CC series to plot it later in the cell profile          
-   else
-    temp = find(LPIdx,tempIdx, 'first');
-    PS.sagSwpTabPos = temp(end);
-    sagSwpID = regexp([SwpRespTbl(PS.sagSwpTabPos).path],'\d*','Match');   % gets the sweep name from the last chunck                          
-    sagSwpDat = SubThres.values{endsWith(...
-                        SubThres.keys,['_',sagSwpID{1}])}.vectordata;      % get sag sweep data
-    if ~isempty(sagSwpDat)                                                 % if there is sag sweep data
-     icSum.sagAmp(ClNr,1) = sagAmp;   
-     icSum.sag(ClNr,1) = round(sagSwpDat.map('sag').data,2);               % save sag amplitude of sag sweep
-     icSum.sagRat(ClNr,1) = round(sagSwpDat.map('sagRat').data,2);         % save ratio of sag sweep   
-     icSum.sagVrest(ClNr,1) = round(qcParas.map('Vrest').data(...
-                                                  PS.sagSwpTabPos(end)),2);% save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            
-     PS.sagSwpSers = nwb.resolve(SwpPaths(PS.sagSwpTabPos(end)));          % save CC series to plot it later in the cell profile 
-    end
    end
   end
+  if tmpSwtc==0 && ~isempty(PotSagAmps)
+   icSum.sagAmp(ClNr,1) =  min(PotSagAmps);
+   PS.sagSwpTabPos = find(SwpAmps2==icSum.sagAmp(ClNr,1),1,'last');        % get sag sweep table position  
+   sagSwpID = regexp(SwpPaths{PS.sagSwpTabPos},'\d*','Match');             % gets the sweep name from the last chunck    
+    SagData = SubThres.values{...
+       endsWith(SubThres.keys,['_',char(sagSwpID)])}.vectordata;
+   icSum.sag(ClNr,1) = round(SagData.map('sag').data,2);                   % save sag amplitude of sag sweep
+   icSum.sagRat(ClNr,1) = round(SagData.map('sagRat').data,2);             % save ratio of sag sweep   
+   icSum.sagVrest(ClNr,1) = round(SagData.map('sagRat').data,2);           % save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            
+   PS.sagSwpSers = nwb.resolve(SwpPaths(PS.sagSwpTabPos));    
+  end
   %% rheobase sweeps and parameters of first spike
-  if exist('LPsupraIDs') && iscell(LPsupraIDs) && ~isempty(passRts)
-   AllSuprAmps = SwpAmps.load(find(...
-                              ismember(cellstr(string(SwpIDs)),SuprIDs)));
-   rheoIdx = find(SpPatrTab.map('firRt').data <= ...
-       min(passRts)*2 & AllSuprAmps < min(I)*2,1,'first');    
-   icSum.rheoRt(ClNr,1) = SpPatrTab.map('firRt').data(rheoIdx);
-   RheoSwpID = SuprIDs(rheoIdx);
+  if exist('LPsupraIDs', 'var') && iscell(LPsupraIDs) && ~isempty(passRts)
+   rheoIdx = find(passRts <= median(passRts) & I < median(I));
+   if ~isempty(rheoIdx) && length(unique(passRts(rheoIdx)))>1
+       [maxPotRheoRt, tempIdx] = max(passRts(rheoIdx));
+       while maxPotRheoRt > 1 && ...
+           any(I(passRts < maxPotRheoRt) < min(I(passRts == maxPotRheoRt)))
+         rheoIdx(tempIdx) = [];
+         [maxPotRheoRt, tempIdx] = max(passRts(rheoIdx));
+       end
+       if length(rheoIdx)>1
+          rheoIdx = rheoIdx(1);
+       end
+   elseif length(passRts)==1
+     rheoIdx=1;
+   else
+        [~,rheoIdx] = min(I);
+   end
+   icSum.rheoRt(ClNr,1) = passRts(rheoIdx);
+   RheoSwpID = LPsupraIDs(rheoIdx);
    if length(RheoSwpID) > 1
     for r=1:length(RheoSwpID)
     PS.rheoSwpTabPos(r) = find(endsWith(SwpPaths,['_', RheoSwpID{r}]));    % save position of rheo sweep in sweep table   
@@ -206,8 +209,10 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
     rheoProModPos = endsWith(APwave.keys,['_', RheoSwpID{1}]);             % save position of first rheo sweep in AP processing moduls
     PS.rheoSwpDat = APwave.values{find(rheoProModPos,1,'first')}.vectordata;
     if ~isempty(PS.rheoSwpDat)                                             % if there is a rheo sweep
-     PS.rheoSwpSers = nwb.resolve(SwpRespTbl(PS.rheoSwpTabPos).path);      % get CCSeries from rheo sweep                                                        
-     icSum.Rheo(ClNr,1) = round(SwpAmps.load(PS.rheoSwpTabPos));           % get current stimulus from rheo sweep from sweep table 
+     PS.rheoSwpSers = nwb.resolve(SwpRespTbl(PS.rheoSwpTabPos).path);      % get CCSeries from rheo sweep
+
+     icSum.Rheo(ClNr,1) = round(min(I(passRts==passRts(rheoIdx))));        % get minimum current stimulus of all sweeps with the number of spikes of rheobase sweep  
+ 
      StimOnIdx = IcephysTab.responses.response.data.load.idx_start(...
                                                          PS.rheoSwpTabPos);
      StimOnTi = double(StimOnIdx)*1000/PS.rheoSwpSers.starting_time_rate;
@@ -234,11 +239,12 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
               target+15 target+20 target+25 target+30];
     elseif icSum.Rheo(ClNr,1) < 180 
      target = round(icSum.Rheo(ClNr,1),-1)+80;                             % target current is Rheo + 80 pA
-     targets = [target+10 target+15 target+20 target+25 ...
+     targets = [target-20 target-10 target target+10 target+15 target+20 target+25 ...
                target+30 target+35 target+40 target+45 target+50];
     else 
-     target = round(icSum.Rheo(ClNr,1),-1)+140;                            % target current is Rheo + 140 pA
-     targets = [target+10 target+20 target+30 target+40 target+50];
+     target = round(icSum.Rheo(ClNr,1),-1)+110;                            % target current is Rheo + 140 pA
+     targets = [target-30 target-20 target-10 target target+10 target+20 ...
+                        target+30 target+40 target+50];
     end 
     while ~any(passRts(ismember(I,targets))>1)  && max(targets) < 1200     % if any of the potential hero sweep has more than one spike
         target = unique(max(targets));                                     % get current steps that are both target for a herosweep and part of the LP protocols that passed QC      
@@ -317,6 +323,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      icSum.peakAdapt(ClNr,1) = round(PS.heroSwpAPPDat.peakAdapt,3);        % get peak adaptation of hero sweep
      icSum.adaptIdx(ClNr,1) = round(PS.heroSwpAPPDat.adaptIdx2,3);         % get adaptation index of hero sweep 
      icSum.burst(ClNr,1) = round(PS.heroSwpAPPDat.burst,2);                % get bursting index of hero sweep 
+    else
+        disp("No suitable hero sweep")
     end
    end
   end

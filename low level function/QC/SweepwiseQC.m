@@ -42,7 +42,7 @@ if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
            CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000;
       
  if PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
-           Wind*CCSers.starting_time_rate > CCSers.data.dims   
+           Wind*CCSers.starting_time_rate > length(CCSers.data.load)  
        
        error('Recovery period and/or integration window are too long. Please adjust in loadParams')
  else
@@ -69,11 +69,16 @@ else
 end
 
 restVPre = mean(vec_pre);
-temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_pre);
-rmse_pre = sqrt(mean((temp - restVPre).^2));
 restVPost = mean(vec_post);
-temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_post);
-rmse_post = sqrt(mean((temp(25:end-25) - restVPost).^2));
+if PS.postFilt
+    temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_pre);
+    rmse_pre = sqrt(mean((temp - restVPre).^2));
+    temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_post);
+    rmse_post = sqrt(mean((temp - restVPost).^2));
+else
+    rmse_pre = sqrt(mean((vec_pre - restVPre).^2));
+    rmse_post = sqrt(mean((vec_post - restVPost).^2));
+end
 diffV_b_e = abs(restVPre-restVPost); % differnce between end and stim onset 
 %% Determining short-term noise
 

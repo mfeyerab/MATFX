@@ -189,7 +189,7 @@ for n = 1:length(cellList)                                                 % for
    %% Sweep-wise analysis          
    if (PS.([char(ProtoTags(SwpCt,:)),'qc_recovTime'])+ ...                 % checks if the sweep is of sufficient size for the respective protocol
         PS.([char(ProtoTags(SwpCt,:)),'length']))*CCSers.starting_time_rate...
-        < CCSers.data.dims                                                    
+        < length(CCSers.data.load)                                                  
           
      QC = SweepwiseQC(CCSers, PS, QC, SwpCt, LPfilt);                      % Sweep QC of the CurrentClampSeries                              
                                
@@ -259,17 +259,17 @@ for n = 1:length(cellList)                                                 % for
   %% Cell-wise QC 2: Too depolarized after breaktrough
  if isnan(ICsummary.RinSS(n))
     QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (QC.params.holdingI(1)*1e-09*sqrt(ICsummary.RinHD(n))*1e06)};  
+     (QC.params.holdingI(1)*1e-09*6*sqrt(ICsummary.RinHD(n))*1e06)};  
  else
      QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (QC.params.holdingI(1)*1e-09*sqrt(ICsummary.RinSS(n))*1e06)};    
+     (QC.params.holdingI(1)*1e-09*6*sqrt(ICsummary.RinSS(n))*1e06)};    
  end 
  QCcellWise.Rm(n) =  {ICsummary.RinSS(n)};
  if QCcellWise.Vm{n} > QCcellWise.VmCutOff{n}
     disp("first recorded Vrest after breakthrough too depolarized")
-     QCcellWise.Fail(n) = 1; 
-     ICsummary(n,1:end-8) = {NaN};
-     theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
+    QCcellWise.Fail(n) = 1; 
+    ICsummary(n,1:end-8) = {NaN};
+    theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
  %% Cell-wise QC 3: No suprathreshold LP sweeps 
  if QCcellWise.Fail(n)~= 1  && PS.noSupraSub == 1 &&  ...                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
