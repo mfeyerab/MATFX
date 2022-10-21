@@ -38,12 +38,13 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   minAmp = 200; minAmpSubSwpIdx = [];
   for s = 1:length(SubThres.keys)                                          % for each subthreshold sweep 
    if SubThres.values{s}.vectordata.map('GFtau').data > PS.GF &&...
-        SubThres.values{s}.vectordata.map('maxSubDeflection').data > PS.maxDefl
+        SubThres.values{s}.vectordata.map('maxSubDeflection').data > PS.maxDefl &&...
+           abs(SubThres.values{s}.vectordata.map('SwpAmp').data) > 10 
     
      tauVec(s,1)=SubThres.values{s}.vectordata.map('tau').data;
    end
    if SubThres.values{s}.vectordata.map('GFtau').data > PS.GF && ...
-           minAmp > abs(SubThres.values{s}.vectordata.map('SwpAmp').data) 
+           minAmp > abs(SubThres.values{s}.vectordata.map('SwpAmp').data)             
       minAmpSubSwpIdx = s;
       minAmp = abs(SubThres.values{s}.vectordata.map('SwpAmp').data); 
    end
@@ -169,7 +170,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
        endsWith(SubThres.keys,['_',char(sagSwpID)])}.vectordata;
    icSum.sag(ClNr,1) = round(SagData.map('sag').data,2);                   % save sag amplitude of sag sweep
    icSum.sagRat(ClNr,1) = round(SagData.map('sagRat').data,2);             % save ratio of sag sweep   
-   icSum.sagVrest(ClNr,1) = round(SagData.map('sagRat').data,2);           % save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            
+   icSum.sagVrest(ClNr,1) = round(SagData.map('baseVm').data,2);           % save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            
    PS.sagSwpSers = nwb.resolve(SwpPaths(PS.sagSwpTabPos));    
   end
   %% rheobase sweeps and parameters of first spike
@@ -268,7 +269,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       end    
     end
     if exist("heroID") && ~isempty(heroID)                                 % if there are potential hero sweep names
-     PosSpTrain = find(str2double(LPsupraIDs)==heroID(1));                 % saves the position of the spPatr module that matches the first current potential hero sweep
+     PosSpTrain = find(ismember(spPatr.map('AP Pattern parameter'...
+      ).vectordata.map('SwpID').data, num2str(heroID(1))));                % saves the position of the spPatr module that matches the first current potential hero sweep
      if ~isempty(PosSpTrain)
       PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
      elseif length(heroID)>1

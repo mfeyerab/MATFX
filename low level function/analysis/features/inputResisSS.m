@@ -34,7 +34,25 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
     box off
     axis tight
     exportgraphics(gcf, fullfile(PS.outDest, 'resistance', [...
-        PS.cellID, ' resistance_ss.png']));
+        PS.cellID, ' resistance_ss', PS.pltForm]));
+    end
+elseif length(nonzeros(tempX)) == 1
+    f = polyfit([0; tempX],[0; tempY],1);
+    b = round(f(1) * (10^3));
+    offset = 0;
+    if PS.plot_all >= 1
+        figure('visible','off'); 
+        hold on
+        plot([0; tempX],(f(1)*[0; tempX]+f(2))','k','LineWidth',1)
+        scatter(tempX,tempY,'r')
+        legend('off')
+        xlabel('input current (pA)')
+        ylabel('change in membrane potential (mV)')
+        title('V/I curve')
+        box off
+        axis tight  
+        exportgraphics(gcf,fullfile(PS.outDest, ...
+            'resistance', [PS.cellID,' resistance_ss',PS.pltForm]))
     end
 else
     b = NaN;   

@@ -36,7 +36,7 @@ PS.Webexport=0;
 %% spike detection and analysis
 PS.thresholdV = -15;                                                       % detection threshold for V-based spikes
 PS.thresholdDVDT = 20;                                                     % detection threshold for dV/dt-based spikes
-PS.refPeakSlop = 0;                                                        % refined peak up and down stroke are filtered before max/min analysis => needs much more processing time  
+PS.refPeakSlop = 1;                                                        % refined peak up and down stroke are filtered before max/min analysis => needs much more processing time  
 PS.enableSpQC = 0;                                                         % parameter to determine if spike "quality" will be evaluated
 
 %% resampling
@@ -60,10 +60,10 @@ PS.RMSEdiff = 0.2;
 PS.maxDiffBwBeginEnd = 3.5;                                                % maximum difference between beginning and end of sweep
 PS.maxSwpBasLinPot = -54;                                                  % minimum resting potential
 PS.holdingI = 100;                                                         % maximum holding current
-PS.bridge_balance = 25;                                                    % maximum bridge balance
+PS.bridge_balance = 31;                                                    % maximum bridge balance
 PS.bridge_balance_HEKA = 35;                                               % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
-PS.BwSweepMax = 4.5;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
+PS.BwSweepMax = 5;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 
 
 %% parameters for subthreshold analysis
@@ -73,7 +73,7 @@ PS.reboundSpWindow = 50;                                                   % win
 PS.GF = 0.85;                                                              % goodness of fit for exponential fit for tau
 PS.maxDefl = -14;                                                          % maximum deflection in mV for determining tau
 PS.WinHD = 0.2;                                                            % time window from stimulus onset to search for point of highest deflection
-PS.postFilt = 0;
+PS.postFilt = 1;
 %% spike-wise quality control parameters
 PS.pcentMaxdVdt = 0.1;                                                     % threshold = < % of dVdt
 PS.absdVdt = 2.9;                                                          % threshold = absolute value

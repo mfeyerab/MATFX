@@ -51,7 +51,6 @@ if ~isempty(tempX) && length(nonzeros(tempX)) > 1
         axis tight 
         exportgraphics(gcf,fullfile(PS.outDest, ...
             'resistance', [PS.cellID,' input resistance',PS.pltForm]))
-        close
     end
 elseif length(nonzeros(tempX)) == 1
   
@@ -71,7 +70,6 @@ elseif length(nonzeros(tempX)) == 1
         axis tight  
         exportgraphics(gcf,fullfile(PS.outDest, ...
             'resistance', [PS.cellID,' input resistance',PS.pltForm]))
-        close
     end
 else
     resistance = NaN;

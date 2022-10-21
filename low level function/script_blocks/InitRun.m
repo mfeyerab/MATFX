@@ -1,5 +1,5 @@
 %% load paramter structure and start using it as workspace structure
-PS = loadParams; PS.outDest = outDest; 
+run(fullfile(mainFolder, 'loadParams.m')); PS = ans; PS.outDest = outDest; 
 %% Initalize folder structure and loop
 cellList = dir([mainFolder,'\','*.nwb']);                                  % list of cell data files
 cellList = cellList(~[cellList.isdir]);
@@ -30,3 +30,4 @@ QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
 
 QCcellWise = table();                                
 LPfilt = lowPassFilt;
+
