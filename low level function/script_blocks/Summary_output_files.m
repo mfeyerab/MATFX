@@ -1,10 +1,10 @@
 %% Summary analysis output
 
-writetable(ICsummary,[PS.outDest, '\','ephys_features_', date,'.csv'], 'WriteRowNames',true);
+writetable(icSum,[PS.outDest, '\','ephys_features_', date,'.csv'], 'WriteRowNames',true);
 QCcellWise
 writetable(QCcellWise,[PS.outDest, '\','CellWideQC_', date,'.csv'], 'WriteRowNames',true);
 
-ICsummary = rmmissing(ICsummary,'DataVariables',{'htTP_LP','tau'}); %prune cells without spikes and time constant
+icSum = rmmissing(icSum,'DataVariables',{'htTP_LP','tau'}); %prune cells without spikes and time constant
 
 %% QC parameter for each cell
 
@@ -23,19 +23,19 @@ writetable(QC_removalsPerTag, [...
     PS.outDest,'\','QC_sweeps_per_tag_matrix_',date,'.csv'], 'WriteRowNames',true);  
 %% Website: Look up table,
 
-% for i = 1:length(ICsummary.Properties.RowNames)
-%    ID_new{i,1} =  NHP_ID_conversion(ICsummary.Properties.RowNames{i});
-%    SubjID{i,1} =  NHP_SubjID_conversion(ICsummary.Properties.RowNames{i});
+% for i = 1:length(icSum.Properties.RowNames)
+%    ID_new{i,1} =  NHP_ID_conversion(icSum.Properties.RowNames{i});
+%    SubjID{i,1} =  NHP_SubjID_conversion(icSum.Properties.RowNames{i});
 % end
-% T= table(ID_new, ICsummary.Properties.RowNames);
+% T= table(ID_new, icSum.Properties.RowNames);
 % T.Properties.VariableNames{2} = 'ID_old';
 % writetable(T,  fullfile(PS.outDest, ['ID_lookup_',date,'.csv']) );   
 % 
 % %% Website:Box1
 % 
-% val = [ID_new ICsummary.Species ICsummary.Sex ICsummary.brainOrigin ...
-%         SubjID ICsummary.dendriticType ICsummary.SomaLayerLoc ...
-%            ICsummary.Properties.RowNames]; 
+% val = [ID_new icSum.Species icSum.Sex icSum.brainOrigin ...
+%         SubjID icSum.dendriticType icSum.SomaLayerLoc ...
+%            icSum.Properties.RowNames]; 
 % 
 % colName = {'cellID' 'Species' 'Sex' ...
 %      'Cortical area' 'Subject ID' 'Dendrite type' 'Cortical layer' ...
@@ -46,9 +46,9 @@ writetable(QC_removalsPerTag, [...
 % writetable(T,[PS.outDest, '\','box1','.csv'])
 % 
 % %% Website:Box2
-% val =[ICsummary.widTP_LP ICsummary.htTP_LP ...
-%     ICsummary.Vrest ICsummary.Rheo  ICsummary.RinHD ICsummary.tau ...
-%     ICsummary.maxRt ICsummary.medInstaRt];
+% val =[icSum.widTP_LP icSum.htTP_LP ...
+%     icSum.Vrest icSum.Rheo  icSum.RinHD icSum.tau ...
+%     icSum.maxRt icSum.medInstaRt];
 % 
 % colName = {'cellID' 'AP halfwidth' 'AP amplitude' ...
 %     'Resting potential' 'Rheobase' 'Resistance' 'Time Constant' ...
@@ -56,7 +56,7 @@ writetable(QC_removalsPerTag, [...
 % 
 % T = array2table(NaN(size(val)+ [0 2]), 'VariableNames', colName);
 % T.cellID = ID_new;
-% T.internalID = ICsummary.Properties.RowNames;
+% T.internalID = icSum.Properties.RowNames;
 % T(:,2:9) = array2table(val);
 % 
 % writetable(T,[PS.outDest, '\','box2_ephys','.csv'])
