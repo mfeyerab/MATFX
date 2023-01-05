@@ -1,4 +1,4 @@
-function ICsummary = runPipeline(varargin) %{
+function icSum = runPipeline(varargin) %{
 %Runs quality control and feature analysis on data indicated
 %by input argument
 % 
@@ -20,11 +20,6 @@ function ICsummary = runPipeline(varargin) %{
 %  (input/output)Path - string or character array specifiying 
 %                      location for reading and/or writing NWB files
 %
-%  BetweenSwpMode     - integer of either 1 or 2: Mode 1 has a target
-%                      membrane potential, determined by a robust average  
-%                      of the first five sweeps: between sweep quality 
-%                      control in Mode 2 is assessed by deviations from 
-%                      the robust average of all sweeps.
 % 
 % Creates following files and folders in output folder:
 % 
@@ -101,7 +96,7 @@ function ICsummary = runPipeline(varargin) %{
 
 warning('off'); dbstop if error                                            % for troubleshooting errors
 
-if length(varargin) > 2                                                 
+if length(varargin) > 1                                                
           disp('No overwrite mode') 
           overwrite = 0;
           mainFolder = varargin{1};
@@ -111,19 +106,6 @@ else
      [outDest, mainFolder] = deal(varargin{1});
      overwrite = 1;
 end    
-
-if isa(varargin{length(varargin)}, 'double') 
-        BwSwpMode = varargin{length(varargin)};    
-        if BwSwpMode == 1
-            disp('between sweep QC with a set target value')
-        elseif BwSwpMode == 2
-            disp('between sweep QC without a set target value')
-        else
-            error('Please use int 1 or 2 as for respective between sweep QC')
-        end
-else
-   error('No number inputed for between sweep QC')
-end
 InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
@@ -169,8 +151,8 @@ for n = 1:length(cellList)                                                 % for
              ICEtab.dynamictable.values{1}.vectordata.values{1}.data.load));% Gets all protocol names without white space
  info = nwb.general_intracellular_ephys;   
  %% Initialize processing moduls and new columns for Sweep table
- initProceModules                                                         % initialize processing modules
- nwb  = addColumns2SwTabl(nwb,qc_tags);                                   % add initialized QC to sweep table 
+ initProceModules                                                          % initialize processing modules
+ nwb  = addColumns2SwTabl(nwb,qc_tags);                                    % add initialized QC to sweep table 
  %% Looping through sweeps    
  for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable             
   InitSweep                                                                % Initalizes sweep-wide variables 
@@ -203,7 +185,7 @@ for n = 1:length(cellList)                                                 % for
        end
        PS.supraCount = PS.supraCount + 1;                         
 
-     elseif PS.SwDat.swpAmp < 0  && ProtoTags(SwpCt,:)=="LP"               % if current input is hyperpolarizing and protocol is long pulse
+     elseif ProtoTags(SwpCt,:)=="LP"                                       % if current input is hyperpolarizing and protocol is long pulse
       modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);        % getting subthreshold parameters                          
       PS.subCount = PS.subCount +1;
      end
@@ -225,7 +207,7 @@ for n = 1:length(cellList)                                                 % for
  end
  QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
  %% Between Sweep QC
- QC = BetweenSweepQC(QC, BwSwpMode, PS);                                   % execute betweenSweep QC  
+ QC = BetweenSweepQC(QC, PS);                                            % execute betweenSweep QC  
  %% Save QC into nwb file and summary structures
  saveProcessedCell
  %% Cell-wise QC 1: initial access resistance
@@ -249,34 +231,34 @@ for n = 1:length(cellList)                                                 % for
  end
  %% Feature Extraction and Summary     
  if QCcellWise.Fail(n)==0
-      [ICsummary, PS] = LPsummary(nwb, ICsummary, n, PS);                  % extract features from long pulse stimulus
-      [ICsummary, PS] = SPsummary(nwb, ICsummary, n, PS);                  % extract features from short pulse stimulus
+      [icSum, PS] = LPsummary(nwb, icSum, n, PS);                          % extract features from long pulse stimulus
+      [icSum, PS] = SPsummary(nwb, icSum, n, PS);                          % extract features from short pulse stimulus
       plotCellProfile(nwb, PS)                                             % plot cell profile 
       if PS.plot_all >0
-       plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
+       plotSanityChecks(QC, PS, icSum, n, ICEtab)
       end
  end  
   %% Cell-wise QC 2: Too depolarized after breaktrough
- if isnan(ICsummary.RinSS(n))
+ if isnan(icSum.RinSS(n))
     QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (QC.params.holdingI(1)*1e-09*6*sqrt(ICsummary.RinHD(n))*1e06)};  
+     (QC.params.holdingI(1)*1e-09*6*sqrt(icSum.RinHD(n))*1e06)};  
  else
      QCcellWise.VmCutOff(n) = {PS.maxCellBasLinPot + ...
-     (QC.params.holdingI(1)*1e-09*6*sqrt(ICsummary.RinSS(n))*1e06)};    
+     (QC.params.holdingI(1)*1e-09*6*sqrt(icSum.RinSS(n))*1e06)};    
  end 
- QCcellWise.Rm(n) =  {ICsummary.RinSS(n)};
+ QCcellWise.Rm(n) =  {icSum.RinSS(n)};
  if QCcellWise.Vm{n} > QCcellWise.VmCutOff{n}
     disp("first recorded Vrest after breakthrough too depolarized")
     QCcellWise.Fail(n) = 1; 
-    ICsummary(n,1:end-8) = {NaN};
+    icSum(n,1:end-8) = {NaN};
     theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
  %% Cell-wise QC 3: No suprathreshold LP sweeps 
  if QCcellWise.Fail(n)~= 1  && PS.noSupraSub == 1 &&  ...                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
-       (isnan(ICsummary.thresLP(n)) || isnan(ICsummary.RinHD(n)))                               
+       (isnan(icSum.thresLP(n)) || isnan(icSum.RinHD(n)))                               
     disp('excluded by cell-wide QC for no suprathreshold data') 
      QCcellWise.Fail(n) = 1; 
-     ICsummary(n,1:end-8) = {NaN};
+     icSum{n,1:end-8}=NaN;
      theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
  if QCcellWise.Fail(n)== 1 && exist('theFiles')
@@ -288,7 +270,7 @@ for n = 1:length(cellList)                                                 % for
  AddSubjectCellData 
 %% Export downsampled traces for display on website  
  if PS.Webexport==1 && ~isempty(LPexport)                                  % if there raw traces in the table for export
-     exportCells
+     WebExportCell
  end
   %% Write NWB file
  if QCcellWise.Fail(n)==0                                                  % if the cell is not excluded by cell wide QC

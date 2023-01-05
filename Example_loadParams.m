@@ -63,6 +63,8 @@ PS.holdingI = 100;                                                         % max
 PS.bridge_balance = 31;                                                    % maximum bridge balance
 PS.bridge_balance_HEKA = 35;                                               % maximum bridge balance
 PS.minGoodSpFra = 0.25;                                                    % minimum fraction of good spikes to pass sweep QC
+PS.BwSwpMode = 1;                                                          %1: target determined by a robust average of the first five sweeps: between sweep quality 
+                                                                           %2: deviations from the robust average of all sweeps.
 PS.BwSweepMax = 5;                                                         % maximum allowed deviation of the baseline membrane potential to initial resting membrane potential
 PS.manTPremoval = 1;                                                       % binary variable to enable/disable manual TP removal 
 
