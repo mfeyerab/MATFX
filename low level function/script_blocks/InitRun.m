@@ -17,7 +17,7 @@ if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
     mkdir(fullfile(PS.outDest, '\TP')) 
 end
 %% Initialize feature and QC summary tables
-ICsummary = initICSummary(cellList); 
+icSum = initICSummary(cellList); 
 
 qc_tags = {'SweepsTotal' 'QC_total_pass' 'stRMSE_pre' 'stRMSE_post' ...
         'ltRMSE_pre' 'ltRMSE_post' 'diffVrest' ...

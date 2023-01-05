@@ -19,7 +19,7 @@ if isempty(LP_TracesExport)
     LP_TracesExport.Properties.VariableNames{1} = 'SweepName';
     LP_TracesExport.Properties.VariableNames{2} = 'StimAmp';
     LP_TracesExport(SweepCount+1,1) =  {SwData.CurrentName};  
-    LP_TracesExport(SweepCount+1,2) =  {SwData.sweepAmp};
+    LP_TracesExport(SweepCount+1,2) =  {SwData.swpAmp};
     LP_TracesExport(SweepCount+1,3) = {round(output,2)};
 
 elseif ~isequal(table2array(LP_TracesExport(1,3)),timeseries)
@@ -28,7 +28,7 @@ elseif ~isequal(table2array(LP_TracesExport(1,3)),timeseries)
     
 else                                                                       
     LP_TracesExport(SweepCount+1,1) =  {SwData.CurrentName};  
-    LP_TracesExport(SweepCount+1,2) =  {SwData.sweepAmp};
+    LP_TracesExport(SweepCount+1,2) =  {SwData.swpAmp};
     LP_TracesExport(SweepCount+1,3) = {round(output,2)};
 
 end

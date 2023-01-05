@@ -22,7 +22,8 @@ function runQCsummary(path)
 %                   
 
 %% Start
-p = loadParams;tables = struct();
+run(fullfile(path,'loadParams.m')); p= ans; tables = struct();
+path=(fullfile(path,'output'));
 files = dir(fullfile(path,'QC'));
 files = {files(contains({files.name}, 'values')).name};
 
@@ -124,9 +125,16 @@ ylabel('post RMSE (long term)')
 exportgraphics(gcf,fullfile(path, 'QC', 'QC_RMSEplots.png'))
 
 %%
+ 
 RigTags = unique(cellfun(@(x) x(5:6), files,'UniformOutput',false));
-RigTags{length(RigTags)+1} = 'Total';
-RigQC = struct();
+if length(RigTags) < 10
+ RigTags{length(RigTags)+1} = 'Total';
+ RigQC = struct();
+  Allen = false;
+else
+ RigTags = {'Total'};
+ Allen = true;
+end
 
 for r=1:length(RigTags)
     RigQC.(char(RigTags(r))) = table();
@@ -140,13 +148,15 @@ for t = 1:length(cellTabs)
  RigQC.Total_I = [RigQC.Total_I; max(tables.(['T', num2str(t)]).holdingI)];
  RigQC.Total_BB =[RigQC.Total_BB; max(tables.(['T', num2str(t)]).bridge_balance_abs)];
  RigQC.Total_CC = [RigQC.Total_CC; max(tables.(['T', num2str(t)]).CapaComp)];
- RigQC.(files{t}(5:6)) = [RigQC.(files{t}(5:6)); tables.(['T', num2str(t)])];   
- RigQC.([files{t}(5:6), '_I']) = [RigQC.([files{t}(5:6), '_I']); ...
-                                max(tables.(['T', num2str(t)]).holdingI)];
- RigQC.([files{t}(5:6), '_BB']) = [RigQC.([files{t}(5:6), '_BB']); ...
-                                max(tables.(['T', num2str(t)]).bridge_balance_abs)];
- RigQC.([files{t}(5:6), '_CC']) = [RigQC.([files{t}(5:6), '_CC']); ...
-                                 max(tables.(['T', num2str(t)]).CapaComp)];
+ if ~Allen 
+     RigQC.(files{t}(5:6)) = [RigQC.(files{t}(5:6)); tables.(['T', num2str(t)])];   
+     RigQC.([files{t}(5:6), '_I']) = [RigQC.([files{t}(5:6), '_I']); ...
+                                    max(tables.(['T', num2str(t)]).holdingI)];
+     RigQC.([files{t}(5:6), '_BB']) = [RigQC.([files{t}(5:6), '_BB']); ...
+                                    max(tables.(['T', num2str(t)]).bridge_balance_abs)];
+     RigQC.([files{t}(5:6), '_CC']) = [RigQC.([files{t}(5:6), '_CC']); ...
+                                     max(tables.(['T', num2str(t)]).CapaComp)];
+ end
 end
 
 for r=1:length(RigTags)
