@@ -22,10 +22,9 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   if ~isempty(IdPassSwps)
   %% subthreshold parameters  
   SubThres = nwb.processing.map('subthreshold parameters').dynamictable;   % Creating variable with all subthreshold data for readability     
-  [icSum.RinHD(ClNr,1), icSum.RinOffset(ClNr,1)] = ...                     % Assign resistance and offset of cell in summary table
-        inputResistance(SubThres,PS, IdPassSwps);                          % the function returns input resistance and offset calculated as slope of a linear fit and "membrane deflection" at 0 pA       
-  icSum.RinSS(ClNr,1) = inputResisSS(SubThres, IdPassSwps, PS);            % same es previous lines but using steady state instead of highest deflection  
-  icSum.rectI(ClNr,1) = rectification(SubThres,IdPassSwps);                % calculates the rectification index 
+  [icSum.RinHD(ClNr,1), icSum.RinSS(ClNr,1), icSum.RinOffset(ClNr,1)] = ...% Assign resistance and offset of cell in summary table
+        getRin(SubThres,PS, IdPassSwps);                                   % the function returns input resistance and offset calculated as slope of a linear fit and "membrane deflection" at 0 pA       
+
   %tau Vrest
   if ~isempty(qcParas.map('SweepID').data)                                 % if there are any QCed sweeps             
    qcTabIdx = find(ismember(regexp(cell2mat(qcParas.map('SweepID').data),...%Gets index of all passed LP sweeps  from cell  
@@ -55,6 +54,30 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    icSum.tau(ClNr,1) = SubThres.values{minAmpSubSwpIdx...
                                          }.vectordata.map('tau').data;                        
   end
+
+  PS.tau = icSum.tau(ClNr,1); PS.Rin = icSum.RinHD(ClNr,1);
+
+  [icSum.HypRectDelay(ClNr,1), icSum.DepRectDelay(ClNr,1), ...
+   icSum.HypRectInsta(ClNr,1), icSum.DepRectInsta(ClNr,1)] = ...
+      getRect(SubThres,IdPassSwps, PS);     % calculates the rectification index 
+
+DepoIdx = [];
+for i=1:SubThres.Count
+ if SubThres.values{i}.vectordata.map('SwpAmp').data>0
+     DepoIdx = [DepoIdx;i];
+ end
+end
+
+if ~isempty(DepoIdx)
+  icSum.hump(ClNr,1) = 1;
+  icSum.humpRat(ClNr,1) = 1;
+  icSum.humpAmp(ClNr,1) = 1;
+else
+  icSum.hump(ClNr,1) = nan;
+  icSum.humpRat(ClNr,1) = nan;
+  icSum.humpAmp(ClNr,1) = nan;  
+end
+
   %% firing patterns
   spPatr = nwb.processing.map('AP Pattern').dynamictable;                  
   SpBinTab = nwb.processing.map('AP Pattern').dynamictable.values{2}.vectordata;                                    
@@ -164,7 +187,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   if tmpSwtc==0 && ~isempty(PotSagAmps)
    icSum.sagAmp(ClNr,1) =  min(PotSagAmps);
-   PS.sagSwpTabPos = find(SwpAmps2==icSum.sagAmp(ClNr,1),1,'last');        % get sag sweep table position  
+   PS.sagSwpTabPos = find(SwpAmps2==icSum.sagAmp(ClNr,1) & ...
+                                     IdxPassSwps,1,'last');                % get sag sweep table position  
    sagSwpID = regexp(SwpPaths{PS.sagSwpTabPos},'\d*','Match');             % gets the sweep name from the last chunck    
     SagData = SubThres.values{...
        endsWith(SubThres.keys,['_',char(sagSwpID)])}.vectordata;

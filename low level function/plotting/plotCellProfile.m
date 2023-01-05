@@ -261,9 +261,10 @@ end
 % box off
 % end
 %% Saving the figure
-F=getframe(gcf);
-imwrite(F.cdata,fullfile(PS.outDest, 'profiles', ...
-                                   [PS.cellID,' Cell profile',PS.pltForm]))
+exportgraphics(gcf,fullfile(PS.outDest, 'profiles', [PS.cellID, '.pdf']),'BackgroundColor','none');
+% F=getframe(gcf);
+% imwrite(F.cdata,fullfile(PS.outDest, 'profiles', ...
+%                                    [PS.cellID,' Cell profile',PS.pltForm]))
 %% Export LP rheo waveform 4 website
 if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)
     figure('visible','off')
@@ -283,6 +284,6 @@ if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)
         end
     p.Color = 'black'; 
     set(gca,'visible','off')
-    exportgraphics(gcf,fullfile(PS.outDest, 'AP_Waveforms', [PS.cellID, '.png']),'BackgroundColor','none');
+    exportgraphics(gcf,fullfile(PS.outDest, 'AP_Waveforms', [PS.cellID, '.pdf']),'BackgroundColor','none');
 end
 
