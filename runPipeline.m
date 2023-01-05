@@ -202,21 +202,22 @@ for n = 1:length(cellList)                                                 % for
    end
   end
  end
- %% QC bridge balance relative to input resistance
- Ri_preqc = inputResistance(modSubStats.dynamictable, PS);                 % calculate input resistance before QC 
+ %% Finishing QC (relative Ra, between sweep) and saving results
+ QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
+ [~,tempRin,~] = getRin(modSubStats.dynamictable, PS, ...
+       ~any(QC.pass{:,4:end}==0,2));                                       % calculate input resistance before final QC 
  if  PS.isHeka
      QC.pass.bridge_balance_rela(SwpCt) = true;
  else
      QC.pass.bridge_balance_rela = ...
-       QC.params.bridge_balance_abs < Ri_preqc*PS.factorRelaRa;            % check if input resistance meets relatice bridge balance criterium
+       QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;            % check if input resistance meets relatice bridge balance criterium
      QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
-     Ri_preqc*PS.factorRelaRa;
+     tempRin*PS.factorRelaRa;
  end
  QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
- %% Between Sweep QC
- QC = BetweenSweepQC(QC, PS);                                            % execute betweenSweep QC  
- %% Save QC into nwb file and summary structures
- saveProcessedCell
+
+
+ saveProcessedCell                                                         % Save QC into nwb file and summary structures
  %% Cell-wise QC 1: initial access resistance
  InitRa = info.values{1}.('initial_access_resistance');
  QCcellWise.ID(n) = {PS.cellID};                                           % save cellID for failing cell-wide QC
@@ -226,10 +227,10 @@ for n = 1:length(cellList)                                                 % for
  if PS.InitRa && ~isempty(InitRa) && ...
          length(regexp(InitRa,'\d*','Match')) >= 1                         % if ini access resistance is non empty and has a number as character
    InitRa = str2double(InitRa);
-   if InitRa > PS.cutoffInitRa && InitRa > Ri_preqc*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
+   if InitRa > PS.cutoffInitRa && InitRa > tempRin*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
      display(['excluded by cell-wide QC for initial Ra (', ...
         num2str(InitRa),') higher than realtive cutoff (', ...
-        num2str(Ri_preqc*PS.factorRelaRa), ') or absolute cutoff (', ...
+        num2str(tempRin*PS.factorRelaRa), ') or absolute cutoff (', ...
         num2str(PS.cutoffInitRa),')']);
         QCcellWise.Fail(n) = 1;                                            % save cellID for failing cell-wide QC
    end

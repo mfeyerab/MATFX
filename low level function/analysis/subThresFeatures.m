@@ -10,20 +10,21 @@ end
 
 subStats.subSweepAmRin = PS.SwDat.swpAmp;
 subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));           %does not take into account the testpulse
-[subStats.minV,subStats.minVt] = min(...
-   data(PS.SwDat.StimOn:PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate));
+[subStats.VmHD,subStats.VmHDt] = max(abs(...
+   data(PS.SwDat.StimOn:PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate)));
+subStats.VmHD = -subStats.VmHD;
 
 %% estimate minimum voltage
-subStats.maxSubDeflection = subStats.minV - subStats.baselineVm ;                             
-subStats.minVt = subStats.minVt+PS.SwDat.StimOn;
+subStats.maxSubDeflection = subStats.VmHD - subStats.baselineVm ;                             
+subStats.VmHDt = subStats.VmHDt+PS.SwDat.StimOn;
 %% time constant (rest to minimum V)
-if PS.postFilt
+if PS.postFilt && length(PS.SwDat.StimOn:subStats.VmHDt)>153
    y = filtfilt(LPfilt.sos, LPfilt.ScaleValues, ...
-                 data(PS.SwDat.StimOn:subStats.minVt));
+                 data(PS.SwDat.StimOn:subStats.VmHDt));
 else
-   y =  data(PS.SwDat.StimOn:subStats.minVt);
+   y =  data(PS.SwDat.StimOn:subStats.VmHDt);
 end
-x = linspace(1,subStats.minVt-PS.SwDat.StimOn,length(y))';
+x = linspace(1,subStats.VmHDt-PS.SwDat.StimOn,length(y))';
 if length(y)>=4
     [f,gof] = fit(x,y,'exp2');
     temp = .63*(abs(f(1)-f(length(x))));
@@ -33,7 +34,7 @@ if length(y)>=4
         if PS.plot_all >= 1
             figure('visible','off'); hold on
             IdxVec = PS.SwDat.StimOn-CCSers.starting_time_rate*0.10...
-                           :subStats.minVt;
+                           :subStats.VmHDt;
             plot(data(IdxVec))
             plot(x+CCSers.starting_time_rate*0.10,f(x),'r-.','LineWidth',2)
             title(['GOF=', num2str(gof.rsquare),...
@@ -73,9 +74,9 @@ else
     subStats.subSteadyState = NaN;
 end    
 
-subStats.sag = abs(subStats.subSteadyState-subStats.minV);
+subStats.sag = abs(subStats.subSteadyState-subStats.VmHD);
 
-subStats.sagRatio = (subStats.minV-subStats.baselineVm)/(subStats.subSteadyState-subStats.baselineVm);
+subStats.sagRatio = (subStats.VmHD-subStats.baselineVm)/(subStats.subSteadyState-subStats.baselineVm);
 
 %% rebound slope
 [val,loc] = max(CCSers.data.load(PS.SwDat.StimOff:...
@@ -98,7 +99,7 @@ subStats.reboundDepolarization = abs(CCSers.data.load(PS.SwDat.StimOff+loc)-...
 % end
 %%
 if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
-    subStats.minV  = subStats.minV*1000;  
+    subStats.VmHD  = subStats.VmHD*1000;  
     subStats.sag = subStats.sag*1000;
     subStats.maxSubDeflection = subStats.maxSubDeflection*1000;
 end
@@ -114,7 +115,7 @@ if sum(structfun(@numel,subStats)>1) > 0                                   % Fil
 end
 
 table = array2table(cell2mat(struct2cell(subStats))');
-table.Properties.VariableNames = {'SwpAmp','baseVm','minV','minVTime',...
+table.Properties.VariableNames = {'SwpAmp','baseVm','VmHD','VmHDTime',...
               'maxSubDeflection','tau', 'GFtau','SteadyState',...
              'sag','sagRat','reboundSlp','reboundDepolarization'};
 

@@ -97,10 +97,10 @@ function icSum = runPipeline(varargin) %{
 warning('off'); dbstop if error                                            % for troubleshooting errors
 
 if length(varargin) > 1                                                
-          disp('No overwrite mode') 
-          overwrite = 0;
-          mainFolder = varargin{1};
-          outDest = varargin{2};
+     disp('No overwrite mode') 
+     overwrite = 0;
+     mainFolder = varargin{1};
+     outDest = varargin{2};
 else
      disp('Overwrite mode') 
      [outDest, mainFolder] = deal(varargin{1});
@@ -112,8 +112,9 @@ tic
 for n = 1:length(cellList)                                                 % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
- if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)
-   disp([PS.cellID, ' skipped'])
+
+ if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)                  % If all sweeps failed manual review
+   disp([PS.cellID, ' skipped'])                                           % skipp the cell
  else
  nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
  %% Initialize QC
@@ -127,17 +128,19 @@ for n = 1:length(cellList)                                                 % for
     length(nwb.acquisition.keys), length(qc_tags)-1));                     % initializing actual parameter variables with NaNs
  QC.params.Properties.VariableNames(3:width(QC.params)) = ...        
       [qc_tags(3:end), {'CapaComp'}];                                      % naming parameter variables
- 
+
  QC.pass.SweepID = repmat({''},length(nwb.acquisition.keys),1);            % initializing SweepID column of QC passing table 
  QC.pass.Protocol = repmat({''},length(nwb.acquisition.keys),1);           % initializing Protocol column of QC passing table
  QC.pass(:,3:length(qc_tags)+2) = ...
       array2table(NaN(length(nwb.acquisition.keys), length(qc_tags)));     % initializing logic values for passing table
  QC.pass.Properties.VariableNames(3:width(QC.pass)-1) = qc_tags(2:end);    % naming passing parameters variables
  QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};            % initializing additional variable for sweep wise QC encoding manual test pulse review
+
  if PS.manTPremoval
    QC.pass.manuTP = TPtab.TP;                                              % assign binary from results of test pulse review to QC pass table
  end
- if ~isempty(nwb.general_devices.values{1}.manufacturer) &&...
+
+ if ~isempty(nwb.general_devices.values{1}.manufacturer) &&...             % determines if cell was recorded on HEKA amplifier          
      contains(nwb.general_devices.values{1}.manufacturer,'Heka')
      PS.isHeka = true;
  else
@@ -199,21 +202,22 @@ for n = 1:length(cellList)                                                 % for
    end
   end
  end
- %% QC bridge balance relative to input resistance
- Ri_preqc = inputResistance(modSubStats.dynamictable, PS);                 % calculate input resistance before QC 
+ %% Finishing QC (relative Ra, between sweep) and saving results
+ QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
+ tempRin = getRin(modSubStats.dynamictable, PS, ...
+     ~any(QC.pass{:,4:end}==0,2));                                         % calculate input resistance before final QC 
  if  PS.isHeka
      QC.pass.bridge_balance_rela(SwpCt) = true;
  else
      QC.pass.bridge_balance_rela = ...
-       QC.params.bridge_balance_abs < Ri_preqc*PS.factorRelaRa;            % check if input resistance meets relatice bridge balance criterium
+       QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;            % check if input resistance meets relatice bridge balance criterium
      QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
-     Ri_preqc*PS.factorRelaRa;
+     tempRin*PS.factorRelaRa;
  end
  QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
- %% Between Sweep QC
- QC = BetweenSweepQC(QC, PS);                                            % execute betweenSweep QC  
- %% Save QC into nwb file and summary structures
- saveProcessedCell
+
+
+ saveProcessedCell                                                         % Save QC into nwb file and summary structures
  %% Cell-wise QC 1: initial access resistance
  InitRa = info.values{1}.('initial_access_resistance');
  QCcellWise.ID(n) = {PS.cellID};                                           % save cellID for failing cell-wide QC
@@ -223,10 +227,10 @@ for n = 1:length(cellList)                                                 % for
  if PS.InitRa && ~isempty(InitRa) && ...
          length(regexp(InitRa,'\d*','Match')) >= 1                         % if ini access resistance is non empty and has a number as character
    InitRa = str2double(InitRa);
-   if InitRa > PS.cutoffInitRa && InitRa > Ri_preqc*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
+   if InitRa > PS.cutoffInitRa && InitRa > tempRin*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
      display(['excluded by cell-wide QC for initial Ra (', ...
         num2str(InitRa),') higher than realtive cutoff (', ...
-        num2str(Ri_preqc*PS.factorRelaRa), ') or absolute cutoff (', ...
+        num2str(tempRin*PS.factorRelaRa), ') or absolute cutoff (', ...
         num2str(PS.cutoffInitRa),')']);
         QCcellWise.Fail(n) = 1;                                            % save cellID for failing cell-wide QC
    end

@@ -6,7 +6,7 @@ cellList = cellList(~[cellList.isdir]);
 
 if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
     mkdir(fullfile(PS.outDest, '\peristim'))
-    mkdir(fullfile(PS.outDest, '\resistance'))
+    mkdir(fullfile(PS.outDest, '\IU'))
     mkdir(fullfile(PS.outDest, '\profiles'))
     mkdir(fullfile(PS.outDest, '\firingPattern'))
     mkdir(fullfile(PS.outDest, '\QC'))
