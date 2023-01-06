@@ -109,7 +109,7 @@ end
 InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
-for n = 100:length(cellList)                                                 % for all cells in directory
+for n = 1:length(cellList)                                                 % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
 
@@ -189,12 +189,14 @@ for n = 100:length(cellList)                                                 % f
        if ~isempty(sp) && ~isempty(sp.peak)                                % if sweep has more than one spike
          SpPattrn.spTrainIDs(PS.supraCount,1) = {PS.SwDat.CurrentName};    % sweep name is saved under spike train IDs
          SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);       % getting spike train parameters
+         PS.supraCount = PS.supraCount + 1;                         
+       elseif ProtoTags(SwpCt,:)=="LP"                                     % if no spikes have been detected and protocol is long pulse
+         modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);     % getting subthreshold parameters                          
+         PS.subCount = PS.subCount +1;
        end
-       PS.supraCount = PS.supraCount + 1;                         
-
-     elseif ProtoTags(SwpCt,:)=="LP"                                       % if current input is hyperpolarizing and protocol is long pulse
-      modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);        % getting subthreshold parameters                          
-      PS.subCount = PS.subCount +1;
+     elseif ProtoTags(SwpCt,:)=="LP" 
+         modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);     % getting subthreshold parameters                          
+         PS.subCount = PS.subCount +1;
      end
    else
        disp([PS.SwDat.CurrentPath, ...
@@ -205,7 +207,7 @@ for n = 100:length(cellList)                                                 % f
  %% Finishing QC (relative Ra, between sweep) and saving results
  QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
  [~,tempRin,~] = getRin(modSubStats.dynamictable, PS, ...
-       ~any(QC.pass{:,4:end}==0,2));                                       % calculate input resistance before final QC 
+       find(~any(QC.pass{:,4:end}==0,2)));                                 % calculate input resistance before final QC 
  if  PS.isHeka
      QC.pass.bridge_balance_rela(SwpCt) = true;
  else
@@ -215,7 +217,6 @@ for n = 100:length(cellList)                                                 % f
      tempRin*PS.factorRelaRa;
  end
  QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
-
 
  saveProcessedCell                                                         % Save QC into nwb file and summary structures
  %% Cell-wise QC 1: initial access resistance

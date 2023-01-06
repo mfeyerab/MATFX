@@ -190,8 +190,10 @@ end
    PS.sagSwpTabPos = find(SwpAmps2==icSum.sagAmp(ClNr,1) & ...
                                      IdxPassSwps,1,'last');                % get sag sweep table position  
    sagSwpID = regexp(SwpPaths{PS.sagSwpTabPos},'\d*','Match');             % gets the sweep name from the last chunck    
-    SagData = SubThres.values{...
+   if any(endsWith(SubThres.keys,['_',char(sagSwpID)])) 
+     SagData = SubThres.values{...
        endsWith(SubThres.keys,['_',char(sagSwpID)])}.vectordata;
+   end
    icSum.sag(ClNr,1) = round(SagData.map('sag').data,2);                   % save sag amplitude of sag sweep
    icSum.sagRat(ClNr,1) = round(SagData.map('sagRat').data,2);             % save ratio of sag sweep   
    icSum.sagVrest(ClNr,1) = round(SagData.map('baseVm').data,2);           % save membrane potential of sag sweep from the QC parameters in sweep table because these are always in mV!                                                                  %            

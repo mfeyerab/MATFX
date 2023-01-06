@@ -9,11 +9,14 @@ end
 
 
 subStats.subSweepAmRin = PS.SwDat.swpAmp;
-subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));           %does not take into account the testpulse
-[subStats.VmHD,subStats.VmHDt] = max(abs(...
-   data(PS.SwDat.StimOn:PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate)));
-subStats.VmHD = -subStats.VmHD;
-
+subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));                       %does not take into account the testpulse
+if PS.SwDat.swpAmp>0
+[subStats.VmHD,subStats.VmHDt] = max(...
+   data(PS.SwDat.StimOn:PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate));
+else
+[subStats.VmHD,subStats.VmHDt] = min(...
+   data(PS.SwDat.StimOn:PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate));
+end
 %% estimate minimum voltage
 subStats.maxSubDeflection = subStats.VmHD - subStats.baselineVm ;                             
 subStats.VmHDt = subStats.VmHDt+PS.SwDat.StimOn;

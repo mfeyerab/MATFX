@@ -50,7 +50,7 @@ if ~isempty(tempX) && length(tempX) > 1
         legend({'Rin_H_D','Rin_S_S'},'Location','northwest')
         xlabel('input current (pA)')
         ylabel('change in membrane potential (mV)')
-        title('V/I curve')
+        title('IU curve')
         box off
         axis tight 
         F=getframe(gcf);
@@ -73,11 +73,16 @@ elseif length(tempX) == 1
         scatter(tempX,tempYHD,'r')
         scatter(tempX,tempYSS,'m')
         legend({'Rin_H_D','Rin_S_S'},'Location','northwest')
-        xlim([tempX-10, 15])
-        ylim([floor(tempYSS/10)*10, 4])
+        if max(tempX)<0
+          xlim([tempX-10 15])
+          ylim([floor(tempYSS/10)*10, 4])
+        else
+          xlim([-10 15])  
+          ylim([-5 ceil(max(tempYSS)/10)*10])
+        end
         xlabel('input current (pA)')
         ylabel('change in membrane potential (mV)')
-        title('V/I curve')
+        title('IU curve')
         F=getframe(gcf);
         imwrite(F.cdata,fullfile(PS.outDest, 'IU', ...
                                    [PS.cellID,'_Rin',PS.pltForm]))
