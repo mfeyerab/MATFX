@@ -13,7 +13,8 @@ OnsetBuffer = 20;                                                               
 if ~exist(fullfile(path, 'inputTabsTP'), 'dir')
     mkdir(fullfile(path, 'inputTabsTP')) 
 end
-PS = loadParams; PS.preTP= 0.015; PS.TPtrace = 0.08;
+run(fullfile(path, 'loadParams.m')); PS = ans; 
+PS.preTP= 0.015; PS.TPtrace = 0.08;
 
 %% Looping through cells
 for n = 1:length(cellList)                                                 % for all cells in directory
