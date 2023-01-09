@@ -56,27 +56,9 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
 
   PS.tau = icSum.tau(ClNr,1); PS.Rin = icSum.RinHD(ClNr,1);
-
-  [icSum.HypRectDelay(ClNr,1), icSum.DepRectDelay(ClNr,1), ...
-   icSum.HypRectInsta(ClNr,1), icSum.DepRectInsta(ClNr,1)] = ...
-      getRect(SubThres,IdPassSwps, PS);     % calculates the rectification index 
-
-DepoIdx = [];
-for i=1:SubThres.Count
- if SubThres.values{i}.vectordata.map('SwpAmp').data>0
-     DepoIdx = [DepoIdx;i];
- end
-end
-
-if ~isempty(DepoIdx)
-  icSum.hump(ClNr,1) = 1;
-  icSum.humpRat(ClNr,1) = 1;
-  icSum.humpAmp(ClNr,1) = 1;
-else
-  icSum.hump(ClNr,1) = nan;
-  icSum.humpRat(ClNr,1) = nan;
-  icSum.humpAmp(ClNr,1) = nan;  
-end
+  
+  %rectification 
+  icSum = getRect(SubThres,IdPassSwps, PS, icSum, ClNr);                   % calculates the rectification index 
 
   %% firing patterns
   spPatr = nwb.processing.map('AP Pattern').dynamictable;                  
