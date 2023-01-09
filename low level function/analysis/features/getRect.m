@@ -63,42 +63,54 @@ if length(InstaTempY)>1 && length(HypTempX)>1
          DepDelayTempY(1)/(DepDelayFit(1)*DepTempX(1)+DepDelayFit(2)), ...
              2);
      end
-  else
-      DepRectInsta = nan;
   end
+ if PS.plot_all >= 1
   figure('visible','off'); 
   hold on
-  if ~isempty(HypInstaTempY)
-    fplot(@(x)HypInstFit(1)*x+HypInstFit(2),'c','LineWidth',1)
-    scatter(inputX,InstaTempY,'m')
+  scatter(inputX,DelayTempY,'r')
+  scatter(inputX,InstaTempY,'m')
+
+  if length(HypInstaTempY)>1
+    fplot(@(x)HypInstFit(1)*x+HypInstFit(2),[min(HypTempX) 0],...
+        'c','LineWidth',1)
   end
-  if ~isempty(DepInstaTempY)
-    fplot(@(x)DepInstFit(1)*x+DepInstFit(2),'c','LineWidth',1)
+  if length(DepInstaTempY)>1
+    fplot(@(x)DepInstFit(1)*x+DepInstFit(2),[0 max(DepTempX)],...
+        'Color',[0 0.4470 0.7410],'LineWidth',1)
   end
-      
-  if ~isempty(HypDelayTempY)
-   fplot(@(x)DelayFit(1)*x+DelayFit(2),'b','LineWidth',1)
-   scatter(inputX,DelayTempY,'r')
+  if length(HypDelayTempY)>1
+   fplot(@(x)DelayFit(1)*x+DelayFit(2),[min(HypTempX) 0],'b','LineWidth',1)
   end 
-  if ~isempty(DepDelayTempY)
-    fplot(@(x)DepDelayFit(1)*x+DepDelayFit(2),'b','LineWidth',1)
+  if length(DepDelayTempY)>1
+    fplot(@(x)DepDelayFit(1)*x+DepDelayFit(2),[0 max(DepTempX)],...
+        'Color',[0.3010 0.7450 0.9330],'LineWidth',1)
   end
 
-  legend({'Delayed','','Instant',''},'Location','northwest')
   xlabel('normalized input current (pA/pF)')
   ylabel('change in membrane potential (mV)')
   title('IU curve')
   if max(inputX)<0
     ylim([min(InstaTempY)+(0.2*min(InstaTempY)) 0]); ...
-     xlim([min(inputX)-0.05 0])
+    xlim([min(inputX)-0.05 0])
+    legend({'Delayed','','Instant',''},'Location','northwest')
   elseif sum(inputX>0)>1
     ylim([min(InstaTempY)+(0.2*min(InstaTempY)) max(InstaTempY)]); ...
-     xlim([min(inputX) DepLim])
+    xlim([min(inputX) DepLim])
+    f = gcf;
+    if size(f.Children.Children,1)==4
+            legend({'Delayed','Delayed','Instant','Instant'},'Location','northwest')   
+    else
+    legend({ 'Delayed','Instant','Instant_f_i_t_H_y_p','Instant_f_i_t_D_e_p', ...
+        'Delayed_f_i_t_H_y_p','Delayed_f_i_t_D_e_p'},...
+        'Location','northwest')  
+    end
   else
-     ylim([min(InstaTempY)+(0.2*min(InstaTempY)) max(InstaTempY)]); ...
-     xlim([min(inputX) max(inputX)])
+    ylim([min(InstaTempY)+(0.2*min(InstaTempY)) max(InstaTempY)]); ...
+    xlim([min(inputX) max(inputX)])
+    legend({'Delayed','Delayed','Instant','Instant'},'Location','northwest')   
   end
   box off
   F=getframe(gcf);
   imwrite(F.cdata,fullfile(PS.outDest, 'IU', [PS.cellID,'_HyperRectification',PS.pltForm]))
+ end
 end
