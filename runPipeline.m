@@ -112,7 +112,6 @@ tic
 for n = 1:length(cellList)                                                 % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
-
  if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)                  % If all sweeps failed manual review
    disp([PS.cellID, ' skipped'])                                           % skipp the cell
  else

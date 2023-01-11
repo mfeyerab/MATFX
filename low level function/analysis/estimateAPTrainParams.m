@@ -3,6 +3,7 @@ function SpPattrn = estimateAPTrainParams(CCSers , sp, PS, SpPattrn)
 latency = (sp.thresholdTime(1)-PS.SwDat.StimOn)/round(CCSers.starting_time_rate/1000);
 
 TblIdx = sum(~cellfun(@isempty,SpPattrn.spTrainIDs));
+SpTimes = [];
 
 for b = 1:13
 SpPattrn.BinTbl(TblIdx,b) = sum(...
@@ -58,6 +59,7 @@ end
 SpPattrn.spTrain.latency(PS.supraCount,1) = latency;
 SpPattrn.spTrain.peakAdapt(PS.supraCount,1) = peakAdapt;
 SpPattrn.ISIs{1,PS.supraCount} = ISI;
+SpPattrn.SpTimes{1,PS.supraCount}  = (sp.thresholdTime-PS.SwDat.StimOn)*(1000/CCSers.starting_time_rate);
 
 SpPattrn.spTrain.meanISI(PS.supraCount,1) = meanISI;
 if ~isnan(cvISI) && ~cvISI
@@ -65,6 +67,7 @@ if ~isnan(cvISI) && ~cvISI
 else
     SpPattrn.spTrain.cvISI(PS.supraCount,1) = cvISI;
 end
+
 SpPattrn.spTrain.adaptIndex(PS.supraCount,1) = adaptIndex;
 SpPattrn.spTrain.adaptIndex2(PS.supraCount,1) = adaptIndex2;
 SpPattrn.spTrain.peakAdapt2(PS.supraCount,1) = peakAdapt2;

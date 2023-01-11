@@ -64,7 +64,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   spPatr = nwb.processing.map('AP Pattern').dynamictable;                  
   SpBinTab = nwb.processing.map('AP Pattern').dynamictable.values{2}.vectordata;                                    
   SpPatrTab = nwb.processing.map('AP Pattern').dynamictable.values{1}.vectordata;% assign variable for readability
-
+  SpiTiRagArr = spPatr.map('SpikeTimes').vectordata;
   SuprIDs = SpPatrTab.map('SwpID').data;                                   % Get names of suprathreshold sweeps as cell array  
   if iscell(SuprIDs)
   passSuprIdx = ismember(SuprIDs, IdPassSwpsC); 
@@ -84,14 +84,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    icSum.DFR_P90(ClNr,1) = round(prctile(ISIs, 90),2);           
    icSum.DFR_P10(ClNr,1) = round(prctile(ISIs, 10),2); 
    icSum.DFR_IQR(ClNr,1) = round(prctile(ISIs, 75) - prctile(ISIs, 25),2);
-   
-   if PS.plot_all >= 1 && ~isempty(ISIs)
-     figure('visible','off');         cdfplot(1000./ISIs);
-     grid off; box off; xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
-     title('Dynamic frequency range');
-     exportgraphics(gcf, ...
-         fullfile(PS.outDest, 'firingPattern', [PS.cellID,'_DFR',PS.pltForm]))     
-   end            
+            
    % adaptation   
    icSum.AdaptRatB1B2(ClNr,1) = ...                                        % divides the sum of all spikes in the second bin
         round(sum(SpBinTab.map('B2').data)/sum(SpBinTab.map('B1').data),2);% by the sum of all spikes in the first bin                    
@@ -124,13 +117,52 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      icSum.fIslope(ClNr,1) = round(P(1),3);                                % save slope as feature for cell
 
      if PS.plot_all >= 1
-      figure('visible','off'); hold on
+      figure('visible','off', 'Position', [128 320 1204 658]);
+      %rasterplot
+      SpiTi=cell(length(passSuprIdx),1);
+      idx = SpiTiRagArr.map('time_index').data;
+      for s=1:length(passSuprIdx)
+          if s==1
+            SpiTi{s,1} = SpiTiRagArr.map('time').data(1:idx(s));  
+          else
+            SpiTi{s,1} = SpiTiRagArr.map('time').data(idx(s-1)+1:idx(s));
+          end
+      end
+      [~,order] = sort(cellfun(@length,SpiTi),'ascend');
+      SpiTi = SpiTi(order);
+      subplot(2,3,1);rasterplot(SpiTi)
+      %I-f curve 
+      subplot(2,3,2); hold on;
       scatter(I, passRts)
       yfit = P(2)*I+P(1);             plot(I,yfit,'r-.');
       xlabel('input current (pA)');   ylabel('firing frequency (Hz)')
       title('f/I curve');             box off; axis tight 
+      subplot(2,3,3); hold on;
+      %Adaptation over stimulus
+      temp = spPatr.values{1}.vectordata.map('SwpID').data;
+      [~,order] = sort(temp);
+      SupIdx = ismember(spPatr.values{1}.vectordata.map(...
+                                        'SwpID').data(order), IdPassSwpsC);
+      scatter(I,getRow(spPatr.values{1},find(SupIdx)).adaptIdx)
+      title('Adaptation Index 1 over stim'); 
+
+      subplot(2,3,5);     
+      scatter(I,getRow(spPatr.values{1},find(SupIdx)).burst)
+      title('burst over stim'); 
+
+      subplot(2,3,6);  
+      scatter(I,getRow(spPatr.values{1},find(SupIdx)).cvISI)
+      title('cvISI over stim'); 
+
+      subplot(2,3,4); 
+      if ~isempty(ISIs)
+       cdfplot(1000./ISIs); grid off; box off;
+      end
+      xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
+      title('Dynamic frequency range');
+      
       exportgraphics(gcf,fullfile(fullfile(PS.outDest, 'firingPattern', ...
-                         [PS.cellID , ' fI_curve', PS.pltForm])));
+                         [PS.cellID , '_firingPattern', PS.pltForm])));
      end
     end
    end

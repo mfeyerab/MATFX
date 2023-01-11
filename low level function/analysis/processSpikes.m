@@ -59,12 +59,11 @@ if ~isempty(supraEvents)
     table.trghTi = ...
         table.trghTi*1000/round(CCSers.starting_time_rate);
 
-    table = util.table2nwb(table, 'AP processing results');
+    NWBTab = util.table2nwb(table, 'AP processing results');
 
 %% save in dynamic table
-
-    modSpikes.dynamictable.set(PS.SwDat.CurrentName, table);
-  
+    modSpikes.dynamictable.set(PS.SwDat.CurrentName, NWBTab);    
+   
     end
- end
+end
  
