@@ -1,7 +1,6 @@
 %% Summary analysis output
 
 writetable(icSum,[PS.outDest, '\','ephys_features_', date,'.csv'], 'WriteRowNames',true);
-QCcellWise
 writetable(QCcellWise,[PS.outDest, '\','CellWideQC_', date,'.csv'], 'WriteRowNames',true);
 
 icSum = rmmissing(icSum,'DataVariables',{'htTP_LP','tau'}); %prune cells without spikes and time constant

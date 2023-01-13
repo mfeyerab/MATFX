@@ -185,7 +185,7 @@ for n = 1:length(cellList)                                                 % for
 
        [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC);   % detection and processing of spikes 
     
-       if ~isempty(sp) && ~isempty(sp.peak)                                % if sweep has more than one spike
+       if ~isempty(sp) && ~isempty(sp.peak) && ProtoTags(SwpCt,:)=="LP"    % if sweep has more than one spike
          SpPattrn.spTrainIDs(PS.supraCount,1) = {PS.SwDat.CurrentName};    % sweep name is saved under spike train IDs
          SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);       % getting spike train parameters
          PS.supraCount = PS.supraCount + 1;                         
@@ -275,7 +275,7 @@ for n = 1:length(cellList)                                                 % for
    end
  end%
 %% Add subject data, dendritic type and reporter status   
- AddSubjectCellData 
+%  AddSubjectCellData 
 %% Export downsampled traces for display on website  
  if PS.Webexport==1 && ~isempty(LPexport)                                  % if there raw traces in the table for export
      WebExportCell
