@@ -3,10 +3,8 @@ function modSubStats = subThresFeatures(CCSers, modSubStats, PS,LPfilt)
 data = CCSers.data.load();
 
 if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
-
- PS.maxDefl = PS.maxDefl/1000;
+ data= data*1000;
 end
-
 
 subStats.subSweepAmRin = PS.SwDat.swpAmp;
 subStats.baselineVm = mean(data(1:PS.SwDat.StimOn));                       %does not take into account the testpulse
@@ -78,7 +76,6 @@ else
 end    
 
 subStats.sag = abs(subStats.subSteadyState-subStats.VmHD);
-
 subStats.sagRatio = (subStats.VmHD-subStats.baselineVm)/(subStats.subSteadyState-subStats.baselineVm);
 
 %% rebound slope
@@ -90,22 +87,7 @@ x = (loc:loc+round(PS.reboundWindow*CCSers.starting_time_rate/1000))-loc;
 subStats.reboundSlope = f(1);
 subStats.reboundDepolarization = abs(CCSers.data.load(PS.SwDat.StimOff+loc)-...
    CCSers.data.load(PS.SwDat.StimOff+loc+round(PS.reboundFitWindow/CCSers.starting_time_rate)));
-% if PS.plot_all == 1
-%     figure; hold on
-%     plot(x+loc+PS.SwDat.StimOff,(f(1)*x+f(2))','c-.','LineWidth',2)
-%     scatter(loc+PS.SwDat.StimOff,val,'g','filled')
-%     scatter(round(PS.reboundFitWindow/CCSeries.starting_time_rate)...
-%         +loc+PS.SwDat.StimOff,mean(CCSeries.data.load(end-(3/CCSeries.starting_time_rate):end)),'g','filled')
-%   export_fig(fullfile(PS.outDest,[PS.cellID,'_',PS.SwDat.CurrentName,...
-%       '_rebound']),PS.pltForm ,'-r100');
-%     close
-% end
-%%
-if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
-    subStats.VmHD  = subStats.VmHD*1000;  
-    subStats.sag = subStats.sag*1000;
-    subStats.maxSubDeflection = subStats.maxSubDeflection*1000;
-end
+
 %% save subthreshold parameters
 subStats = structfun(@double, subStats, 'UniformOutput', false);
 

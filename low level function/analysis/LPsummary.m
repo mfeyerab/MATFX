@@ -2,7 +2,7 @@ function [icSum, PS] = LPsummary(nwb, icSum, ClNr, PS)
 
 IcephysTab = nwb.general_intracellular_ephys_intracellular_recordings;     % Assign new variable for readability
 SwpRespTbl = IcephysTab.responses.response.data.load.timeseries;           % Assign new variable for readability
-SwpAmps = IcephysTab.stimuli.vectordata.values{1}.data;                    % Assign new variable for readability
+SwpAmps = IcephysTab.stimuli.vectordata.values{1}.data.load;                    % Assign new variable for readability
 qcParas = nwb.processing.map('QC parameter'...
                                      ).dynamictable.values{1}.vectordata;
 qcPass = IcephysTab.dynamictable.map('quality_control_pass').vectordata;
@@ -109,9 +109,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
                      sum(StartSwpBinCount(1:3))/sum(MaxSwpBinCount(1:3));  % dividing spikes out of the first three bins from first by max sweeps  
       icSum.StimAdapB7_13(ClNr,1) = ...                                    % calculates an adaptiation ratio by
                      sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));% dividing spikes from 7th to last bin from first by max sweeps 
-    end              
-    I = round(SwpAmps.load(find(...
-                         ismember(SwpIDs,cellfun(@str2num,LPsupraIDs))))); % Get all stimulus amplitudes of suprathershold long pulse sweeps
+    end
+    I = round(SwpAmps(ismember(SwpIDs,cellfun(@str2num,LPsupraIDs))));     % Get all stimulus amplitudes of suprathershold long pulse sweeps
     if length(I)>2
      P = robustfit(I, passRts);                                            % create a linear fit of I f curve                
      icSum.fIslope(ClNr,1) = round(P(1),3);                                % save slope as feature for cell
@@ -170,12 +169,9 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %% finding certain sweeps
   APwave = nwb.processing.map('AP wave').dynamictable;                     % variable for better readability   
-  if isa(SwpAmps, 'double')                                                % if current amplitude is double not a DataStub
-    LPampsQC = round(SwpAmps(IdxPassSwps));                                % assign current amplitudes  of sweeps that made the QC to variable
-  else  
-    SwpAmps2 = round(SwpAmps.load);
-    LPampsQC = round(SwpAmps2(find(IdxPassSwps)));                         % assign current amplitudes  of sweeps that made the QC to variable
-  end
+  LPampsQC = round(SwpAmps(IdxPassSwps));                                  % assign current amplitudes  of sweeps that made the QC to variable
+  SwpAmps2 = round(SwpAmps);
+
   %% sag sweep                                                                                                                                                                             % the number of runs is lower than the number of sweep amplitudes +1    
   PotSagAmps = sort(LPampsQC(LPampsQC<0), 'descend');                      % finds sag sweep amplitude 
   tmpSwtc = 0; currSagDefl = 0;
@@ -215,7 +211,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %% rheobase sweeps and parameters of first spike
   if exist('LPsupraIDs', 'var') && iscell(LPsupraIDs) && ~isempty(passRts)
-   rheoIdx = find(passRts <= median(passRts) & I < median(I));
+   rheoIdx = find(passRts' <= median(passRts) & I < median(I));
    if ~isempty(rheoIdx) && length(unique(passRts(rheoIdx)))>1
        [maxPotRheoRt, tempIdx] = max(passRts(rheoIdx));
        while maxPotRheoRt > 1 && ...
@@ -275,7 +271,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   %% Hero sweep selection         
    if ~isnan(icSum.Rheo(ClNr,1))                                           % if Rheo is not Nan i.e. there is a rheo base sweep
     if icSum.Rheo(ClNr,1) < 60                                             % if the Rheo is lower than 60 pA
-     target = round(icSum.Rheo(ClNr,1),-1)+30;                             % target current is Rheo + 30 pA
+     target = round(icSum.Rheo(ClNr,1),-1)+25;                             % target current is Rheo + 30 pA
      targets = [ target-10 target-5 target target+5 target+10 ...
               target+15 target+20 target+25 target+30];
     elseif icSum.Rheo(ClNr,1) < 180 
@@ -283,7 +279,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      targets = [target-20 target-10 target target+10 target+15 target+20 target+25 ...
                target+30 target+35 target+40 target+45 target+50];
     else 
-     target = round(icSum.Rheo(ClNr,1),-1)+110;                            % target current is Rheo + 140 pA
+     target = round(icSum.Rheo(ClNr,1),-1)+180;                            % target current is Rheo + 140 pA
      targets = [target-30 target-20 target-10 target target+10 target+20 ...
                         target+30 target+40 target+50];
     end 
@@ -298,7 +294,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       PoHeroAmpsPos = find(abs(PoHeroAmps-target)==...
         min(abs(PoHeroAmps-target)),1,'last');                             % find position of the current step that is the closest to the target, take the last if there are multiple
       [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps(PoHeroAmpsPos)));      % get position of potential hero sweeps 
-      PS.heroSwpTabPos = find(all([round(SwpAmps.load)==LPampsQC(heroSwpPos), ...
+      PS.heroSwpTabPos = find(all([round(SwpAmps)==LPampsQC(heroSwpPos), ...
                                                        LPIdx],2));         % get potential hero sweep table position
       heroID = str2double(regexp([SwpRespTbl(PS.heroSwpTabPos).path], '\d*','Match'));%   
       heroProModAPPos = endsWith(APwave.keys,['_',num2str(heroID(1))]);      % position of hero sweep in AP wave processing moduls

@@ -5,7 +5,7 @@ vec(QC.params.Vrest'>-40) = NaN;
 
 if PS.BwSwpMode == 1
   if length(vec) > 2                                                         % if one sweep don't analyze
-    OrigV = round(trimmean(vec(find(~isnan(vec),8,'first')),33),2);
+    OrigV = round(trimmean(vec(find(~isnan(vec),5,'first')),33),2);
   end
 elseif  PS.BwSwpMode == 2
   OrigV = round(nanmean(vec(1:length(vec))),2); 
