@@ -109,7 +109,7 @@ end
 InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
-for n = 98:length(cellList)                                                 % for all cells in directory
+for n = 1:length(cellList)                                                 % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
  if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)                  % If all sweeps failed manual review
@@ -275,7 +275,7 @@ for n = 98:length(cellList)                                                 % fo
    end
  end%
 %% Add subject data, dendritic type and reporter status   
-%  AddSubjectCellData 
+   AddSubjectCellData 
 %% Export downsampled traces for display on website  
  if PS.Webexport==1 && ~isempty(LPexport)                                  % if there raw traces in the table for export
      WebExportCell
@@ -299,9 +299,9 @@ for n = 98:length(cellList)                                                 % fo
  close all;
  rm = javax.swing.RepaintManager.currentManager([]);
  dim = rm.getDoubleBufferMaximumSize();
- rm.setDoubleBufferMaximumSize(java.awt.Dimension(0,0));  % clear
- rm.setDoubleBufferMaximumSize(dim);  %restore original dim
- java.lang.System.gc();  % garbage-collect
+ rm.setDoubleBufferMaximumSize(java.awt.Dimension(0,0));                   % clear
+ rm.setDoubleBufferMaximumSize(dim);                                       %restore original dim
+ java.lang.System.gc();                                                    % garbage-collect
  toc
  end
 end                                                                        % end cell level for loop

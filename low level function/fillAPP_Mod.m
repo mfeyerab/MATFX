@@ -1,4 +1,5 @@
 function module_APP = fillAPP_Mod(module_APP, SpPattrn)
+    SpPattrn.ISIs = cellfun(@single,SpPattrn.ISIs,'UniformOutput',false);
    [ISIs_data_vector, ISIs_data_index] = util.create_indexed_column(SpPattrn.ISIs, 'path');
    [SpTis_data_vector, SpTis_data_index] = util.create_indexed_column(SpPattrn.SpTimes, 'path');
       
@@ -41,8 +42,9 @@ function module_APP = fillAPP_Mod(module_APP, SpPattrn)
    T.Properties.RowNames = SpPattrn.RowNames;
    BinnedSpCountsTbl =  util.table2nwb(T, 'Binned Spike Counts');
    module_APP.dynamictable.set('Binned Spike Counts', BinnedSpCountsTbl); 
-                             
-   T = array2table(cell2mat(struct2cell(SpPattrn.spTrain)'));
+       
+   T = array2table(cell2mat(...
+       cellfun(@single,struct2cell(SpPattrn.spTrain)','UniformOutput',false)));
    if ~isempty(T)
 
        removals = find(cellfun(@isempty, SpPattrn.spTrainIDs));
