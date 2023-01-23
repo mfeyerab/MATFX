@@ -1,22 +1,13 @@
 function [RinHD, RinSS, offset]= getRin(SubStatTable, PS, NamesPassedSweeps)
 
-tempX = [];
-
-for i = 1: SubStatTable.Count
- if ismember(str2double(regexp(SubStatTable.keys{i},'\d*','Match')), NamesPassedSweeps)
-    if isa(SubStatTable.values{i}.vectordata.map('maxSubDeflection').data, 'double')
-      tempYHD(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data;
-      tempYSS(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data ...
-                   +SubStatTable.values{i}.vectordata.map('sag').data;
-      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SwpAmp').data;         
-    else
-      tempYHD(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data.load;
-      tempYSS(i,1) = SubStatTable.values{i}.vectordata.map('maxSubDeflection').data.load ...
-                   +SubStatTable.values{i}.vectordata.map('sag').data.load;
-      tempX(i,1) = SubStatTable.values{i}.vectordata.map('SwpAmp').data.load;
-    end
- end
-end  
+HD = SubStatTable.vectordata.map('maxSubDeflection').data;
+SS = SubStatTable.vectordata.map('maxSubDeflection').data ...
+     + SubStatTable.vectordata.map('sag').data;
+SwpAmp = SubStatTable.vectordata.map('SwpAmp').data;
+SwpName = SubStatTable.vectordata.map('SwpName').data;
+Idx = ismember(str2double(regexp(SwpName, '\d+', 'match', 'once')), ...
+                                     NamesPassedSweeps);
+tempYHD = HD(Idx); tempYSS = SS(Idx); tempX = SwpAmp(Idx);
 
 if ~isempty(tempX)
  tempYHD(tempX==0 | tempX>10)=[];
@@ -32,37 +23,63 @@ if ~isempty(tempX) && length(tempX) > 1
     [inputX,~,c] = unique(tempX);
     inputYHD = accumarray(c,tempYHD,[],@mean);  
     inputYSS = accumarray(c,tempYSS,[],@mean);  
-
-%     inputX(isnan(inputX)) = [];
-%     inputY(isnan(inputY)) = [];        
-    fHD = polyfit(inputX,inputYHD,1);
-    RinHD = round(fHD(1) * (10^3),2);
-    fSS = polyfit(inputX,inputYSS,1);
-    RinSS = round(fSS(1) * (10^3),2);
-    offset = round(fHD(2),2);
+    [~,order] = sort(abs(inputX),'ascend');
+    HDfit = polyfit([inputX(order==1), inputX(order==2)], ...
+        [inputYHD(order==1), inputYHD(order==2)],1);
+    nHD=3; stop=1;
+    while stop && nHD<length(order)
+       if (inputX(order==nHD)*HDfit(1)+HDfit(2)-inputYHD(order==nHD))^2 > 0.9
+          HDfit = polyfit([inputX(order<=nHD), inputX(order<=nHD)], ...
+                   [inputYHD(order<=nHD), inputYHD(order<=nHD)],1);
+           nHD=nHD+1;
+       else
+           stop=0;
+       end
+    end
+    SSfit = polyfit([inputX(order==1), inputX(order==2)], ...
+        [inputYSS(order==1), inputYSS(order==2)],1);
+    nSS=3; stop=1;
+    while stop && nSS<length(order)
+       if (inputX(order==nSS)*SSfit(1)+SSfit(2)-inputYSS(order==nSS))^2 > 0.9
+          SSfit = polyfit([inputX(order<=nSS), inputX(order<=nSS)], ...
+                   [inputYSS(order<=nSS), inputYSS(order<=nSS)],1);
+           nSS=nSS+1;
+       else
+           stop=0;
+       end
+    end
+    offset = round(HDfit(2),2);
+    RinSS = round(SSfit(1) * (10^3),1);
+    RinHD = round(HDfit(1) * (10^3),1);
     if PS.plot_all >= 1 
         figure('visible','off'); 
         hold on
-        fplot(@(x)fHD(1)*x+fHD(2),'b','LineWidth',1)
-        fplot(@(x)fSS(1)*x+fSS(2),'c','LineWidth',1)
-        scatter(inputX,inputYHD,'r')
-        scatter(inputX,inputYSS,'m')
+        fplot(@(x)HDfit(1)*x+HDfit(2),'b','LineWidth',1)
+        fplot(@(x)SSfit(1)*x+SSfit(2),'c','LineWidth',1)
+        scatter(inputX(order<=nHD),inputYHD(order<=nHD),'k')
+        if nHD<length(order)
+         scatter(inputX(order>nHD),inputYHD(order>nHD),'r')
+        end
+        scatter(inputX(order<=nSS),inputYSS(order<=nSS),'green')
+        if nSS<length(order)
+         scatter(inputX(order>nSS),inputYSS(order>nSS),'m')
+        end    
         legend({'Rin_H_D','Rin_S_S'},'Location','northwest')
         xlabel('input current (pA)')
         ylabel('change in membrane potential (mV)')
-        title('IU curve')
+        title('IU curve (fit of Rin)')
         box off
         axis tight 
         F=getframe(gcf);
         imwrite(F.cdata,fullfile(PS.outDest, 'IU', ...
                                    [PS.cellID,'_Rin',PS.pltForm]))
     end
-elseif length(tempX) == 1
+elseif exist('inputX','var') && length(inputX) == 1
   
-    fHD = polyfit([0; tempX],[0; tempYHD],1);
-    RinHD = round(fHD(1) * (10^3),1);
-    fSS = polyfit([0; tempX],[0; tempYSS],1);
-    RinSS = round(fSS(1) * (10^3),1);
+    fHD = polyfit([0; inputX],[0; tempYHD],1);
+    RinHD = round(HDfit(1) * (10^3),1);
+    fSS = polyfit([0; inputX],[0; tempYSS],1);
+    RinSS = round(SSfit(1) * (10^3),1);
 
     offset = 0;
     if PS.plot_all >= 1
@@ -70,11 +87,11 @@ elseif length(tempX) == 1
         hold on
         fplot(@(x)fHD(1)*x,'b', 'Linewidth',1)
         fplot(@(x)fSS(1)*x,'c', 'Linewidth',1)
-        scatter(tempX,tempYHD,'r')
-        scatter(tempX,tempYSS,'m')
+        scatter(inputX,tempYHD,'r')
+        scatter(inputX,tempYSS,'m')
         legend({'Rin_H_D','Rin_S_S'},'Location','northwest')
-        if max(tempX)<0
-          xlim([tempX-10 15])
+        if max(inputX)<0
+          xlim([inputX-10 15])
           ylim([floor(tempYSS/10)*10, 4])
         else
           xlim([-10 15])  

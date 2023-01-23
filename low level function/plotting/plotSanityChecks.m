@@ -36,6 +36,7 @@ end
 %% Stimulus Onset LP
 LPvec = contains(string(ICEtab.dynamictable.values{...
                                  1}.vectordata.values{1}.data.load), 'LP');                             
+if any(all([QCvec, LPvec],2))
 
 figure('visible','off'); hold on
 for s=1:height(QC.pass)
@@ -43,9 +44,8 @@ for s=1:height(QC.pass)
        plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
     end
 end
-
 I = ICEtab.stimuli.vectordata.values{1}.data.load(...
-                         find(all([QCvec, LPvec],2)));                    
+                         find(all([QCvec, LPvec],2)));    
 title(['Stimulus onset ', PS.cellID, ' I= ',...
     num2str(min(I)), ' to ', num2str(max(I))]);
 ylabel('Voltage trace (mV)')
@@ -54,11 +54,12 @@ ylabel('Voltage (mV)')
 xlabel('samples')
 box off
 
-if ~isempty(PS.rheoSwpSers.data) && checkVolts(PS.rheoSwpSers.data_unit) && ...
+if ~isempty(PS.rheoSwpSers) && checkVolts(PS.rheoSwpSers.data_unit) && ...
                  string(PS.rheoSwpSers.description) ~= "PLACEHOLDER"
   ylim([-0.01 0.015])
   ylabel('Voltage (V)')
 end  
+end
 
 F=getframe(gcf);
 imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
@@ -66,29 +67,30 @@ imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
 
 SPvec = contains(string(ICEtab.dynamictable.values{...
                                  1}.vectordata.values{1}.data.load), 'SP');                             
-
-I = ICEtab.stimuli.vectordata.values{1}.data.load(...
-                         find(all([QCvec, SPvec],2)));
-figure('visible','off'); hold on
-for s=1:height(QC.pass)
-    if SPvec(s)&& QCvec(s)
-       plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
+if any(all([QCvec, SPvec],2))
+    I = ICEtab.stimuli.vectordata.values{1}.data.load(...
+                             find(all([QCvec, SPvec],2)));
+    figure('visible','off'); hold on
+    for s=1:height(QC.pass)
+        if SPvec(s)&& QCvec(s)
+           plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
+        end
     end
+    
+    title(['Stimulus onset ', PS.cellID, ' I= ',...
+        num2str(min(I)), ' to ', num2str(max(I))]);
+    ylabel('Voltage trace (mV)')
+    ylim([-10 15])
+    ylabel('Voltage (mV)')
+    xlabel('samples')
+    box off
+    
+    if ~isempty(PS.rheoSwpSers) && checkVolts(PS.rheoSwpSers.data_unit) && ...
+                     string(PS.rheoSwpSers.description) ~= "PLACEHOLDER"
+      ylim([-0.01 0.015])
+      ylabel('Voltage (V)')
+    end  
+    
+    F=getframe(gcf);
+    imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnSP','.png']))
 end
-
-title(['Stimulus onset ', PS.cellID, ' I= ',...
-    num2str(min(I)), ' to ', num2str(max(I))]);
-ylabel('Voltage trace (mV)')
-ylim([-10 15])
-ylabel('Voltage (mV)')
-xlabel('samples')
-box off
-
-if ~isempty(PS.rheoSwpSers.data) && checkVolts(PS.rheoSwpSers.data_unit) && ...
-                 string(PS.rheoSwpSers.description) ~= "PLACEHOLDER"
-  ylim([-0.01 0.015])
-  ylabel('Voltage (V)')
-end  
-
-F=getframe(gcf);
-imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnSP','.png']))

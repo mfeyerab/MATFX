@@ -109,7 +109,7 @@ end
 InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
-for n = 1:length(cellList)                                                 % for all cells in directory
+for n = 98:length(cellList)                                                 % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
  if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)                  % If all sweeps failed manual review
@@ -205,13 +205,13 @@ for n = 1:length(cellList)                                                 % for
  end
  %% Finishing QC (relative Ra, between sweep) and saving results
  QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
- [~,tempRin,~] = getRin(modSubStats.dynamictable, PS, ...
-       find(~any(QC.pass{:,4:end}==0,2)));                                 % calculate input resistance before final QC 
+ [~,tempRin,~] = getRin(modSubStats.dynamictable.values{1}, PS, ...
+                        find(~any(QC.pass{:,4:end}==0,2))-1);                % calculate input resistance before final QC 
  if  PS.isHeka
      QC.pass.bridge_balance_rela(SwpCt) = true;
  else
      QC.pass.bridge_balance_rela = ...
-       QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;            % check if input resistance meets relatice bridge balance criterium
+       QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;             % check if input resistance meets relatice bridge balance criterium
      QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
      tempRin*PS.factorRelaRa;
  end
@@ -229,7 +229,7 @@ for n = 1:length(cellList)                                                 % for
    InitRa = str2double(InitRa);
    if InitRa > PS.cutoffInitRa && InitRa > tempRin*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
      display(['excluded by cell-wide QC for initial Ra (', ...
-        num2str(InitRa),') higher than realtive cutoff (', ...
+        num2str(InitRa),') higher than relative cutoff (', ...
         num2str(tempRin*PS.factorRelaRa), ') or absolute cutoff (', ...
         num2str(PS.cutoffInitRa),')']);
         QCcellWise.Fail(n) = 1;                                            % save cellID for failing cell-wide QC
@@ -296,6 +296,12 @@ for n = 1:length(cellList)                                                 % for
  else
    disp([cellList(n).name, ' not saved for failing cell-wide QC'])
  end
+ close all;
+ rm = javax.swing.RepaintManager.currentManager([]);
+ dim = rm.getDoubleBufferMaximumSize();
+ rm.setDoubleBufferMaximumSize(java.awt.Dimension(0,0));  % clear
+ rm.setDoubleBufferMaximumSize(dim);  %restore original dim
+ java.lang.System.gc();  % garbage-collect
  toc
  end
 end                                                                        % end cell level for loop

@@ -2,7 +2,7 @@
  [PS.sagSwpTabPos,PS.rheoSwpTabPos, PS.heroSwpTabPos, ...
   PS.rheoSwpDat, PS.SPSwpDat, PS.SPSwpTbPos, PS.heroSwpAPPDat] = deal([]); % initialize variabels to store sweep table position in plotting structure
  [PS.sagSwpSers,PS.rheoSwpSers, PS.heroSwpSers, PS.SPSwpSers] = ...
-      deal(types.core.CurrentClampSeries); 
+      deal(types.core.CurrentClampSeries.empty); 
 %% Setting up QC tables and initializing variables
   if PS.manTPremoval && ...                                                % if manual removal due to test pulse is enabled
               exist(fullfile(mainFolder, 'inputTabsTP', [PS.cellID,'_TP.csv']))     % if table with results of manual test pulse review exists

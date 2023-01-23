@@ -82,7 +82,7 @@ elseif exist('p') && length(PS.sagSwpSers)==1
 end
 
 %% Subfigure 1 Rheo
-if ~isempty(PS.rheoSwpSers.data)
+if ~isempty(PS.rheoSwpSers)
     RheoSweepOn = double(table2array(SwpRespTbl(PS.rheoSwpTabPos,1)));
     RheoSweepOff = RheoSweepOn + ...
                   double(table2array(SwpRespTbl(PS.rheoSwpTabPos,2)));
@@ -104,6 +104,10 @@ end
 if isa(SwpAmps, 'double')
    RheoAmp = num2str(unique(SwpAmps(PS.rheoSwpTabPos)));
    sagAmp = num2str(unique(SwpAmps(PS.sagSwpTabPos)));
+elseif isempty(PS.rheoSwpTabPos) && ~isempty(PS.sagSwpTabPos) 
+    RheoAmp = []; sagAmp = [];
+elseif isempty(PS.rheoSwpTabPos) || ~isempty(PS.sagSwpTabPos)
+    RheoAmp = []; sagAmp = [];
 else
    RheoAmp = num2str(unique(SwpAmps.load(PS.rheoSwpTabPos)));
    sagAmp = num2str(unique(SwpAmps.load(PS.sagSwpTabPos)));
@@ -116,7 +120,7 @@ box off
  
 subplot(2,2,2)
 hold on
-if ~isempty(PS.heroSwpSers.data) 
+if ~isempty(PS.heroSwpSers) 
      HeroSweepOn = double(table2array(SwpRespTbl(PS.heroSwpTabPos,1)));
      HeroSweepOff = double(HeroSweepOn+double(table2array(SwpRespTbl(PS.heroSwpTabPos,2))));
     p = plot([0:1000/PS.heroSwpSers.starting_time_rate: ...
@@ -136,6 +140,8 @@ end
 
 if isa(SwpAmps, 'double')
    HeroAmp = num2str(unique(round(SwpAmps(PS.heroSwpTabPos))));
+elseif isempty(PS.heroSwpTabPos)
+   HeroAmp =[];
 else
    HeroAmp = num2str(unique(round(SwpAmps.load(PS.heroSwpTabPos))));
 end
@@ -148,7 +154,7 @@ box off
 
 subplot(2,2,3)
 hold on
-if ~isempty(PS.rheoSwpSers.data)
+if ~isempty(PS.rheoSwpSers)
     spStart = PS.rheoSwpDat.map('thresTi').data(1);
     p = plot([0:1000/PS.rheoSwpSers.starting_time_rate: ...
         (0.006*PS.rheoSwpSers.starting_time_rate)...
@@ -168,7 +174,7 @@ if ~isempty(PS.rheoSwpSers.data)
       scatter(1,PS.rheoSwpDat.map('thres').data(1),100)
     end
 end  
-if ~isempty(PS.SPSwpSers.data)
+if ~isempty(PS.SPSwpSers)
     spStartSP =  PS.SPSwpDat.map('thresTi').data;
      p = plot([0:1000/PS.SPSwpSers.starting_time_rate: ...
     (0.006*PS.SPSwpSers.starting_time_rate)...
@@ -183,6 +189,8 @@ end
 
 if isa(SwpAmps, 'double')
    SPAmp = num2str(unique(SwpAmps(PS.SPSwpTbPos)));
+elseif isempty(PS.SPSwpTbPos)
+    SPAmp = [];
 else
    SPAmp = num2str(unique(SwpAmps.load(PS.SPSwpTbPos)));
 end
@@ -197,7 +205,7 @@ legend('boxoff')
 
 subplot(2,2,4)
 hold on
-if ~isempty(PS.rheoSwpSers.data)
+if ~isempty(PS.rheoSwpSers)
     p =  plot(PS.rheoSwpSers.data.load(round((spStart/1000)*PS.rheoSwpSers.starting_time_rate) -...
         1*PS.rheoSwpSers.starting_time_rate/1000 + 1 ...
           :round((spStart/1000)*PS.rheoSwpSers.starting_time_rate) +...
