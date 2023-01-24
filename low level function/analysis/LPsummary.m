@@ -23,7 +23,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   %% subthreshold parameters  
   SubThres = nwb.processing.map(...
                       'subthreshold parameters').dynamictable.values{1};   % Creating variable with all subthreshold data for readability     
-  [icSum.RinHD(ClNr), icSum.RinSS(ClNr), icSum.RinOffset(ClNr)] = ...      % Assign resistance and offset of cell in summary table
+  [icSum.RinHD(ClNr), icSum.RinSS(ClNr)] = ...      % Assign resistance and offset of cell in summary table
         getRin(SubThres,PS, IdPassSwps);                                   % the function returns input resistance and offset calculated as slope of a linear fit and "membrane deflection" at 0 pA       
   SubAmps = SubThres.vectordata.map('SwpAmp').data;
 

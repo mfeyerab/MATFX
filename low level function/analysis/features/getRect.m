@@ -41,7 +41,7 @@ if length(DelayTempY)>1 && length(HypTempX)>1
   HypRectDelay = round(HypDelayTempY(end)/(PS.RinHD/1000*HypTempX(end)),2);
   HypRectInsta = round(HypInstTempY(end)/(PS.RinHD/1000*HypTempX(end)),2);
   if sum(inputX>0)>1
-     humpIdx = inputX > max(inputX)*0.6 & inputX < max(inputX)*0.9; 
+     humpIdx = inputX > max(inputX)*0.6 & inputX < max(inputX)*0.75; 
      DepInstaTempY = InstaTempY(humpIdx); 
      DepDelayTempY = DelayTempY(humpIdx);
      hump = mean(DepInstaTempY-DepDelayTempY);

@@ -205,18 +205,19 @@ for n = 1:length(cellList)                                                 % for
  end
  %% Finishing QC (relative Ra, between sweep) and saving results
  QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
- [~,tempRin,~] = getRin(modSubStats.dynamictable.values{1}, PS, ...
-                        find(~any(QC.pass{:,4:end}==0,2))-1);                % calculate input resistance before final QC 
- if  PS.isHeka
-     QC.pass.bridge_balance_rela(SwpCt) = true;
- else
-     QC.pass.bridge_balance_rela = ...
-       QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;             % check if input resistance meets relatice bridge balance criterium
-     QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
-     tempRin*PS.factorRelaRa;
+ if ~isempty(modSubStats.dynamictable.values)
+     [~,tempRin] = getRin(modSubStats.dynamictable.values{1}, PS, ...
+                           find(~any(QC.pass{:,4:end}==0,2))-1);                % calculate input resistance before final QC
+     if  PS.isHeka
+         QC.pass.bridge_balance_rela(SwpCt) = true;
+     else
+         QC.pass.bridge_balance_rela = ...
+           QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;             % check if input resistance meets relatice bridge balance criterium
+         QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
+         tempRin*PS.factorRelaRa;
+     end
+     QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
  end
- QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
-
  saveProcessedCell                                                         % Save QC into nwb file and summary structures
  %% Cell-wise QC 1: initial access resistance
  InitRa = info.values{1}.('initial_access_resistance');
@@ -227,7 +228,7 @@ for n = 1:length(cellList)                                                 % for
  if PS.InitRa && ~isempty(InitRa) && ...
          length(regexp(InitRa,'\d*','Match')) >= 1                         % if ini access resistance is non empty and has a number as character
    InitRa = str2double(InitRa);
-   if InitRa > PS.cutoffInitRa && InitRa > tempRin*PS.factorRelaRa        % if ini access resistance is below absolute and relative threshold 
+   if InitRa > PS.cutoffInitRa && InitRa > tempRin*PS.factorRelaRa         % if ini access resistance is below absolute and relative threshold 
      display(['excluded by cell-wide QC for initial Ra (', ...
         num2str(InitRa),') higher than relative cutoff (', ...
         num2str(tempRin*PS.factorRelaRa), ') or absolute cutoff (', ...
