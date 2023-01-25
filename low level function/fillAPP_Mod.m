@@ -1,6 +1,7 @@
 function module_APP = fillAPP_Mod(module_APP, SpPattrn)
     SpPattrn.ISIs = cellfun(@single,SpPattrn.ISIs,'UniformOutput',false);
    [ISIs_data_vector, ISIs_data_index] = util.create_indexed_column(SpPattrn.ISIs, 'path');
+   SpPattrn.SpTimes = cellfun(@single,SpPattrn.SpTimes,'UniformOutput',false);
    [SpTis_data_vector, SpTis_data_index] = util.create_indexed_column(SpPattrn.SpTimes, 'path');
       
    ISI_table = types.hdmf_common.DynamicTable(...
