@@ -35,10 +35,9 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %tau
   Idx = SubThres.vectordata.map('GFtau').data> PS.GF & SubAmps < 0 & ...
-            SubThres.vectordata.map('maxSubDeflection').data> PS.maxDefl;
-  if ~any(Idx)
-     disp('hi')
-  else
+            SubThres.vectordata.map('maxSubDeflection').data> PS.maxDefl & ...
+            SubThres.vectordata.map('maxSubDeflection').data <-2;
+  if any(Idx)
    icSum.tau(ClNr) = round(max(SubThres.vectordata.map('tau').data(Idx)),2);                                                 
   end
   if PS.plot_all >= 2

@@ -33,7 +33,7 @@ if ~isempty(tempX) && length(unique(tempX)) > 2
   RinSS = round(SSfit.p1 * (10^3),1);
   RinHD = round(HDfit.p1 * (10^3),1);
   if PS.plot_all >= 1 
-        figure('visible','of'); 
+        figure('visible','off'); 
         hold on
         plot(HDfit,'b',tempX(order(1:3)), tempYHD(order(1:3)),'k.')
         plot(SSfit,'c',tempX(order(1:3)),tempYSS(order(1:3)),'green.') 
