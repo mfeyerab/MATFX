@@ -15,23 +15,31 @@
          icSum.ReporterTag(n) = {'None'} ;
       end 
    else %% Not AIBS
-      icSum.brainOrigin(n) = {info.values{1}.location};                % assign brain area to summary table          
-      icSum.Species(n) = {nwb.general_subject.species};                % assign species to summary table   
-      if ~isempty(nwb.general_subject.weight)
-        icSum.Weight(n) = {str2num(nwb.general_subject.weight)};       % assign weight to summary table    
+      if isa(info.values{1}.location,'char')
+          icSum.brainOrigin(n) = {info.values{1}.location};                % assign brain area to summary table          
+          icSum.Species(n) = {nwb.general_subject.species};                % assign species to summary table   
+          if ~isempty(nwb.general_subject.weight)
+           icSum.Weight(n) = {str2num(nwb.general_subject.weight)};           % assign weight to summary table    
+          end
+          if ~isempty(nwb.general_subject.sex)
+           icSum.Sex(n) = {nwb.general_subject.sex};                     % assign sex to summary table 
+          end
+          if ~isempty(nwb.general_subject.age)
+            icSum.Age(n) = {str2num(nwb.general_subject.age)};                 % assign weight to summary table    
+          end
+      else
+          icSum.brainOrigin(n) = {info.values{1}.location.load};                % assign brain area to summary table          
+          icSum.Species(n) = {nwb.general_subject.species.load};                % assign species to summary table   
+          if ~isempty(nwb.general_subject.weight)
+           icSum.Weight(n) = {str2num(nwb.general_subject.weight)};           % assign weight to summary table    
+          end
+          if ~isempty(nwb.general_subject.sex.load)
+           icSum.Sex(n) = {nwb.general_subject.sex.load};                     % assign sex to summary table 
+          end
+          if ~isempty(nwb.general_subject.age)
+            icSum.Age(n) = {str2num(nwb.general_subject.age)};                 % assign weight to summary table    
+          end
       end
-      if ~isempty(nwb.general_subject.sex)
-        icSum.Sex(n) = {nwb.general_subject.sex};                      % assign sex to summary table 
-      end
-      if ~isempty(nwb.general_subject.age)
-        icSum.Age(n) = {str2num(nwb.general_subject.age)};             % assign weight to summary table    
-      end
-      if nwb.general.Count ~= 0                                               % if  
-       icSum.Weight(n) = {nwb.general_subject.weight};
-       icSum.Sex(n) = {nwb.general_subject.sex};
-       icSum.Age(n) = {nwb.general_subject.age};  
-       icSum.Species(n) = {nwb.general_subject.species};
-      end 
    end  
 
    if ~isempty(info.values{1}.slice)                                       % if there is information on brain slice of experiment

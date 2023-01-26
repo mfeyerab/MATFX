@@ -1,9 +1,12 @@
 function [RinHD, RinSS]= getRin(SubStatTable, PS, NamesPassedSweeps)
 
-HD = SubStatTable.vectordata.map('maxSubDeflection').data;
-SS = SubStatTable.vectordata.map('maxSubDeflection').data ...
-     + SubStatTable.vectordata.map('sag').data;
 SwpAmp = SubStatTable.vectordata.map('SwpAmp').data;
+HD = SubStatTable.vectordata.map('maxSubDeflection').data;
+HypSS = SubStatTable.vectordata.map('maxSubDeflection').data(SwpAmp<0) ...
+     + SubStatTable.vectordata.map('sag').data(SwpAmp<0);
+DepSS= SubStatTable.vectordata.map('maxSubDeflection').data(SwpAmp>=0) ...
+     - SubStatTable.vectordata.map('sag').data(SwpAmp>=0);
+SS(SwpAmp<0) = HypSS; SS(SwpAmp>=0) = DepSS;
 SwpName = SubStatTable.vectordata.map('SwpName').data;
 Idx = ismember(str2double(regexp(SwpName, '\d+', 'match', 'once')), ...
                                      NamesPassedSweeps);
@@ -17,15 +20,13 @@ end
 if ~isempty(tempX)
  [tempX,~,c] = unique(tempX);
  [tempYHD, YHD] = deal(accumarray(c,HD(Idx),[],@mean));  
- [tempYSS, YSS] = deal(accumarray(c,SS(Idx),[],@mean)); 
- tempYHD(X>11 | abs(X)<9 | abs(X)>55 |  YHD<PS.maxDefl) =[];
- tempYSS(X>11 | abs(X)<9| abs(X)>55 |  YHD<PS.maxDefl) =[];
- tempX(X>11| abs(X)<9| abs(X)>55 |  YHD<PS.maxDefl)   =[];
+ [tempYSS, YSS] = deal(accumarray(c,SS(Idx),[],@mean));     
+ Idx = X>11 | abs(X)<9 | abs(X)>55 |  YHD<PS.maxDefl | YHD>abs(PS.maxDefl)/2;
+ tempYHD(Idx) = []; tempYSS(Idx) = []; tempX(Idx) = [];
 else
   RinSS = NaN;
   RinHD = NaN;
 end
-
 if ~isempty(tempX) && length(unique(tempX)) > 2
   [~,order] = sort(abs(tempX),'ascend');
   SSfit = fit(tempX(order(1:3)),tempYSS(order(1:3)),'poly1');
@@ -47,10 +48,6 @@ elseif ~isempty(tempX)
     tempX = [tempX;0]; tempYSS =[tempYSS;0]; tempYHD = [tempYHD;0];
     SSfit = fit(tempX,tempYSS,'poly1');
     HDfit = fit(tempX,tempYHD,'poly1');
-    fplot(@(x)HDfit.p1*x+HDfit.p2,...
-            [min(X) min(tempX)],'b--','LineWidth',1)
-    fplot(@(x)SSfit.p1*x+SSfit.p2,...
-            [min(X) min(tempX)],'c--','LineWidth',1)
     RinSS = round(SSfit.p1 * (10^3),1);
     RinHD = round(HDfit.p1 * (10^3),1);
     if PS.plot_all >= 1
@@ -58,6 +55,10 @@ elseif ~isempty(tempX)
         hold on
         plot(HDfit,'b',tempX, tempYHD,'k.')
         plot(SSfit,'c',tempX,tempYSS,'green.') 
+        fplot(@(x)HDfit.p1*x+HDfit.p2,...
+            [min(X) min(tempX)],'b--','LineWidth',1)
+        fplot(@(x)SSfit.p1*x+SSfit.p2,...
+            [min(X) min(tempX)],'c--','LineWidth',1)
         scatter(X,YHD,'k')
         scatter(X,YSS,'green')
     end

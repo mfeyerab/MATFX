@@ -265,7 +265,7 @@ for n = 1:length(cellList)                                                 % for
  %% Cell-wise QC 3: No suprathreshold LP sweeps 
  if QCcellWise.Fail(n)~= 1  && PS.noSupraSub == 1 &&  ...                        % if there is no AP features such as threshold and no suprathreshold traces is cell wide exclusion criterium
        (isnan(icSum.thresLP(n)) || isnan(icSum.RinHD(n)))                               
-    disp('excluded by cell-wide QC for no suprathreshold data') 
+    disp('excluded by cell-wide QC for missing essential feature') 
      QCcellWise.Fail(n) = 1; 
      icSum{n,1:end-8}=NaN;
      theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));

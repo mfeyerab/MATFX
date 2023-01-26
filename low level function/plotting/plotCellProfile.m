@@ -7,7 +7,7 @@ SwpRespTbl = ...
   nwb.general_intracellular_ephys_intracellular_recordings.responses.response.data.load;
   
 SwpAmps = ...
- nwb.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{1}.data;
+ nwb.general_intracellular_ephys_intracellular_recordings.stimuli.vectordata.values{1}.data.load     ;
 %% Initialize plot
 figure('Position',[50 50 750 750],'visible','off'); set(gcf,'color','w');
 subplot(2,2,1)
@@ -101,16 +101,15 @@ if ~isempty(PS.rheoSwpSers)
      end
 end    
  
-if isa(SwpAmps, 'double')
-   RheoAmp = num2str(unique(SwpAmps(PS.rheoSwpTabPos)));
-   sagAmp = num2str(unique(SwpAmps(PS.sagSwpTabPos)));
-elseif isempty(PS.rheoSwpTabPos) && ~isempty(PS.sagSwpTabPos) 
-    RheoAmp = []; sagAmp = [];
-elseif isempty(PS.rheoSwpTabPos) || ~isempty(PS.sagSwpTabPos)
-    RheoAmp = []; sagAmp = [];
-else
-   RheoAmp = num2str(unique(SwpAmps.load(PS.rheoSwpTabPos)));
-   sagAmp = num2str(unique(SwpAmps.load(PS.sagSwpTabPos)));
+if isempty(PS.rheoSwpTabPos)
+  RheoAmp = [];
+elseif length(PS.rheoSwpTabPos)==1
+  RheoAmp = num2str(unique(SwpAmps(PS.rheoSwpTabPos)));
+end
+if isempty(PS.sagSwpTabPos)
+  sagAmp = [];
+elseif length(PS.sagSwpTabPos)==1
+  sagAmp = num2str(unique(SwpAmps(PS.sagSwpTabPos)));
 end
 title(['LP rheo (', RheoAmp,' pA) and sag sweep (', sagAmp,'pA)'])
 xlabel('time (ms)')
