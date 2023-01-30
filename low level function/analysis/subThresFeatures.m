@@ -70,7 +70,7 @@ for w = 1:round(TotalSize/Increment)
 end
 
 if all(PoSSQ) && min(PoSSQ) < 0.75*PS.RMSElt
-    subStats.subSteadyState = PoSS(find(PoSSQ==min(PoSSQ)));
+    subStats.subSteadyState = PoSS(find(PoSSQ==min(PoSSQ),1,'last'));
 else
     subStats.subSteadyState = NaN;
 end    

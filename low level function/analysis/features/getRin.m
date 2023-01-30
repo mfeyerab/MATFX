@@ -22,26 +22,34 @@ if ~isempty(tempX)
  [tempYHD, YHD] = deal(accumarray(c,HD(Idx),[],@mean));  
  [tempYSS, YSS] = deal(accumarray(c,SS(Idx),[],@mean));     
  Idx = X>11 | abs(X)<9 | abs(X)>55 |  YHD<PS.maxDefl | YHD>abs(PS.maxDefl)/2;
- tempYHD(Idx) = []; tempYSS(Idx) = []; tempX(Idx) = [];
+ tempYHD(Idx) = []; tempYSS(Idx) = []; tempX(Idx) = []; 
+ tempXSS=tempX(~isnan(tempYSS)); tempYSS=tempYSS(~isnan(tempYSS));
 else
   RinSS = NaN;
   RinHD = NaN;
 end
 if ~isempty(tempX) && length(unique(tempX)) > 2
-  [~,order] = sort(abs(tempX),'ascend');
-  SSfit = fit(tempX(order(1:3)),tempYSS(order(1:3)),'poly1');
-  HDfit = fit(tempX(order(1:3)),tempYHD(order(1:3)),'poly1');
-  RinSS = round(SSfit.p1 * (10^3),1);
+  [~,orderHD] = sort(abs(tempX),'ascend');
+  if ~isempty(tempYSS)
+   [~,orderSS] = sort(abs(tempXSS),'ascend');
+   SSfit = fit(tempXSS(orderSS(1:3)),tempYSS(orderSS(1:3)),'poly1');
+   RinSS = round(SSfit.p1 * (10^3),1);
+  else
+     RinSS = NaN;   
+  end
+  HDfit = fit(tempX(orderHD(1:3)),tempYHD(orderHD(1:3)),'poly1');
   RinHD = round(HDfit.p1 * (10^3),1);
   if PS.plot_all >= 1 
         figure('visible','off'); 
         hold on
-        plot(HDfit,'b',tempX(order(1:3)), tempYHD(order(1:3)),'k.')
-        plot(SSfit,'c',tempX(order(1:3)),tempYSS(order(1:3)),'green.') 
+        plot(HDfit,'b',tempX(orderHD(1:3)), tempYHD(orderHD(1:3)),'k.')
+        if ~isempty(tempYSS)
+         plot(SSfit,'c',tempX(orderHD(1:3)),tempYSS(orderHD(1:3)),'green.') 
+        end
         fplot(@(x)HDfit.p1*x+HDfit.p2,...
-            [min(X) min(tempX(order(1:3)))],'b--','LineWidth',1)
+            [min(X) min(tempX(orderHD(1:3)))],'b--','LineWidth',1)
         fplot(@(x)SSfit.p1*x+SSfit.p2,...
-            [min(X) min(tempX(order(1:3)))],'c--','LineWidth',1)
+            [min(X) min(tempX(orderHD(1:3)))],'c--','LineWidth',1)
 
   end
 elseif ~isempty(tempX)

@@ -39,8 +39,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
             SubThres.vectordata.map('maxSubDeflection').data <-2;
   if any(Idx)
    icSum.tau(ClNr) = round(max(SubThres.vectordata.map('tau').data(Idx)),2);   
-   icSum.tau2(ClNr) = round(SubThres.vectordata.map('tau').data(...
-                            SubAmps==max(SubAmps(Idx))),2);                                                 
+   icSum.tau2(ClNr) = round(mean(SubThres.vectordata.map('tau').data(...
+                            SubAmps==max(SubAmps(Idx)))),2);                                                 
   end
   if PS.plot_all >= 2
    figure('Visible','off');
