@@ -139,7 +139,7 @@ if ~isempty(PS.heroSwpSers)
      end
 end    
 
-if isa(SwpAmps, 'double')
+if isa(SwpAmps, 'single') || isa(SwpAmps, 'double')
    HeroAmp = num2str(unique(round(SwpAmps(PS.heroSwpTabPos))));
 elseif isempty(PS.heroSwpTabPos)
    HeroAmp =[];
@@ -188,7 +188,7 @@ if ~isempty(PS.SPSwpSers)
     scatter(1,PS.SPSwpDat.map('thres').data,100)
 end
 
-if isa(SwpAmps, 'double')
+if isa(SwpAmps, 'double') || isa(SwpAmps, 'single')
    SPAmp = num2str(unique(SwpAmps(PS.SPSwpTbPos)));
 elseif isempty(PS.SPSwpTbPos)
     SPAmp = [];
