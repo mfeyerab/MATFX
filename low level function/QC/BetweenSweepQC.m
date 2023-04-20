@@ -8,7 +8,7 @@ if PS.BwSwpMode == 1
     OrigV = round(trimmean(vec(find(~isnan(vec),5,'first')),33),2);
   end
 elseif  PS.BwSwpMode == 2
-  OrigV = round(nanmean(vec(1:length(vec))),2); 
+  OrigV = round(nanmedian(vec(1:length(vec))),2); 
 else
     QC.pass.betweenSweep(height(QC.params),1) = false;
 end

@@ -35,7 +35,7 @@ for n = 1:length(cellList)                                                 % for
                                    1}.vectordata.values{1}.data.load;
    SmplRt = nwb.resolve(RespTbl.timeseries(Idx(1)).path).starting_time_rate;
    QC.testpulse = zeros(length(Idx),(PS.preTP+PS.TPtrace)*SmplRt);    
-   QC.pass.TP =  repmat({NaN},ICEtab.id.data.dims,1);
+   QC.pass.TP =  repmat({NaN},ICEtab.responses.id.data.dims,1);
    for i = 1:length(Idx)
      CurrentPath = table2array(RespTbl(Idx(i),3)).path;                    % get path to sweep within nwb file  
      PreStimData = nwb.resolve(ICEtab.stimuli.stimulus.data.load(...

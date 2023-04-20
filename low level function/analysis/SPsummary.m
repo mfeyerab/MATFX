@@ -25,9 +25,12 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   else  
     SPampsQC = SwpAmps.load(find(IdxPassSwps));                            % assign current amplitudes  of sweeps that made the QC to variable
   end  
-  tempSPstep = min(SPampsQC(ismember(IdPassSwpsC,...
+  if ~isempty(APwave.keys)
+   tempSPstep = min(SPampsQC(ismember(IdPassSwpsC,...
                             regexp(cell2mat(APwave.keys),'\d*','Match'))));
-
+  else
+      tempSPstep =[];
+  end
   if ~isempty(tempSPstep)
     
     tempSPstepLoc = find(contains(APwave.keys,IdPassSwpsC(...

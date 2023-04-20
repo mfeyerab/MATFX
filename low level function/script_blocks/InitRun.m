@@ -15,6 +15,17 @@ if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
     mkdir(fullfile(PS.outDest, '\AP_Waveforms'))
     mkdir(fullfile(PS.outDest, '\tauFit'))  
     mkdir(fullfile(PS.outDest, '\TP')) 
+    mkdir(fullfile(PS.outDest, '\peristim\failedCells'))
+    mkdir(fullfile(PS.outDest, '\IU\failedCells'))
+    mkdir(fullfile(PS.outDest, '\profiles\failedCells'))
+    mkdir(fullfile(PS.outDest, '\firingPattern\failedCells'))
+    mkdir(fullfile(PS.outDest, '\QC\failedCells'))
+    mkdir(fullfile(PS.outDest, '\traces\failedCells'))
+    mkdir(fullfile(PS.outDest, '\betweenSweeps\failedCells'))
+    mkdir(fullfile(PS.outDest, '\AP_Waveforms\failedCells'))
+    mkdir(fullfile(PS.outDest, '\tauFit\failedCells'))  
+    mkdir(fullfile(PS.outDest, '\TP\failedCells')) 
+
 end
 %% Initialize feature and QC summary tables
 icSum = initICSummary(cellList); 

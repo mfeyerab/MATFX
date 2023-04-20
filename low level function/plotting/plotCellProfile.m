@@ -273,9 +273,9 @@ end
 % exportgraphics(gcf,fullfile(PS.outDest, 'profiles', [PS.cellID, '.pdf']),'BackgroundColor','none');
 F=getframe(gcf);
 imwrite(F.cdata,fullfile(PS.outDest, 'profiles', ...
-                                   [PS.cellID,' Cell profile',PS.pltForm]))
+                                 [PS.cellID,' Cell profile',PS.pltForm]))
 %% Export LP rheo waveform 4 website
-if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data)
+if ~isempty(PS.rheoSwpSers) && ~isempty(PS.rheoSwpSers.data) && PS.Webexport==1
     figure('visible','off')
     p = plot([0:1000/PS.rheoSwpSers.starting_time_rate: ...
             (0.004*PS.rheoSwpSers.starting_time_rate)...

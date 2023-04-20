@@ -18,6 +18,7 @@ function icSum = runPipeline(varargin) %{
 % Inputs:
 %
 %  (input/output)Path - string or character array specifiying 
+
 %                      location for reading and/or writing NWB files
 %
 % 
@@ -109,11 +110,14 @@ end
 InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
-for n = 1:length(cellList)                                                 % for all cells in directory
+for n =1:length(cellList)                                                  % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
  if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)                  % If all sweeps failed manual review
    disp([PS.cellID, ' skipped'])                                           % skipp the cell
+   QCcellWise.ID(n) = {PS.cellID};   
+   QCcellWise.Fail(n) = 1;  
+   QCcellWise.Tag(n) = {'manual'};  
  else
  nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));             % load nwb file
  %% Initialize QC
@@ -136,6 +140,8 @@ for n = 1:length(cellList)                                                 % for
  QC.pass.Properties.VariableNames(width(QC.pass)) = {'manuTP'};            % initializing additional variable for sweep wise QC encoding manual test pulse review
 
  if PS.manTPremoval
+   assert(height(QC.pass.manuTP)==height(TPtab.TP),...
+    'Number of sweeps between test pulse table and nwb file do not match')
    QC.pass.manuTP = TPtab.TP;                                              % assign binary from results of test pulse review to QC pass table
  end
 
@@ -160,7 +166,7 @@ for n = 1:length(cellList)                                                 % for
  initProceModules                                                          % initialize processing modules
  nwb  = addColumns2SwTabl(nwb,qc_tags);                                    % add initialized QC to sweep table 
  %% Looping through sweeps    
- for SwpCt = 1:ICEtab.id.data.dims                                         % loop through sweeps of IntracellularRecordinsTable             
+ for SwpCt = 1:ICEtab.responses.id.data.dims                               % loop through sweeps of IntracellularRecordinsTable             
   InitSweep                                                                % Initalizes sweep-wide variables 
   if ~contains(ProtoTags(SwpCt,:), PS.SkipTags) && ...                     % only continues if protocol name is not on the list in PS.SkipTags AND 
   (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manuTP(SwpCt)))        % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
@@ -175,9 +181,8 @@ for n = 1:length(cellList)                                                 % for
      LPexport = exportSweepCSV(CCSers, PS.SwDat, SwpCt, LPexport);         % a certain section of the trace is exported as csv  
    end  
    %% Sweep-wise analysis          
-   if (PS.([char(ProtoTags(SwpCt,:)),'qc_recovTime'])+ ...                 % checks if the sweep is of sufficient size for the respective protocol
-        PS.([char(ProtoTags(SwpCt,:)),'length']))*CCSers.starting_time_rate...
-        < length(CCSers.data.load)                                                  
+   if (PS.([PS.SwDat.Tag,'qc_recovTime'])+PS.([PS.SwDat.Tag,'length']))* ...                              
+        CCSers.starting_time_rate < length(CCSers.data.load)               % checks if the sweep is of sufficient size for the respective protocol                                 
           
      QC = SweepwiseQC(CCSers, PS, QC, SwpCt, LPfilt);                      % Sweep QC of the CurrentClampSeries                              
                                
@@ -190,11 +195,11 @@ for n = 1:length(cellList)                                                 % for
          SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);       % getting spike train parameters
          PS.supraCount = PS.supraCount + 1;                         
        elseif ProtoTags(SwpCt,:)=="LP"                                     % if no spikes have been detected and protocol is long pulse
-         modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);     % getting subthreshold parameters                          
+         SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
          PS.subCount = PS.subCount +1;
        end
      elseif ProtoTags(SwpCt,:)=="LP" 
-         modSubStats = subThresFeatures(CCSers,modSubStats,PS,LPfilt);     % getting subthreshold parameters                          
+         SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
          PS.subCount = PS.subCount +1;
      end
    else
@@ -205,18 +210,17 @@ for n = 1:length(cellList)                                                 % for
  end
  %% Finishing QC (relative Ra, between sweep) and saving results
  QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
- if ~isempty(modSubStats.dynamictable.values)
-     [~,tempRin] = getRin(modSubStats.dynamictable.values{1}, PS, ...
-                           find(~any(QC.pass{:,4:end}==0,2))-1);                % calculate input resistance before final QC
-     if  PS.isHeka
-         QC.pass.bridge_balance_rela(SwpCt) = true;
+ if length(fieldnames(SubStats))>0 
+     [~,tempRin] = getRin(SubStats, PS, ...
+                           find(~any(QC.pass{:,4:end}==0,2))-1);           % calculate input resistance before final QC
+     if  PS.isHeka || PS.rRA == 0
+         QC.pass.bridge_balance_rela(1:SwpCt) = 1;
      else
          QC.pass.bridge_balance_rela = ...
-           QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;             % check if input resistance meets relatice bridge balance criterium
+           QC.params.bridge_balance_abs < tempRin*PS.factorRelaRa;         % check if input resistance meets relatice bridge balance criterium
          QC.params.bridge_balance_rela = ones(height(QC.params),1)* ...
          tempRin*PS.factorRelaRa;
      end
-     QC.pass = convertvars(QC.pass, 'bridge_balance_rela','double');
  end
  saveProcessedCell                                                         % Save QC into nwb file and summary structures
  %% Cell-wise QC 1: initial access resistance
@@ -270,9 +274,10 @@ for n = 1:length(cellList)                                                 % for
      icSum{n,1:end-8}=NaN;
      theFiles = dir(fullfile(PS.outDest, ['**\*',PS.cellID,'*']));
  end
- if QCcellWise.Fail(n)== 1 && exist('theFiles')
+ if QCcellWise.Fail(n)== 1 && exist('theFiles') && ~islogical(theFiles)
    for k = 1 : length(theFiles)
-       delete(fullfile(theFiles(k).folder,theFiles(k).name));
+       movefile(fullfile(theFiles(k).folder,theFiles(k).name),...
+         fullfile(theFiles(k).folder,'failedCells'));
    end
  end%
 %% Add subject data, dendritic type and reporter status   
@@ -289,7 +294,7 @@ for n = 1:length(cellList)                                                 % for
    elseif isfile(fullfile(PS.outDest, '\', cellList(n).name))      
       delete(fullfile(PS.outDest, '\', cellList(n).name));
       disp(['Overwriting file ', cellList(n).name, ' in output folder'])
-      %nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file 
+     % nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file 
    else
       %nwbExport(nwb, fullfile(PS.outDest, '\', cellList(n).name))          % export nwb object as file
       disp(['saving file ', cellList(n).name, ' in output folder'])

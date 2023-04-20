@@ -85,7 +85,7 @@ if length(DelayTempY)>1 && length(HypTempX)>1
   end   
   box off
   F=getframe(gcf);
-  imwrite(F.cdata,fullfile(PS.outDest, 'IU', [PS.cellID,'_rectification',PS.pltForm]))
+  % imwrite(F.cdata,fullfile(PS.outDest, 'IU', [PS.cellID,'_rectification',PS.pltForm]))
  end
 end
 

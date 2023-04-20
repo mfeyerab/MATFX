@@ -14,5 +14,6 @@
   SpPattrn.ISIs = {}; SpPattrn.spTrain = struct(); QC.Spike = struct();    % initializing variables for interspike intervals, spike train parameters, spike QC 
   PS.subCount = 1; PS.supraCount = 1;                                      % starting counting variables for sub- and suprathreshold variables
   SpPattrn.spTrainIDs = {}; SpPattrn.BinTbl = zeros(0,13);                 % initializing variables to save spike train sweep IDs and binned spike train table
-  SpPattrn.RowNames = {};                                                  %
+  SpPattrn.RowNames = {};  SpPattrn.SpTimes = {};                          %
   LPexport = table();                                                      % initializing table for exporting raw data traces as csv 
+  SubStats = struct();

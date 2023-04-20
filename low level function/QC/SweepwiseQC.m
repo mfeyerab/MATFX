@@ -7,6 +7,7 @@ function [QC]  = SweepwiseQC(CCSers,PS,QC,SwpCt,LPfilt)
 %
 
 data = CCSers.data.load;
+SR = CCSers.starting_time_rate;
 
 %% Determining protocol type 
 if contains(CCSers.stimulus_description, PS.LPtags) 
@@ -29,60 +30,72 @@ end
                                   PS.SwDat.StimData(1:PS.SwDat.StimOn-10));
 
 %% Getting voltage trace at stimulus onset
-QC.VStimOn(SwpCt) = {data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
-                         0.002*CCSers.starting_time_rate+PS.SwDat.StimOn)};
+QC.VStimOn(SwpCt) = {data(PS.SwDat.StimOn-0.0003*SR:...
+                         0.002*SR+PS.SwDat.StimOn)};
 
-QC.VStimOff(SwpCt) = {data(PS.SwDat.StimOn-0.0003*CCSers.starting_time_rate:...
-                       0.002*CCSers.starting_time_rate+PS.SwDat.StimOff)};
+QC.VStimOff(SwpCt) = {data(PS.SwDat.StimOn-0.0003*SR:...
+                       0.002*SR+PS.SwDat.StimOff)};
 
 %% selecting time windows and determining long-term noise/membrane voltage stability    
 if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
 
  vec_pre = data(PS.SwDat.StimOn-Wind*...
-           CCSers.starting_time_rate:PS.SwDat.StimOn-1).*1000;
+           SR:PS.SwDat.StimOn-1).*1000;
       
- if PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
-           Wind*CCSers.starting_time_rate > length(CCSers.data.load)  
+ if PS.SwDat.StimOff+recvTi*SR+...
+           Wind*SR > length(CCSers.data.load)  
        
        error('Recovery period and/or integration window are too long. Please adjust in loadParams')
  else
      vec_post = data(PS.SwDat.StimOff+recvTi*...
-           CCSers.starting_time_rate+1:...
-           PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
-           Wind*CCSers.starting_time_rate).*1000;
+           SR+1:...
+           PS.SwDat.StimOff+recvTi*SR+...
+           Wind*SR).*1000;
  end
 else   
-  if PS.SwDat.StimOn < PS.LPqc_samplWind*CCSers.starting_time_rate
+  if PS.SwDat.StimOn < PS.([PS.SwDat.Tag,'qc_samplWind'])*SR
+      
     disp(['Sweep Nr ', num2str(CCSers.sweep_number), ...
-                         ' has peristimulus lengths shorter than desired'])
+                         ' has prestimulus length shorter than desired'])
     vec_pre = data(1:PS.SwDat.StimOn);
-    vec_post = data(PS.SwDat.StimOff:end);
     
   else
     vec_pre = data(PS.SwDat.StimOn-...
-        Wind*CCSers.starting_time_rate-1:PS.SwDat.StimOn-1);
-    vec_post = data(...
-        PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+1:...
-        PS.SwDat.StimOff+recvTi*CCSers.starting_time_rate+...
-          Wind*CCSers.starting_time_rate);
+        Wind*SR-1:PS.SwDat.StimOn-1);
   end
+  if length(PS.SwDat.StimData)  < PS.SwDat.StimOn + ...
+                               PS.([PS.SwDat.Tag,'qc_samplWind'])*SR + ...
+                               PS.([PS.SwDat.Tag,'qc_recovTime'])*SR
+      
+    disp(['Sweep Nr ', num2str(CCSers.sweep_number), ...
+                         ' has poststimulus length shorter than desired'])
+    vec_post = data(PS.SwDat.StimOff+...
+                PS.([PS.SwDat.Tag,'qc_recovTime'])*SR:end);
+  else
+    vec_post = data(PS.SwDat.StimOff+recvTi*SR+ 1:...
+                    PS.SwDat.StimOff+recvTi*SR+ Wind*SR);
+  end
+
 end
 
 restVPre = mean(vec_pre);
 restVPost = mean(vec_post);
-if PS.postFilt
-    temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_pre);
-    rmse_pre = sqrt(mean((temp - restVPre).^2));
+if PS.postFilt && length(vec_post)>153
     temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_post);
     rmse_post = sqrt(mean((temp - restVPost).^2));
 else
-    rmse_pre = sqrt(mean((vec_pre - restVPre).^2));
     rmse_post = sqrt(mean((vec_post - restVPost).^2));
+end
+if PS.postFilt && length(vec_pre)>153
+  temp = filtfilt(LPfilt.sos, LPfilt.ScaleValues, vec_pre);
+  rmse_pre = sqrt(mean((temp - restVPre).^2));
+else
+   rmse_pre = sqrt(mean((vec_pre - restVPre).^2));
 end
 diffV_b_e = abs(restVPre-restVPost); % differnce between end and stim onset 
 %% Determining short-term noise
 
-stWin = round(1.5*(CCSers.starting_time_rate/1000));
+stWin = round(1.5*(SR/1000));
 winCount = 1;
 for i = 1:round(stWin/2):length(vec_pre)-stWin
     yhat = mean(vec_pre(i:i+stWin));
@@ -187,7 +200,8 @@ end
   ylim([-8 8])
   legend({['pre-stim: RMSE ', num2str(round(rmse_pre,3))], ...
                        ['post-stim: RMSE ', num2str(round(rmse_post,3))]});
-  exportgraphics(gcf, fullfile(PS.outDest, 'peristim',[PS.cellID,' ',int2str(SwpCt),...
-            ' RMS noise vectors.png']));
+  F=getframe(gcf);
+  imwrite(F.cdata,fullfile(PS.outDest, 'peristim',[PS.cellID,' ',int2str(SwpCt),...
+            ' RMS noise vectors.png']))
  end
 end

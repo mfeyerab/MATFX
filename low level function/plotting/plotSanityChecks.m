@@ -31,7 +31,7 @@ if ~isempty(QC.testpulse)
     xlabel('samples')
     box off
     F=getframe(gcf);
-    imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.png']))
+    exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.pdf']))
 end
 %% Stimulus Onset LP
 LPvec = contains(string(ICEtab.dynamictable.values{...

@@ -23,9 +23,14 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   %% subthreshold parameters  
   SubThres = nwb.processing.map(...
                       'subthreshold parameters').dynamictable.values{1};   % Creating variable with all subthreshold data for readability     
-  [icSum.RinHD(ClNr), icSum.RinSS(ClNr)] = ...      % Assign resistance and offset of cell in summary table
-        getRin(SubThres,PS, IdPassSwps);                                   % the function returns input resistance and offset calculated as slope of a linear fit and "membrane deflection" at 0 pA       
-  SubAmps = SubThres.vectordata.map('SwpAmp').data;
+  SubStats.baseVm = SubThres.vectordata.map('baseVm').data';
+  SubStats.SwpAmp = SubThres.vectordata.map('SwpAmp').data';
+  SubStats.maxSubDeflection = ...
+      SubThres.vectordata.map('maxSubDeflection').data';
+  SubStats.sag = SubThres.vectordata.map('sag').data';
+  SubStats.SwpName = SubThres.vectordata.map('SwpName').data';
+  [icSum.RinHD(ClNr), icSum.RinSS(ClNr)] = getRin(SubStats,PS, IdPassSwps);% Assign resistance of cell in summary table
+  SubAmps = SubStats.SwpAmp';
 
   %Vrest
   if ~isempty(qcParas.map('SweepID').data)                                 % if there are any QCed sweeps             
@@ -42,7 +47,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    icSum.tau2(ClNr) = round(mean(SubThres.vectordata.map('tau').data(...
                             SubAmps==max(SubAmps(Idx)))),2);                                                 
   end
-  if PS.plot_all >= 2
+  if PS.plot_all >= 2 && ~isempty(SubAmps(Idx))
    figure('Visible','off');
    scatter(SubAmps(Idx), SubThres.vectordata.map('tau').data(Idx))
    xlim([min(SubAmps(Idx))-10 0])
@@ -162,8 +167,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       title('Dynamic frequency range');
       
       F=getframe(gcf);
-      imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
-                                   [PS.cellID,'_firingPattern',PS.pltForm]))
+      % imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
+      %                              [PS.cellID,'_firingPattern',PS.pltForm]))
      end
     end
    end
@@ -195,7 +200,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
     PS.sagSwpTabPos = find(endsWith({SwpRespTbl.path},SagData.SwpName));
     PS.sagSwpSers = nwb.resolve(['/acquisition/', char(SagData.SwpName)]);   % save CC series to plot it later in the cell profile  
   else
-    disp('Hi')
+    disp('No appropiate sag sweep')
   end
   %% rheobase sweeps and parameters of first spike
   if exist('LPsupraIDs', 'var') && iscell(LPsupraIDs) && ~isempty(passRts)
@@ -308,8 +313,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      
    elseif length(PS.rheoSwpDat.map('htTP').data) > 3                       % if there is no hero sweep but rheobase has more than 3 spikes 
      PS.heroSwpSers = PS.rheoSwpSers; PS.heroSwpTabPos = PS.rheoSwpTabPos; % get rheo CCSeries as hero sweep  
-     HeroStart = IcephysTab.responses.response.data.load(...
-                                PS.heroSwpTabPos(end)).idx_start;          % getting StimOnset for Hero sweep                                
+     HeroStart = IcephysTab.responses.response.data.load.idx_start(...
+                                PS.heroSwpTabPos(end));                    % getting StimOnset for Hero sweep                                
      baseline = mean(PS.heroSwpSers.data.load(1:HeroStart));               % getting baseline Vm of herosweep for through ratio
      if checkVolts(PS.heroSwpSers.data_unit) && ...
              string(PS.heroSwpSers.description) ~= "PLACEHOLDER"

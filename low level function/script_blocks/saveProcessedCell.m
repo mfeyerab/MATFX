@@ -43,6 +43,8 @@ writetable(QC.params,[...
 
 %% save all sweep processing in NWB file
 
+SubTab = util.table2nwb(struct2table(SubStats));
+modSubStats.dynamictable.set('Subthreshold', SubTab);
 modAPP = fillAPP_Mod(modAPP,SpPattrn);                                     % make AP pattern processing module  
 nwb.processing.set('AP Pattern', modAPP);                                  % add AP pattern processing module to nwb obejct
 nwb.processing.set('subthreshold parameters', modSubStats);                % add subthreshold parameters processing module to nwb obejct 
