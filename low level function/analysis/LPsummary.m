@@ -274,7 +274,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
        pos = find(passRts==2,1,'first');
        PoHeroAmps = I(pos);   
     else
-      [~, pos] = min(abs(I-(min(I)+0.65*max(I))));
+      [~, pos] = min(abs(I-(min(I)+0.5*max(I))));
       PoHeroAmps = I(pos);   
     end
     if ~isempty(PoHeroAmps)                         
