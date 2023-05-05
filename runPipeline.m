@@ -18,7 +18,6 @@ function icSum = runPipeline(varargin) %{
 % Inputs:
 %
 %  (input/output)Path - string or character array specifiying 
-
 %                      location for reading and/or writing NWB files
 %
 % 

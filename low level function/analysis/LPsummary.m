@@ -117,9 +117,12 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
                      sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));% dividing spikes from 7th to last bin from first by max sweeps 
     end
     I = round(SwpAmps(ismember(SwpIDs,cellfun(@str2num,LPsupraIDs))));     % Get all stimulus amplitudes of suprathershold long pulse sweeps
-    if length(1:MaxIdx(end))>2
-     P = robustfit(I(1:MaxIdx(end)), passRts(1:MaxIdx(end)));              % create a linear fit of I f curve                
-     icSum.fIslope(ClNr) = round(P(1),3);                                  % save slope as feature for cell
+    [Iorder, Isorted] = sort(I);
+    RtsSort = passRts(Isorted);
+    MaxIdx = find(max(passRts)==RtsSort,1,'first');
+    if length(1:MaxIdx)>2
+     P = robustfit(Iorder(1:MaxIdx),  RtsSort(1:MaxIdx));                  % create a linear fit of I f curve                
+     icSum.fIslope(ClNr) = round(P(2),3);                                  % save slope as feature for cell
 
      if PS.plot_all >= 1
       figure('visible','off', 'Position', [128 320 1204 658]);
@@ -264,8 +267,16 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %% Hero sweep selection         
    if ~isnan(icSum.Rheo(ClNr))                                             % if Rheo is not Nan i.e. there is a rheo base sweep 
-    [~, pos] = min(abs(passRts-0.65*icSum.maxRt(ClNr)));
-    PoHeroAmps = I(pos);
+    if any(passRts>1) && max(passRts)>2
+      [~, pos] = min(abs(passRts-0.65*icSum.maxRt(ClNr)));
+      PoHeroAmps = I(pos);
+    elseif max(passRts)==2
+       pos = find(passRts==2,1,'first');
+       PoHeroAmps = I(pos);   
+    else
+      [~, pos] = min(abs(I-(min(I)+0.65*max(I))));
+      PoHeroAmps = I(pos);   
+    end
     if ~isempty(PoHeroAmps)                         
       [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps));                     % get position of potential hero sweeps 
       PS.heroSwpTabPos = find(all([round(SwpAmps)==LPampsQC(heroSwpPos), ...
