@@ -1,3 +1,4 @@
+
 function icSum = runPipeline(varargin) %{
 %Runs quality control and feature analysis on data indicated
 %by input argument
@@ -208,7 +209,14 @@ for n =1:length(cellList)                                                  % for
   end
  end
  %% Finishing QC (relative Ra, between sweep) and saving results
- QC = BetweenSweepQC(QC, PS);                                              % execute betweenSweep QC  
+ if ~isfield(SubStats,'SwpName')
+     SubStats.SwpName = {};
+     SubStats.SwpAmp=[];
+     SubStats.maxSubDeflection=[];
+     SubStats.sag=[];
+ end
+ QC = BetweenSweepQC(QC, PS, ...
+     [SubStats.SwpName; modSpikes.dynamictable.keys']);                    % execute betweenSweep QC  
  if length(fieldnames(SubStats))>0 
      [~,tempRin] = getRin(SubStats, PS, ...
                            find(~any(QC.pass{:,4:end}==0,2))-1);           % calculate input resistance before final QC

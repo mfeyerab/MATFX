@@ -1,6 +1,7 @@
-function  QC = BetweenSweepQC(QC,PS)
+function  QC = BetweenSweepQC(QC,PS,GoodNames)
 
 vec = QC.params.Vrest';
+vec(~ismember(QC.params.SweepID,GoodNames)) = NaN;
 vec(QC.params.Vrest'>-40) = NaN;
 
 if PS.BwSwpMode == 1

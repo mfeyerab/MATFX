@@ -43,8 +43,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
             SubThres.vectordata.map('maxSubDeflection').data> PS.maxDefl & ...
             SubThres.vectordata.map('maxSubDeflection').data <-2;
   if any(Idx)
-   icSum.tau(ClNr) = round(max(SubThres.vectordata.map('tau').data(Idx)),2);   
-   icSum.tau2(ClNr) = round(mean(SubThres.vectordata.map('tau').data(...
+   icSum.tau(ClNr) = round(mean(SubThres.vectordata.map('tau').data(...
                             SubAmps==max(SubAmps(Idx)))),2);                                                 
   end
   if PS.plot_all >= 2 && ~isempty(SubAmps(Idx))
@@ -70,6 +69,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    LPsupraIDs = SuprIDs(passSuprIdx);
    ISIs = spPatr.map('ISIs').vectordata.values{1}.data;  
    passRts = SpPatrTab.map('firRt').data(passSuprIdx);     
+   passRtIDs = SpPatrTab.map('SwpID').data(passSuprIdx);     
    MaxIdx =[];
    if ~isempty(passRts)
     icSum.maxRt(ClNr) =  max(passRts);                                     % Maximum firing rate
@@ -267,39 +267,44 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %% Hero sweep selection         
    if ~isnan(icSum.Rheo(ClNr))                                             % if Rheo is not Nan i.e. there is a rheo base sweep 
-    if any(passRts>1) && max(passRts)>2
-      [~, pos] = min(abs(passRts-0.65*icSum.maxRt(ClNr)));
-      PoHeroAmps = I(pos);
+    if length(passRts)>3 && any(passRts>1) && max(passRts)>2
+      [~,max_po] = max(passRts);
+
+      if icSum.rheoRt(ClNr) < 10
+       tempRts = passRts(1:max_po)-min(passRts(1:max_po));
+       [~, pos] = min(abs(tempRts-0.5*max(tempRts)));
+      else
+        [~, pos] = min(abs(passRts(1:max_po)-0.65*range(passRts(1:max_po))));
+      end
+      heroID = passRtIDs(pos);
     elseif max(passRts)==2
        pos = find(passRts==2,1,'first');
-       PoHeroAmps = I(pos);   
+       heroID = passRtIDs(pos);   
     else
-      [~, pos] = min(abs(I-(min(I)+0.5*max(I))));
-      PoHeroAmps = I(pos);   
+      [~, pos] = min(abs(I-(min(I)+0.6*range(I))));
+      heroID = passRtIDs(pos);   
     end
-    if ~isempty(PoHeroAmps)                         
-      [~, heroSwpPos] = min(abs(LPampsQC-PoHeroAmps));                     % get position of potential hero sweeps 
-      PS.heroSwpTabPos = find(all([round(SwpAmps)==LPampsQC(heroSwpPos), ...
-                                                       LPIdx],2));         % get potential hero sweep table position
-      heroID = str2double(regexp([SwpRespTbl(PS.heroSwpTabPos).path], '\d*','Match'));%   
-      heroProModAPPos = endsWith(APwave.keys,['_',num2str(heroID(1))]);      % position of hero sweep in AP wave processing moduls
+    if ~isempty(heroID)       
+      PS.heroSwpTabPos = find(endsWith(...
+                          {SwpRespTbl.path}, ['_',char(heroID)]));        % get potential hero sweep table position
+      heroProModAPPos = endsWith(APwave.keys,['_',heroID{1}]);            % position of hero sweep in AP wave processing moduls
       if isempty(find(heroProModAPPos))
        heroID = [];
       else
        heroSwpAPDat = APwave.values{heroProModAPPos}.vectordata;              % 
       end    
     end
-    if exist("heroID") && ~isempty(heroID)                                 % if there are potential hero sweep names
-     PosSpTrain = find(ismember(spPatr.map('AP Pattern parameter'...
-      ).vectordata.map('SwpID').data, num2str(heroID(1))));                % saves the position of the spPatr module that matches the first current potential hero sweep
-     if ~isempty(PosSpTrain)
-      PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
-     elseif length(heroID)>1
-        PosSpTrain = find(str2double(LPsupraIDs)==heroID(end));  
-        PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
-     end
+    if exist('heroID','var') && ~isempty(heroID)
+        PosSpTrain = find(ismember(spPatr.map('AP Pattern parameter'...
+          ).vectordata.map('SwpID').data, heroID{1}));                % saves the position of the spPatr module that matches the first current potential hero sweep
+        if ~isempty(PosSpTrain)
+          PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
+        elseif length(heroID)>1
+            PosSpTrain = find(str2double(LPsupraIDs)==heroID{end});  
+            PS.heroSwpAPPDat = getRow(spPatr.values{1}, PosSpTrain);   
+        end
     end
-    if ~isempty(PS.heroSwpAPPDat)                                          % if there is a hero sweep
+    if ~isempty(PS.heroSwpAPPDat)                                           % if there is a hero sweep
      PS.heroSwpSers = nwb.resolve(SwpPaths(PS.heroSwpTabPos(1)));          % get CCSeries of hero sweep 
      HeroStart = IcephysTab.responses.response.data.load.idx_start(...
                                     PS.heroSwpTabPos(end));                % getting StimOnset for Hero sweep                                
@@ -316,7 +321,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      end
      icSum.cvISI(ClNr) = round(PS.heroSwpAPPDat.cvISI,3);                % get cvISI
      icSum.HeroRt(ClNr) = PS.heroSwpAPPDat.firRt;                        % get firing rate of hero sweep  
-     icSum.HeroAmp(ClNr) = LPampsQC(heroSwpPos(end));                    % get current amplitude of hero sweep
+     icSum.HeroAmp(ClNr) = I(pos);                                       % get current amplitude of hero sweep
      icSum.heroLat(ClNr) = PS.heroSwpAPPDat.lat;                         % get latency of hero sweep
      icSum.peakAda(ClNr) = round(PS.heroSwpAPPDat.peakAdapt,3);              % get peak adaptation of hero sweep
      icSum.AdaIdx(ClNr) = round(PS.heroSwpAPPDat.adaptIdx2,3);         % get adaptation index of hero sweep 

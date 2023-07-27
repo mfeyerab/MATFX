@@ -104,12 +104,16 @@ elseif isempty(tempX) && sum(Idx1==1)>0
         figure('visible','off'); 
         hold on
         plot(HDfit,'b',tempX, tempYHD,'k.')
+        if exist('SSfit','var')
         plot(SSfit,'c',tempX,tempYSS,'green.') 
+        end
         if any(X<0)
           fplot(@(x)HDfit.p1*x+HDfit.p2,...
             [min(X) min(tempX)],'b--','LineWidth',1)
+          if exist('SSfit','var')
           fplot(@(x)SSfit.p1*x+SSfit.p2,...
             [min(X) min(tempX)],'c--','LineWidth',1)
+          end
            scatter(X,YHD,'k')
            scatter(X,YSS,'green')
         else
@@ -129,7 +133,9 @@ if ~isempty(tempX) && PS.plot_all >= 1
  scatter(X,YHD,'k')
  scatter(X,YSS,'green')
  l = legend('Location','northwest');
- l.String = {'HD','fitHD','SS','fitSS'};
+ if exist('SSfit','var')
+   l.String = {'HD','fitHD','SS','fitSS'};
+ end
  xlabel('input current (pA)')
  ylabel('change in membrane potential (mV)')
  title('IU curve (fit of Rin)')

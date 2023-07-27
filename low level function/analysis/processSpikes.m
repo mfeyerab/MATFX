@@ -26,7 +26,14 @@ if ~isempty(supraEvents)
     sp = rmfield(sp, 'dVdt');
     sp = rmfield(sp, 'maxdVdt');
     sp = rmfield(sp, 'maxdVdtTime');
-    Idx = abs(sp.peak-sp.threshold)>5;
+    if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"   
+      Idx = abs(sp.peak-sp.threshold)>5/1000;
+    else 
+      Idx = abs(sp.peak-sp.threshold)>5;
+    end
+    
+
+    
     sp = structfun(@(F) F(find(Idx)), sp, 'uniform', 0);
     sp = structfun(@double, sp, 'UniformOutput', false);
 
