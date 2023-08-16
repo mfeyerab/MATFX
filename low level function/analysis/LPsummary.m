@@ -67,35 +67,76 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   if iscell(SuprIDs)
    passSuprIdx = ismember(SuprIDs, IdPassSwpsC); 
    LPsupraIDs = SuprIDs(passSuprIdx);
+   AllI = round(SwpAmps(ismember(SwpIDs,cellfun(@str2num,SuprIDs))));      % Get all stimulus amplitudes of suprathershold long pulse sweeps
+   Ipass = round(SwpAmps(ismember(SwpIDs,cellfun(@str2num,LPsupraIDs))));      % Get all stimulus amplitudes of suprathershold long pulse sweeps
+   [Iorder, Isorted] = sort(Ipass);
    ISIs = spPatr.map('ISIs').vectordata.values{1}.data;  
    passRts = SpPatrTab.map('firRt').data(passSuprIdx);     
    passRtIDs = SpPatrTab.map('SwpID').data(passSuprIdx);     
-   MaxIdx =[];
+   MaxIdxPass =[];
    if ~isempty(passRts)
     icSum.maxRt(ClNr) =  max(passRts);                                     % Maximum firing rate
-    MaxIdx = find(max(passRts)==passRts,1,'last');
+    MaxIdxPass = find(max(passRts)==passRts,1,'last');
+    [~,maxIdxAll] =max(SpPatrTab.map('firRt').data);
    end
    icSum.lastQuisc(ClNr) = min(SpPatrTab.map('lastQuisc').data);            % non-persistance of firing quantified as minimum time span from last spike to stimulus end from all sweeps
   % dynamic frequency range
-  if spPatr.isKey('ISIs') && ~isempty(ISIs) && ~isempty(MaxIdx)            %if ISI module exists and is not empty
-   ISIIdx = spPatr.map('ISIs').vectordata.values{2}.data(MaxIdx);      
-   ISIs = ISIs(1:ISIIdx-1); ISIs = ISIs(~isnan(ISIs));ISIs(ISIs==0) = [];  % get rid of 0 and nans  
+  if spPatr.isKey('ISIs') && ~isempty(ISIs) && exist('maxIdxAll', 'var') && ...
+                                            ~isempty(maxIdxAll)            %if ISI module exists and is not empty
+   ISIIdx = spPatr.map('ISIs').vectordata.values{2}.data;   
+   ISIexport = table();
+   if length(unique(AllI(1:maxIdxAll)))~=length(AllI(1:maxIdxAll))
+     disp('improve analysis here')
+     [~,ia] =unique(AllI(1:maxIdxAll),'first');
+     testIdx = find(SpPatrTab.map('firRt').data(ia)-1);
+      for s=1:length(testIdx)
+        ISIexport.SweepID(s) = SuprIDs(ia(testIdx(s)));
+        ISIexport.SweepAmp(s) = AllI(ia(s));
+        if ia(testIdx(s))==1
+          ISIexport.ISIs(s) = {ISIs(1:ISIIdx(ia(testIdx(s))))};
+        else
+          ISIexport.ISIs(s) = {ISIs(...
+            ISIIdx(ia(testIdx(s))-1)+1:...
+            ISIIdx(ia(testIdx(s))))};
+        end
+      end
+      ISIs = vertcat(ISIexport.ISIs{:});
+   else
+    ISIMaxIdx = ISIIdx(maxIdxAll);    
+    testIdx = find(SpPatrTab.map('firRt').data(1:maxIdxAll)-1);
+    for s=1:length(testIdx)
+        ISIexport.SweepID(s) = SuprIDs(testIdx(s));
+        ISIexport.SweepAmp(s) = AllI(testIdx(s));
+        if testIdx(s)==1
+          ISIexport.ISIs(s) = {ISIs(1:ISIIdx(testIdx(s)))};
+        else
+          ISIexport.ISIs(s) = {ISIs(...
+            ISIIdx(testIdx(s)-1)+1:...
+            ISIIdx(testIdx(s)))};
+        end
+    end
+    ISIs = ISIs(1:ISIMaxIdx-1);
+   end
+   writetable(ISIexport, fullfile(PS.outDest, 'firingPattern', ...
+                                  [PS.cellID,'_ISIs.csv']));
+   ISIs = ISIs(~isnan(ISIs));ISIs(ISIs==0) = [];  % get rid of 0 and nans  
+
    icSum.medInstaRt(ClNr) = round(1000/nanmedian(ISIs),2);       
    icSum.DFR_P90(ClNr) = round(prctile(ISIs, 90),2);           
    icSum.DFR_P10(ClNr) = round(prctile(ISIs, 10),2); 
    icSum.DFR_IQR(ClNr) = round(prctile(ISIs, 75) - prctile(ISIs, 25),2);
-            
+         
    % adaptation   
    icSum.AdaRatB1B2(ClNr) = ...                                            % divides the sum of all spikes in the second bin
-        round(sum(SpBinTab.map('B2').data(1:MaxIdx))/...
-        sum(SpBinTab.map('B1').data(1:MaxIdx)),2);                         % by the sum of all spikes in the first bin                    
+        round(sum(SpBinTab.map('B2').data(1:MaxIdxPass))/...
+        sum(SpBinTab.map('B1').data(1:MaxIdxPass)),2);                         % by the sum of all spikes in the first bin                    
    SumLastBin = 0; Bcount=13;
    while SumLastBin == 0
-    SumLastBin = sum(SpBinTab.map(['B',num2str(Bcount)]).data(1:MaxIdx));
+    SumLastBin = sum(SpBinTab.map(['B',num2str(Bcount)]).data(1:MaxIdxPass));
     Bcount = Bcount -1;
    end
    icSum.AdaRatB1BLast(ClNr) = ...                                         % divides the sum of all spikes in the last bin
-       round(SumLastBin/sum(SpBinTab.map('B1').data(1:MaxIdx)),2);         % by the sum of all spikes in the first bin                         
+       round(SumLastBin/sum(SpBinTab.map('B1').data(1:MaxIdxPass)),2);         % by the sum of all spikes in the first bin                         
 
    if ~isempty(SpBinTab.map('B1').data) && ~isempty(passRts)          
     if min(passRts) > 4
@@ -116,12 +157,10 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       icSum.StimAdaB7_13(ClNr) = ...                                       % calculates an adaptiation ratio by
                      sum(StartSwpBinCount(7:13))/sum(MaxSwpBinCount(7:13));% dividing spikes from 7th to last bin from first by max sweeps 
     end
-    I = round(SwpAmps(ismember(SwpIDs,cellfun(@str2num,LPsupraIDs))));     % Get all stimulus amplitudes of suprathershold long pulse sweeps
-    [Iorder, Isorted] = sort(I);
     RtsSort = passRts(Isorted);
-    MaxIdx = find(max(passRts)==RtsSort,1,'first');
-    if length(1:MaxIdx)>2
-     P = robustfit(Iorder(1:MaxIdx),  RtsSort(1:MaxIdx));                  % create a linear fit of I f curve                
+    MaxIdxPass = find(max(passRts)==RtsSort,1,'first');
+    if length(1:MaxIdxPass)>2
+     P = robustfit(Iorder(1:MaxIdxPass),  RtsSort(1:MaxIdxPass));                  % create a linear fit of I f curve                
      icSum.fIslope(ClNr) = round(P(2),3);                                  % save slope as feature for cell
 
      if PS.plot_all >= 1
@@ -141,8 +180,8 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       subplot(2,3,1);rasterplot(SpiTi)
       %I-f curve 
       subplot(2,3,2); hold on;
-      scatter(I, passRts)
-      yfit = P(2)*I+P(1);             plot(I,yfit,'r-.');
+      scatter(Ipass, passRts)
+      yfit = P(2)*Ipass+P(1);             plot(Ipass,yfit,'r-.');
       xlabel('input current (pA)');   ylabel('firing frequency (Hz)')
       title('f/I curve');             box off; axis tight 
       subplot(2,3,3); hold on;
@@ -151,15 +190,15 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       [~,order] = sort(temp);
       SupIdx = ismember(spPatr.values{1}.vectordata.map(...
                                         'SwpID').data(order), IdPassSwpsC);
-      scatter(I,getRow(spPatr.values{1},find(SupIdx)).adaptIdx)
+      scatter(Ipass,getRow(spPatr.values{1},find(SupIdx)).adaptIdx)
       title('Adaptation Index 1 over stim'); 
 
       subplot(2,3,5);     
-      scatter(I,getRow(spPatr.values{1},find(SupIdx)).burst)
+      scatter(Ipass,getRow(spPatr.values{1},find(SupIdx)).burst)
       title('burst over stim'); 
 
       subplot(2,3,6);  
-      scatter(I,getRow(spPatr.values{1},find(SupIdx)).cvISI)
+      scatter(Ipass,getRow(spPatr.values{1},find(SupIdx)).cvISI)
       title('cvISI over stim'); 
 
       subplot(2,3,4); 
@@ -170,12 +209,14 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       title('Dynamic frequency range');
       
       F=getframe(gcf);
-      % imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
-      %                              [PS.cellID,'_firingPattern',PS.pltForm]))
+      imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
+                                  [PS.cellID,'_firingPattern',PS.pltForm]))
      end
     end
    end
    end
+  else
+    return
   end
   %% finding certain sweeps
   APwave = nwb.processing.map('AP wave').dynamictable;                     % variable for better readability   
@@ -207,11 +248,11 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
   end
   %% rheobase sweeps and parameters of first spike
   if exist('LPsupraIDs', 'var') && iscell(LPsupraIDs) && ~isempty(passRts)
-   rheoIdx = find(passRts' <= median(passRts) & I < median(I));
+   rheoIdx = find(passRts' <= median(passRts) & Ipass < median(Ipass));
    if ~isempty(rheoIdx) && length(unique(passRts(rheoIdx)))>1
        [maxPotRheoRt, tempIdx] = max(passRts(rheoIdx));
        while maxPotRheoRt > 1 && ...
-           any(I(passRts < maxPotRheoRt) < min(I(passRts == maxPotRheoRt)))
+           any(Ipass(passRts < maxPotRheoRt) < min(Ipass(passRts == maxPotRheoRt)))
          rheoIdx(tempIdx) = [];
          [maxPotRheoRt, tempIdx] = max(passRts(rheoIdx));
        end
@@ -221,7 +262,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
    elseif length(passRts)==1
      rheoIdx=1;
    else
-        [~,rheoIdx] = min(I);
+        [~,rheoIdx] = min(Ipass);
    end
    icSum.rheoRt(ClNr) = passRts(rheoIdx);
    RheoSwpID = LPsupraIDs(rheoIdx);
@@ -244,7 +285,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
     if ~isempty(PS.rheoSwpDat)                                             % if there is a rheo sweep
      PS.rheoSwpSers = nwb.resolve(SwpRespTbl(PS.rheoSwpTabPos).path);      % get CCSeries from rheo sweep
 
-     icSum.Rheo(ClNr) = round(min(I(passRts==passRts(rheoIdx))));        % get minimum current stimulus of all sweeps with the number of spikes of rheobase sweep  
+     icSum.Rheo(ClNr) = round(min(Ipass(passRts==passRts(rheoIdx))));        % get minimum current stimulus of all sweeps with the number of spikes of rheobase sweep  
  
      StimOnIdx = IcephysTab.responses.response.data.load.idx_start(...
                                                          PS.rheoSwpTabPos);
@@ -281,7 +322,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
        pos = find(passRts==2,1,'first');
        heroID = passRtIDs(pos);   
     else
-      [~, pos] = min(abs(I-(min(I)+0.6*range(I))));
+      [~, pos] = min(abs(Ipass-(min(Ipass)+0.6*range(Ipass))));
       heroID = passRtIDs(pos);   
     end
     if ~isempty(heroID)       
@@ -321,7 +362,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      end
      icSum.cvISI(ClNr) = round(PS.heroSwpAPPDat.cvISI,3);                % get cvISI
      icSum.HeroRt(ClNr) = PS.heroSwpAPPDat.firRt;                        % get firing rate of hero sweep  
-     icSum.HeroAmp(ClNr) = I(pos);                                       % get current amplitude of hero sweep
+     icSum.HeroAmp(ClNr) = Ipass(pos);                                       % get current amplitude of hero sweep
      icSum.heroLat(ClNr) = PS.heroSwpAPPDat.lat;                         % get latency of hero sweep
      icSum.peakAda(ClNr) = round(PS.heroSwpAPPDat.peakAdapt,3);              % get peak adaptation of hero sweep
      icSum.AdaIdx(ClNr) = round(PS.heroSwpAPPDat.adaptIdx2,3);         % get adaptation index of hero sweep 
@@ -356,5 +397,5 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
     end
   end
  end
-else  % required for runSummary because data format changes from double to DataStub
+% else  % required for runSummary because data format changes from double to DataStub
 end

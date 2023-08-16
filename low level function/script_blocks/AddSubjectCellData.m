@@ -30,21 +30,21 @@
          icSum.Species(n) = {nwb.general_subject.species.load};   
       end
 
-      if isa(nwb.general_subject.weight,'char')                            % assign weight to summary table        
+      if isa(nwb.general_subject.weight,'char')                  % assign weight to summary table        
          icSum.Weight(n) = {str2num(nwb.general_subject.weight)};
-      else
-         icSum.Weight(n) = {str2num(nwb.general_subject.weight.load)}; 
+      elseif ~isempty(nwb.general_subject.weight)         
+         icSum.Weight(n) = {str2num(nwb.general_subject.weight.load)};     
       end
                           
       if isa(nwb.general_subject.sex,'char')                                % assign sex to summary table 
          icSum.Sex(n) = {nwb.general_subject.sex};
-      else
+      elseif ~isempty(nwb.general_subject.sex)
          icSum.Sex(n) = {nwb.general_subject.sex.load};
       end
       
-      if ~isempty(nwb.general_subject.age)                                 % assign age to summary table 
+      if  isa(nwb.general_subject.age,'char')                                 % assign age to summary table 
          icSum.Age(n) = {str2num(nwb.general_subject.age)};     
-      else
+      elseif  ~isempty(nwb.general_subject.age)   
          icSum.Age(n) = {str2num(nwb.general_subject.age.load)};      
       end      
    end  
