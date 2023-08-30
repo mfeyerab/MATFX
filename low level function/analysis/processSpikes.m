@@ -12,7 +12,7 @@ function [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC)
  end
 sp = [];
 if ~isempty(supraEvents)
-    [int4Peak,startPotSp] = int4APs(supraEvents);
+    [int4Peak,startPotSp] = int4APs(supraEvents, PS);
     sp = estimatePeak(startPotSp,int4Peak,CCSers);
     if ~isempty(sp)
      sp = getSpikeParameter(CCSers, sp, PS);
