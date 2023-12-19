@@ -15,6 +15,7 @@ if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
     mkdir(fullfile(PS.outDest, '\AP_Waveforms'))
     mkdir(fullfile(PS.outDest, '\tauFit'))  
     mkdir(fullfile(PS.outDest, '\TP')) 
+    mkdir(fullfile(PS.outDest, '\Noise')) 
     mkdir(fullfile(PS.outDest, '\peristim\failedCells'))
     mkdir(fullfile(PS.outDest, '\IU\failedCells'))
     mkdir(fullfile(PS.outDest, '\profiles\failedCells'))
@@ -29,6 +30,8 @@ if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
 end
 %% Initialize feature and QC summary tables
 icSum = initICSummary(cellList); 
+MetaVarStart = find(contains(icSum.Properties.VariableNames,'Temperature'));
+NoiseSum = icSum(:,MetaVarStart:end);
 
 qc_tags = {'SweepsTotal' 'QC_total_pass' 'stRMSE_pre' 'stRMSE_post' ...
         'ltRMSE_pre' 'ltRMSE_post' 'diffVrest' ...

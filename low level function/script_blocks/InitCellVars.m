@@ -11,9 +11,14 @@
   elseif PS.manTPremoval
       error('No result file for manual test pulse review')
   end
-  SpPattrn.ISIs = {}; SpPattrn.spTrain = struct(); QC.Spike = struct();    % initializing variables for interspike intervals, spike train parameters, spike QC 
-  PS.subCount = 1; PS.supraCount = 1;                                      % starting counting variables for sub- and suprathreshold variables
-  SpPattrn.spTrainIDs = {}; SpPattrn.BinTbl = zeros(0,13);                 % initializing variables to save spike train sweep IDs and binned spike train table
+  SpPattrn.ISIs = {}; NoiseSpPattrn.ISIs = {};
+  SpPattrn.spTrain = struct(); NoiseSpPattrn.spTrain = struct(); 
+  QC.Spike = struct();                                                     % initializing variables for interspike intervals, spike train parameters, spike QC 
+  
+  PS.subCount = 1; PS.supraCount = 1; PS.NoiseCount = 1;                   % starting counting variables for sub- and suprathreshold variables
+  SpPattrn.spTrainIDs = {}; NoiseSpPattrn.spTrainIDs = {}; 
+  SpPattrn.BinTbl = zeros(0,13);                                           % initializing variables to save spike train sweep IDs and binned spike train table
   SpPattrn.RowNames = {};  SpPattrn.SpTimes = {};                          %
+  NoiseSpPattrn.RowNames = {};  NoiseSpPattrn.SpTimes = {}; 
   LPexport = table();                                                      % initializing table for exporting raw data traces as csv 
   SubStats = struct();

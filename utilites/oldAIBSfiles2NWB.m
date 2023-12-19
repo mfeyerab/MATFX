@@ -1,7 +1,7 @@
 clear
 
-mainfolder = 'D:\conversion\Allen_cell_types\'; %fullfile(cd, '\test_cell\');
-outputfolder = 'D:\AIBS1\'; %[cd, '\'];
+mainfolder = 'D:\conversion\AllenSelect\'; %fullfile(cd, '\test_cell\');
+outputfolder = 'D:\FirePat\'; %[cd, '\'];
 cellList = dir([mainfolder,'*.nwb']);
 T = struct2table(load('cell_types_specimen_details.mat'));
 
@@ -22,21 +22,10 @@ for n = 1:length(cellList)
     nwb.identifier = cellList(n,1).name;
     nwb.session_description = ...
       'Characterizing intrinsic biophysical properties of cortical neurons; First release from AIBS';
-
-    if isempty(idx)
-        disp('Manual entry data not found')
-        noManuTag = 1;
-         nwb.general_subject = types.core.Subject( ...
-      'description', 'NA', 'age', 'NA', ...
-      'sex', 'NA', 'species', 'NA');
-       corticalArea = 'NA'; 
-       initAccessResistance = 'NA';
-    else    
-      nwb.general_subject = types.core.Subject( ...
+    nwb.general_subject = types.core.Subject( ...
         'subject_id', char(T.donor__id(idx)), 'age', num2str(T.donor__age(idx)), ...
         'sex', char(T.donor__sex(idx)), 'species', char(T.donor__species1(idx)), ...
          'genotype', char(T.line_name1(idx)) );      
-    end
      nwb.general_institution = 'Allen Institute of Brain Science';
      device_name = 'unknown device';
 
@@ -101,13 +90,23 @@ for n = 1:length(cellList)
     
     stimName = h5read(filename,[stimPath,'/aibs_stimulus_name']);
          
-    if string(stimName)== "Short Square" || string(stimName)== "Long Square"              
+    if string(stimName)== "Short Square" || string(stimName)== "Long Square" ...
+        || contains(stimName, 'Noise')
        if string(stimName)== "Long Square" 
                 BinaryLP(sweepCount,1)  = 1;
                 BinarySP(sweepCount,1)  = 0;
+                BinaryNoise(sweepCount,1)  = 0;
+
        elseif string(stimName)== "Short Square" 
                 BinaryLP(sweepCount,1)  = 0;
                 BinarySP(sweepCount,1)  = 1;
+                BinaryNoise(sweepCount,1)  = 0;
+
+       elseif contains(stimName, 'Noise')
+                BinaryLP(sweepCount,1)  = 0;
+                BinarySP(sweepCount,1)  = 0;
+                BinaryNoise(sweepCount,1)  = 1;
+
        end  
         %% Import Sweeps with potential alignment of sampling rates       
         [nwb, SweepAmp, StimOn, StimOff]  = importSweeps(nwb, ...
@@ -130,6 +129,7 @@ for n = 1:length(cellList)
  %% Intracellular Recordings Table   
     BinaryLP(isnan(BinaryLP)) = 0;
     BinarySP(isnan(BinarySP)) = 0;
+    BinaryNoise(isnan(BinaryNoise)) = 0;
     StimOn(isnan(StimOn)) = 0;
     StimOff(isnan(StimOff)) = 0;
     SweepAmp(isnan(SweepAmp)) = 0;
@@ -185,7 +185,9 @@ for s = 1:length(BinaryLP)
     if BinaryLP(s)
       Protocols(s) = {'LP'};
     elseif BinarySP(s)
-      Protocols(s) = {'SP'};   
+      Protocols(s) = {'SP'};
+    elseif BinaryNoise(s)
+      Protocols(s) = {'Noise'};
     else
       Protocols(s) = {'unknown'};          
     end

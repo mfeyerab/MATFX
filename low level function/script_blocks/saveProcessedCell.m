@@ -41,11 +41,16 @@ writetable(QC.pass,[PS.outDest, '\QC\', PS.cellID,'_QCpass_',date,'.csv']);
 writetable(QC.params,[...
                    PS.outDest, '\QC\',PS.cellID,'_QCvalues_',date,'.csv']);  
 
+
 %% save all sweep processing in NWB file
 
 SubTab = util.table2nwb(struct2table(SubStats));
+NoiseTab = util.table2nwb(struct2table(NoiseSpPattrn.spTrain));
 modSubStats.dynamictable.set('Subthreshold', SubTab);
 modAPP = fillAPP_Mod(modAPP,SpPattrn);                                     % make AP pattern processing module  
+modNoiseP = fillNoiseMod(modNoiseP,NoiseSpPattrn);                                     % make AP pattern processing module  
+modNoiseP.dynamictable.set('Stim-wise Parameters', NoiseTab);
 nwb.processing.set('AP Pattern', modAPP);                                  % add AP pattern processing module to nwb obejct
+nwb.processing.set('Noise Stimulus', modNoiseP);                                  % add AP pattern processing module to nwb obejct
 nwb.processing.set('subthreshold parameters', modSubStats);                % add subthreshold parameters processing module to nwb obejct 
 nwb.processing.set('AP wave', modSpikes);                                  % add AP wave from processing module to nwb obejct

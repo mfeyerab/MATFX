@@ -15,7 +15,10 @@ if contains(CCSers.stimulus_description, PS.LPtags)
     recvTi = PS.LPqc_recovTime;                         %   
 elseif contains(CCSers.stimulus_description, PS.SPtags) 
     Wind = PS.SPqc_samplWind;
-    recvTi = PS.SPqc_recovTime;  
+    recvTi = PS.SPqc_recovTime;
+elseif contains(CCSers.stimulus_description, PS.Noisetags) 
+    Wind = PS.Noiseqc_samplWind;
+    recvTi = PS.Noiseqc_recovTime;  
 else
     disp([PS.SwDat.CurrentName, ' has no identified protocol type', ...
        ' which is called ',CCSers.stimulus_description])

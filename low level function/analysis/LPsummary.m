@@ -115,21 +115,66 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
             ISIIdx(testIdx(s)))};
         end
     end
-    ISIs = ISIs(1:ISIMaxIdx-1);
+    if length(ISIs)~=ISIMaxIdx
+      ISIs = ISIs(1:ISIMaxIdx);
+    end
    end
    writetable(ISIexport, fullfile(PS.outDest, 'firingPattern', ...
                                   [PS.cellID,'_ISIs.csv']));
    ISIs = ISIs(~isnan(ISIs));ISIs(ISIs==0) = [];  % get rid of 0 and nans  
 
-   icSum.medInstaRt(ClNr) = round(1000/nanmedian(ISIs),2);       
-   icSum.DFR_P90(ClNr) = round(prctile(ISIs, 90),2);           
-   icSum.DFR_P10(ClNr) = round(prctile(ISIs, 10),2); 
-   icSum.DFR_IQR(ClNr) = round(prctile(ISIs, 75) - prctile(ISIs, 25),2);
-         
+   if length(ISIs) > 7 && 1000./median(ISIs) > 2
+     [data, edges] = histcounts(...
+              1000./ISIs,65,'Normalization','cdf','BinLimits', [0 375]);
+
+     SatP = find(data>0.99999,1,'first');
+     if ~isempty(SatP) && SatP < length(data)
+      NewData = interp1([data(1:SatP+1)],[1:0.5:SatP+1],'makima');
+      NewEdges = interp1([edges(2:SatP+1)],[1:0.5:SatP+1],'linear');
+      SatP = find(NewData>0.99999,1,'first');
+     else
+      NewData = interp1(data,[1:0.5:length(data)],'makima');
+      NewEdges = interp1([edges(2:end)],[1:0.5:length(data)],'linear');
+      SatP = find(NewData>0.99999,1,'first');  
+     end
+     if ~isempty(SatP)
+      SloData = gradient(smooth(NewData(1:SatP),5));
+     else
+       SloData = gradient(smooth(NewData,5));  
+     end
+     [MaxConVal, MaxConP] = min(gradient(SloData(...
+                                find(NewData>0.5,1,'first')-1:end)));
+    icSum.SpanMaxCon2P99(ClNr) = ((abs(MaxConVal))*range(1000./ISIs))/...
+             NewData(find(NewData>0.5,1,'first')-1+MaxConP);
+    figure; plot(edges,[0, data]); hold on; plot(NewEdges, NewData);
+     plot(NewEdges, smooth(NewData,5));  plot((NewEdges(...
+       find(NewData>0.5,1,'first')+MaxConP) + ...
+                   (NewEdges(2)-NewEdges(1))/2)*ones(2,1),[0 1])
+
+      F=getframe(gcf);
+      imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
+                                  [PS.cellID,'_firingPatternTest',PS.pltForm]))
+
+      figure;plot(gradient(SloData))
+      F=getframe(gcf);
+      imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
+                                  [PS.cellID,'_firingPatternTest2',PS.pltForm]))
+
+
+    icSum.medInstaRt(ClNr) = round(1000/median(ISIs),2);       
+    icSum.DFR_P90(ClNr) = round(prctile(1000./ISIs, 90),2);           
+    icSum.DFR_P10(ClNr) = round(prctile(1000./ISIs, 10),2); 
+    icSum.DFR_IQR(ClNr) = round(prctile(1000./ISIs, 75) - ...
+       prctile(1000./ISIs, 25),2);
+    icSum.DFR_P90(ClNr) = round(prctile(1000./ISIs, 90),2);           
+   disp(num2str(icSum.SpanMaxCon2P99(ClNr)))
+
+   end
+
    % adaptation   
    icSum.AdaRatB1B2(ClNr) = ...                                            % divides the sum of all spikes in the second bin
         round(sum(SpBinTab.map('B2').data(1:MaxIdxPass))/...
-        sum(SpBinTab.map('B1').data(1:MaxIdxPass)),2);                         % by the sum of all spikes in the first bin                    
+        sum(SpBinTab.map('B1').data(1:MaxIdxPass)),2);                     % by the sum of all spikes in the first bin                    
    SumLastBin = 0; Bcount=13;
    while SumLastBin == 0
     SumLastBin = sum(SpBinTab.map(['B',num2str(Bcount)]).data(1:MaxIdxPass));
@@ -178,6 +223,7 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       [~,order] = sort(cellfun(@length,SpiTi),'ascend');
       SpiTi = SpiTi(order);
       subplot(2,3,1);rasterplot(SpiTi)
+      xlim([0 1010])
       %I-f curve 
       subplot(2,3,2); hold on;
       scatter(Ipass, passRts)
@@ -202,11 +248,26 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
       title('cvISI over stim'); 
 
       subplot(2,3,4); 
-      if ~isempty(ISIs)
-       cdfplot(1000./ISIs); grid off; box off;
+      if ~isempty(ISIs) 
+       cdfplot(1000./ISIs); grid off; box off;hold on;
+       if length(ISIs) > 7 && 1000./median(ISIs) > 2
+              plot((NewEdges(...
+                  find(NewData>0.5,1,'first')+MaxConP) + ...
+                   (NewEdges(2)-NewEdges(1))/2)*ones(2,1),[0 1])
+       end
       end
-      xlim([0 200]);xlabel('instantenous frequency (Hz)'); 
+
+      if prctile(1000./ISIs,99) < 200
+        xlim([0 200]);
+      else
+        xlim([0 350]);
+      end
+      xlabel('instantenous frequency (Hz)'); 
       title('Dynamic frequency range');
+      if length(ISIs) > 7 && 1000./median(ISIs) > 2
+        subtitle(['DwnConc: ',num2str(abs(round(...
+                             MaxConVal*range(1000./ISIs),2)))])
+      end
       
       F=getframe(gcf);
       imwrite(F.cdata,fullfile(PS.outDest, 'firingPattern', ...
@@ -360,13 +421,14 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
        icSum.TrghDiff(ClNr) = heroSwpAPDat.map('trgh').data(1) -....
                                  heroSwpAPDat.map('trgh').data(end-1);
      end
-     icSum.cvISI(ClNr) = round(PS.heroSwpAPPDat.cvISI,3);                % get cvISI
-     icSum.HeroRt(ClNr) = PS.heroSwpAPPDat.firRt;                        % get firing rate of hero sweep  
-     icSum.HeroAmp(ClNr) = Ipass(pos);                                       % get current amplitude of hero sweep
-     icSum.heroLat(ClNr) = PS.heroSwpAPPDat.lat;                         % get latency of hero sweep
-     icSum.peakAda(ClNr) = round(PS.heroSwpAPPDat.peakAdapt,3);              % get peak adaptation of hero sweep
-     icSum.AdaIdx(ClNr) = round(PS.heroSwpAPPDat.adaptIdx2,3);         % get adaptation index of hero sweep 
-     icSum.burst(ClNr) = round(PS.heroSwpAPPDat.burst,2);                % get bursting index of hero sweep 
+     icSum.cvISI(ClNr) = round(PS.heroSwpAPPDat.cvISI,3);                  % get cvISI
+     icSum.HeroRt(ClNr) = PS.heroSwpAPPDat.firRt;                          % get firing rate of hero sweep  
+     icSum.HeroAmp(ClNr) = Ipass(pos);                                     % get current amplitude of hero sweep
+     icSum.heroLat(ClNr) = PS.heroSwpAPPDat.lat;                           % get latency of hero sweep
+     icSum.peakAda(ClNr) = round(PS.heroSwpAPPDat.peakAdapt,3);            % get peak adaptation of hero sweep
+     icSum.AdaIdx(ClNr) = round(PS.heroSwpAPPDat.adaptIdx,4);              % get adaptation index of hero sweep 
+     icSum.AdaIdx2(ClNr) = round(PS.heroSwpAPPDat.adaptIdx2,4);              % get adaptation index of hero sweep 
+     icSum.burst(ClNr) = round(PS.heroSwpAPPDat.burst,3);                  % get bursting index of hero sweep 
      
    elseif length(PS.rheoSwpDat.map('htTP').data) > 3                       % if there is no hero sweep but rheobase has more than 3 spikes 
      PS.heroSwpSers = PS.rheoSwpSers; PS.heroSwpTabPos = PS.rheoSwpTabPos; % get rheo CCSeries as hero sweep  
@@ -389,9 +451,9 @@ if isa(qcPass.values{1}.data, 'double')                                    % New
      icSum.HeroRt(ClNr) = PS.heroSwpAPPDat.firRt;                        % get firing rate of hero sweep  
      icSum.HeroAmp(ClNr) =  icSum.Rheo(ClNr);                          % get current amplitude of hero sweep
      icSum.heroLat(ClNr) = PS.heroSwpAPPDat.lat;                         % get latency of hero sweep
-     icSum.peakAda(ClNr) = round(PS.heroSwpAPPDat.peakAdapt,3);        % get peak adaptation of hero sweep
-     icSum.AdaIdx(ClNr) = round(PS.heroSwpAPPDat.adaptIdx2,3);         % get adaptation index of hero sweep 
-     icSum.burst(ClNr) = round(PS.heroSwpAPPDat.burst,2);                % get bursting index of hero sweep 
+     icSum.peakAda(ClNr) = round(PS.heroSwpAPPDat.peakAdapt,4);        % get peak adaptation of hero sweep
+     icSum.AdaIdx(ClNr) = round(PS.heroSwpAPPDat.adaptIdx2,4);         % get adaptation index of hero sweep 
+     icSum.burst(ClNr) = round(PS.heroSwpAPPDat.burst,3);                % get bursting index of hero sweep 
     else
         disp("No suitable hero sweep")
     end

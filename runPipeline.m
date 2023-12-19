@@ -110,7 +110,7 @@ end
 InitRun;                                                                   % Initalizes run-wide variables
 tic
 %% Looping through nwb files
-for n =1:length(cellList)                                                  % for all cells in directory
+for n = 304:length(cellList)                                                  % for all cells in directory
  PS.cellID = cellList(n).name(1:length(cellList(n).name)-4);               % cell ID (used for saving data)
  InitCellVars                                                              % Initalizes cell-wide variables
  if PS.manTPremoval && all(TPtab.TP(~isnan(TPtab.TP))==0)                  % If all sweeps failed manual review
@@ -192,11 +192,19 @@ for n =1:length(cellList)                                                  % for
     
        if ~isempty(sp) && ~isempty(sp.peak) && ProtoTags(SwpCt,:)=="LP"    % if sweep has more than one spike
          SpPattrn.spTrainIDs(PS.supraCount,1) = {PS.SwDat.CurrentName};    % sweep name is saved under spike train IDs
-         SpPattrn = estimateAPTrainParams(CCSers, sp, PS, SpPattrn);       % getting spike train parameters
+         SpPattrn = getAPTrainParams(CCSers, sp, PS, SpPattrn);            % getting spike train parameters
          PS.supraCount = PS.supraCount + 1;                         
        elseif ProtoTags(SwpCt,:)=="LP"                                     % if no spikes have been detected and protocol is long pulse
          SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
          PS.subCount = PS.subCount +1;
+       elseif ProtoTags(SwpCt,:)=="Noise"
+         NoiseSpPattrn.spTrainIDs(PS.NoiseCount,1) = ...
+             {PS.SwDat.CurrentName};                                       % sweep name is saved under noise spike train IDs
+         
+         NoiseSpPattrn = getNoiseTrainParams(...
+                                          CCSers, sp, PS, NoiseSpPattrn);  % getting spike train parameters
+
+         PS.NoiseCount = PS.NoiseCount + 1;                         
        end
      elseif ProtoTags(SwpCt,:)=="LP" 
          SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
@@ -253,6 +261,9 @@ for n =1:length(cellList)                                                  % for
  if QCcellWise.Fail(n)==0
       [icSum, PS] = LPsummary(nwb, icSum, n, PS);                          % extract features from long pulse stimulus
       [icSum, PS] = SPsummary(nwb, icSum, n, PS);                          % extract features from short pulse stimulus
+      if PS.NoiseCount > 1
+      [NoiseSum, PS] = NoiseSummary(nwb, NoiseSum, n, PS);                 % extract features from noise stimulus
+      end
       plotCellProfile(nwb, PS)                                             % plot cell profile 
       if PS.plot_all >0
        plotSanityChecks(QC, PS, icSum, n, ICEtab)

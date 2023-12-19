@@ -1,4 +1,4 @@
-function SpPattrn = estimateAPTrainParams(CCSers , sp, PS, SpPattrn)
+function SpPattrn = getAPTrainParams(CCSers , sp, PS, SpPattrn)
 
 latency = (sp.thresholdTime(1)-PS.SwDat.StimOn)/round(CCSers.starting_time_rate/1000);
 
@@ -25,7 +25,7 @@ if length(nonzeros(sp.thresholdTime)) >= 2						% skip this sweep if there was o
 			numer(i) = (ISI(i+1)-ISI(i))/(ISI(i+1)+ISI(i));
 		end
 		adaptIndex = sum(numer)/(length(ISI)-1);
-		adaptIndex2 = ISI(end)/ISI(1);			% if > 1, neuron adapts
+		adaptIndex2 = sum(numer(2:end))/(length(ISI)-2);		           % Adaptation without first ISI
         clear numer
         for i = 1:length(ISI)-1
 			numer(i) = (sp.heightTP(i+1)-sp.heightTP(i))/...
@@ -40,7 +40,7 @@ if length(nonzeros(sp.thresholdTime)) >= 2						% skip this sweep if there was o
     end
 	delay = latency/meanISI;
     if length(ISI) > 1
-        burst = (sum(ISI(1))/2)/meanISI;
+        burst = 1-(sum(ISI(1))/2)/mean(ISI(2:end));
     else
         burst = NaN;
     end
