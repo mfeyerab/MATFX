@@ -147,7 +147,7 @@ ylabel('RMS (long term)')
 xticks(1:2)
 ylim([0 2])
 xticklabels({'pre','post'})
-export_fig([save_path, 'Pre_Post_Comparision_',date],plot_format,'-r100');
+export_fig(fullfile(save_path, ['Pre_Post_Comparision_',date]),plot_format,'-r100');
 close
 
 %%
@@ -332,7 +332,7 @@ line([p.maxDiffBwBeginEnd,p.maxDiffBwBeginEnd],[0,0.2], ...
     xlabel('delta V (abs(pre-post)) LP 20')
     xlim([0 15])
     box off
-export_fig([save_path, 'Distribution_qc_params_LP',date],plot_format,'-r100');
+export_fig(fullfile(save_path, ['Distribution_qc_params_LP',date]),plot_format,'-r100');
 close
 
 %%
@@ -351,7 +351,7 @@ ylabel('cell')
 colorbar
 colormap('gray');
 box off
-export_fig([save_path, 'QC_tags_relaFrequency_per_cell_',date],plot_format,'-r100');
+export_fig(fullfile(save_path, ['QC_tags_relaFrequency_per_cell_',date]),plot_format,'-r100');
 close
 
 %% 
@@ -390,7 +390,7 @@ xlabel('short term RMS')
 ylabel('long term RMS')
 xlim([0 0.25])
 ylim([0 6.5])
-export_fig([save_path, 'RMS_scatter_plot',date],plot_format,'-r100');
+export_fig(fullfile(save_path, ['RMS_scatter_plot',date]),plot_format,'-r100');
 close
 
 
@@ -400,7 +400,7 @@ xlabel('sweep #')
 ylabel('diff(sweep(1),sweep(n))')
 axis tight
 box off
-export_fig([save_path, 'trajectory_Vm_over_sweeps_',date],plot_format,'-r100');
+export_fig(fullfile(save_path, ['trajectory_Vm_over_sweeps_',date]),plot_format,'-r100');
 close
 
 % %%

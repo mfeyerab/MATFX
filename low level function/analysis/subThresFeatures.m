@@ -1,47 +1,70 @@
-function module_subStats = subThresFeatures(CCSeries, SwData, module_subStats, params)
+function SubStats = subThresFeatures(CCSers, SubStats, PS,LPfilt)
 
-subStats.subSweepAmps = SwData.sweepAmp;
+data = CCSers.data.load();
 
-subStats.baselineVm = mean(CCSeries.data.load(1:SwData.StimOn)); 
+if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
+ data= data*1000;
+end
 
-[subStats.minV,subStats.minVt] = min(...
-   CCSeries.data.load(SwData.StimOn:SwData.StimOff));
+SubStats.SwpAmp(PS.subCount,1) = PS.SwDat.swpAmp;
+SubStats.baseVm(PS.subCount,1) = mean(data(1:PS.SwDat.StimOn));                           %does not take into account the testpulse
 
+if PS.SwDat.swpAmp>0
+[SubStats.VmHD(PS.subCount,1),SubStats.VmHDTi(PS.subCount,1)] = ...
+    max(data(PS.SwDat.StimOn:...
+          PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate));
+else
+[SubStats.VmHD(PS.subCount,1),SubStats.VmHDTi(PS.subCount,1)]  = ...
+    min(data(PS.SwDat.StimOn:...
+          PS.SwDat.StimOn+PS.WinHD*CCSers.starting_time_rate));
+end
 %% estimate minimum voltage
-
-subStats.maxSubDeflection = subStats.minV -...
-                                 subStats.baselineVm ;                             
-subStats.minVt = subStats.minVt+SwData.StimOn;
-
+SubStats.maxSubDeflection(PS.subCount,1) = ...
+    SubStats.VmHD(PS.subCount,1) - SubStats.baseVm(PS.subCount,1);                             
+SubStats.VmHDTi(PS.subCount,1) = ...
+    SubStats.VmHDTi(PS.subCount,1) + PS.SwDat.StimOn;
 %% time constant (rest to minimum V)
-y = CCSeries.data.load(SwData.StimOn:subStats.minVt)';
-x = linspace(1,subStats.minVt-SwData.StimOn,length(y))';
+if PS.postFilt && length(PS.SwDat.StimOn:SubStats.VmHDTi(PS.subCount,1))>153
+   y = filtfilt(LPfilt.sos, LPfilt.ScaleValues, ...
+                 data(PS.SwDat.StimOn:SubStats.VmHDTi(PS.subCount,1)));
+else
+   y =  data(PS.SwDat.StimOn:SubStats.VmHDTi(PS.subCount,1));
+end
+x = linspace(1,SubStats.VmHDTi(PS.subCount,1)-PS.SwDat.StimOn,length(y))';
 if length(y)>=4
-    [f,gof] = fit(x,y,'exp2');
-    if gof.rsquare > 0.75          % Label NaN if rsquared < 0
-        if params.plot_all == 1
-            plot(x+SwData.StimOn*1000/CCSeries.starting_time_rate,f(x),'r-.','LineWidth',2)
-            hold on
-        end
-        temp = .63*(abs(f(1)-f(length(x))));
-        vecin = find(f(1:length(x))<(f(1)-temp), 1, 'first');
-        if ~isempty(vecin)
-            if params.plot_all == 1
-                scatter(vecin(1)+1+SwData.StimOn,CCSeries.data.load(SwData.StimOn)-temp,'r','filled')
-            end
-            subStats.tauMin = round(vecin(1)*1000/CCSeries.starting_time_rate,3);
-            subStats.tauMinGF = 1;
-        else
-            subStats.tauMinGF = 0;
-            subStats.tauMin = NaN;
+     [f,gof] = fit(x,y,'exp1', 'TolFun', 10^(-1020));
+    if gof.rsquare < PS.GF
+     [f,gof] = fit(x,y,'exp2','Upper', [Inf 0 Inf 0],'TolFun', 10^(-1020));
+    end
+    temp = .63*(abs(f(1)-f(length(x))));
+    vecin = find(f(1:length(x))<(f(1)-temp), 1, 'first');
+    if ~isempty(vecin)
+        SubStats.tau(PS.subCount,1) = ...
+                 round(vecin(1)*1000/CCSers.starting_time_rate,3);
+        if PS.plot_all >= 1
+            figure('visible','off'); hold on
+            IdxVec = PS.SwDat.StimOn-CCSers.starting_time_rate*0.10...
+                           :SubStats.VmHDTi(PS.subCount,1);
+            plot(data(IdxVec))
+            plot(x+CCSers.starting_time_rate*0.10,f(x),'r-.','LineWidth',2)
+
+            title(['GOF=', num2str(gof.rsquare),...
+                  ' tau=', num2str(SubStats.tau(PS.subCount,1))])
+            scatter(length(IdxVec),y(vecin(1)),'r','filled')
+            plot([1,length(IdxVec)], ...
+                ones(2)*SubStats.baseVm(PS.subCount,1)+PS.maxDefl,'k')
+            F=getframe(gcf);
+            imwrite(F.cdata,fullfile(PS.outDest, 'tauFit', ...
+                [PS.cellID , '_',PS.SwDat.CurrentName '_tau_fit',PS.pltForm]))
         end
     else
-        subStats.tauMinGF = 0;
-        subStats.tauMin = NaN;
+        SubStats.tau(PS.subCount,1) = NaN;
+        SubStats.GFtau(PS.subCount,1) = NaN;
     end
+    SubStats.GFtau(PS.subCount,1) = gof.rsquare ;
 else
-        subStats.tauMinGF = 0;
-        subStats.tauMin = NaN;
+   SubStats.tau(PS.subCount,1) = NaN;
+   SubStats.GFtau(PS.subCount,1) = NaN;
 end
 %% sag & sag ratio
 sizeSlideWind = 0.075;
@@ -50,68 +73,35 @@ Increment = 0.025;
 
 for w = 1:round(TotalSize/Increment)
     vec = ...
-      CCSeries.data.load(SwData.StimOff-round((sizeSlideWind + Increment*w) ...
-      *CCSeries.starting_time_rate):SwData.StimOff-round(Increment*w*CCSeries.starting_time_rate)-1);
+      data(PS.SwDat.StimOff-round((sizeSlideWind + Increment*w) ...
+      *CCSers.starting_time_rate):PS.SwDat.StimOff-round(Increment*w*CCSers.starting_time_rate)-1);
     PoSS(w,1) = mean(vec);
     PoSSQ(w,1) = sqrt(mean((vec - PoSS(w,1)).^2));   
 end
 
-if all(PoSSQ) && min(PoSSQ) < 0.75*params.RMSElt
-    subStats.subSteadyState = PoSS(find(PoSSQ==min(PoSSQ)));
+if all(PoSSQ) && min(PoSSQ) < 0.75*PS.RMSElt
+    SubStats.SteadyState(PS.subCount,1) = ...
+        PoSS(find(PoSSQ==min(PoSSQ),1,'last'));
 else
-    subStats.subSteadyState = NaN;
+    SubStats.SteadyState(PS.subCount,1) = NaN;
 end    
 
-subStats.sag = abs(subStats.subSteadyState-subStats.minV);
-
-subStats.sagRatio = (subStats.minV-subStats.baselineVm)/(subStats.subSteadyState-subStats.baselineVm);
+SubStats.sag(PS.subCount,1) = abs(...
+    SubStats.SteadyState(PS.subCount,1)-SubStats.VmHD(PS.subCount,1));
+SubStats.sagRat(PS.subCount,1) = (SubStats.VmHD(PS.subCount,1)- ...
+ SubStats.baseVm(PS.subCount,1))/ ...
+(SubStats.SteadyState(PS.subCount,1)-SubStats.baseVm(PS.subCount,1));
 
 %% rebound slope
-[val,loc] = max(CCSeries.data.load(SwData.StimOff:...
-  SwData.StimOff+round(params.reboundWindow*CCSeries.starting_time_rate/1000)));
-x = (loc:loc+round(params.reboundWindow*CCSeries.starting_time_rate/1000))-loc;
-[f,~] = polyfit(x,CCSeries.data.load(SwData.StimOff+loc:...
-	SwData.StimOff+loc+round(params.reboundWindow*CCSeries.starting_time_rate/1000))',1);
-subStats.reboundSlope = f(1);
-subStats.reboundDepolarization = abs(CCSeries.data.load(SwData.StimOff+loc)-...
-   CCSeries.data.load(SwData.StimOff+loc+round(params.reboundFitWindow/CCSeries.starting_time_rate)));
-%%
-
-if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
-    
-    subStats.minV  = subStats.minV*1000;  
-    subStats.sag = subStats.sag*1000;
-    subStats.maxSubDeflection = subStats.maxSubDeflection*1000;
-end
+[val,loc] = max(CCSers.data.load(PS.SwDat.StimOff:...
+  PS.SwDat.StimOff+round(PS.reboundWindow*CCSers.starting_time_rate/1000)));
+x = (loc:loc+round(PS.reboundWindow*CCSers.starting_time_rate/1000))-loc;
+[f,~] = polyfit(x,data(PS.SwDat.StimOff+loc:...
+	PS.SwDat.StimOff+loc+round(PS.reboundWindow*CCSers.starting_time_rate/1000))',1);
+SubStats.reboundSlope(PS.subCount,1) = f(1);
+SubStats.reboundDepolarization(PS.subCount,1) = abs(...
+ CCSers.data.load(PS.SwDat.StimOff+loc)-CCSers.data.load(...
+ PS.SwDat.StimOff+loc+round(PS.reboundFitWindow/CCSers.starting_time_rate)));
 
 %% save subthreshold parameters
-subStats = structfun(@double, subStats, 'UniformOutput', false);
-
-if sum(structfun(@numel,subStats)>1) > 0                                   % Filters for uneven structures caused by strange traces
- n=length(fieldnames(subStats));
- fldnames = fieldnames(subStats);
- for k=1:n
-   subStats.(fldnames{k})=NaN;
- end
-end
-
-table =  array2table(cell2mat(struct2cell(subStats))');
-table.Properties.VariableNames = {'SweepAmp','baseVm','minV','minVTime',...
-              'maxSubDeflection','tauMin', 'tauMinGF','SteadyState',...
-             'sag','sagRatio','reboundSlope','reboundDepolarization'};
-
-temp_table = util.table2nwb(table, 'subthreshold parameters');
-
-module_subStats.dynamictable.set(SwData.CurrentName, temp_table);
-
-%%
-
-if params.plot_all == 1
-    plot(x+loc+SwData.StimOff,(f(1)*x+f(2))','c-.','LineWidth',2)
-    scatter(loc+SwData.StimOff,val,'g','filled')
-    scatter(round(params.reboundFitWindow/CCSeries.starting_time_rate)...
-        +loc+SwData.StimOff,mean(CCSeries.data.load(end-(3/CCSeries.starting_time_rate):end)),'g','filled')
-  export_fig([folder(1:length(folder)-8),cellID,' ',int2str(sweepIDcount),...
-      ' hyperpolarizing parameters'],params.plot_format,'-r100');
-    close
-end
+SubStats.SwpName(PS.subCount,1) = {PS.SwDat.CurrentName};

@@ -1,70 +1,59 @@
-function [module_spikes, sp, SpQC, QCpass] = ...
-    processSpikes(CCSeries, SwData, params, supraCount, ...
-           module_spikes, SpQC, QCpass, SweepCount)
+function [TabIn,QC] = processSpikes(CCSers,PS,TabIn, QC)
 
- if checkVolts(CCSeries.data_unit) && string(CCSeries.description) ~= "PLACEHOLDER"
+ if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
     
     supraEvents = find(...
-        CCSeries.data.load(SwData.StimOn:SwData.StimOff+round(...
-        CCSeries.starting_time_rate*0.005))>=params.thresholdV/1000)-1+SwData.StimOn;
+        CCSers.data.load(PS.SwDat.StimOn:PS.SwDat.StimOff+round(...
+        CCSers.starting_time_rate*0.005))>=PS.thresholdV/1000)-1+PS.SwDat.StimOn;
  else 
     supraEvents = find(...
-        CCSeries.data.load(SwData.StimOn:SwData.StimOff+round(...
-        CCSeries.starting_time_rate*0.005))>=params.thresholdV)-1+SwData.StimOn;
+        CCSers.data.load(PS.SwDat.StimOn:PS.SwDat.StimOff+round(...
+        CCSers.starting_time_rate*0.005))>=PS.thresholdV)-1+PS.SwDat.StimOn;
  end
 sp = [];
 if ~isempty(supraEvents)
-    [int4Peak,startPotSp] = int4APs(supraEvents);
-    sp = estimatePeak(startPotSp,int4Peak,CCSeries);
+    [int4Peak,startPotSp] = int4APs(supraEvents, PS);
+    sp = estimatePeak(startPotSp,int4Peak,CCSers);
     if ~isempty(sp)
-     sp = getSpikeParameter(CCSeries, sp, params, SwData.StimOff);
-     [SpQC, QCpass] = processSpikeQC(CCSeries, sp, params, ...
-                                   supraCount, SpQC, QCpass, SweepCount);
-                               
-%% Save spike parameter
-
+     sp = getSpikeParameter(CCSers, sp, PS);
+%%  Clean up and saving of spike parameter
+ 
     sp = rmfield(sp, 'dVdt');
     sp = rmfield(sp, 'maxdVdt');
     sp = rmfield(sp, 'maxdVdtTime');
-
+    if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"   
+      Idx = abs(sp.peak-sp.threshold)>5/1000;
+    else 
+      Idx = abs(sp.peak-sp.threshold)>5;
+    end
+        
+    sp = structfun(@(F) F(find(Idx)), sp, 'uniform', 0);
     sp = structfun(@double, sp, 'UniformOutput', false);
 
-    table = array2table(cell2mat(struct2cell(sp))');
-    table.Properties.VariableNames = {'peak','peakTime','threshold', ...
-                 'thresholdTime', 'through','throughTime','heightPT', ...
-                 'fullWidthPT','peakUpStroke','peakDownStroke', ...
-                 'peakStrokeRatio','fast_trough','fast_trough_dur',...
-                 'slow_trough','slow_trough_dur', 'fullWidthTP', ...
-                 'heightTP'};
-         
-    if checkVolts(CCSeries.data_unit)&& string(CCSeries.description) ~= "PLACEHOLDER"
-        
-        table.peak  = table.peak*1000;  
-        table.threshold  = table.threshold*1000;  
-        table.trough  = table.through*1000;  
-        table.heightPT  = table.heightPT*1000;  
-        table.heightTP  = table.heightTP*1000;  
-        table.fast_trough  = table.fast_trough*1000;  
-        table.slow_trough  = table.slow_trough*1000;  
-        table.peakUpStroke = table.peakUpStroke*1000;
-        table.peakDownStroke = table.peakDownStroke*1000;
+    if checkVolts(CCSers.data_unit)&& string(CCSers.description) ~= "PLACEHOLDER"
+            
+            sp.peak  = sp.peak*1000;  
+            sp.threshold  = sp.threshold*1000;  
+            sp.trough  = sp.trough*1000;  
+            sp.heightTP  = sp.heightTP*1000;  
+            sp.fast_trough  = sp.fast_trough*1000;  
+            sp.slow_trough  = sp.slow_trough*1000;  
+            sp.peakUpStroke = sp.peakUpStroke*1000;
+            sp.peakDownStroke = sp.peakDownStroke*1000;
     end     
-
-    table.thresholdTime = ...
-        table.thresholdTime*1000/round(CCSeries.starting_time_rate);
-
-    table.peakTime = ...
-        table.peakTime*1000/round(CCSeries.starting_time_rate);
-
-    table.throughTime = ...
-        table.throughTime*1000/round(CCSeries.starting_time_rate);
-
-    table = util.table2nwb(table, 'AP processing results');
-
-%% save in dynamic table
-
-    module_spikes.dynamictable.set(SwData.CurrentName, table);
-  
+    if isempty(TabIn)        
+        [TabIn.peak, TabIn.peakTi, TabIn.thres, TabIn.thresTi, ...
+         TabIn.trgh, TabIn.trghTi, ...
+         TabIn.peakUpStrk, TabIn.peakDwStrk, TabIn.peakStrkRat, ...
+         TabIn.fTrgh, TabIn.fTrghDur, TabIn.sTrgh, TabIn.sTrghDur, ...
+         TabIn.wiTP, TabIn.htTP] = deal({NaN}); SPcount = 0;
+    else
+        SPcount = sum(contains(TabIn.ProtoTag,'SP'));
     end
- end
+    TabIn.SweepID(PS.supraCount+SPcount) = {PS.SwDat.CurrentName};
+    TabIn.ProtoTag(PS.supraCount+SPcount) = {PS.SwDat.Tag};
+    TabIn{PS.supraCount+SPcount,1:end-2} = struct2cell(sp)';    
+    end
+    end
+end
  

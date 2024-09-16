@@ -1,4 +1,4 @@
-function protocol = getSPdVdt(protocol,k,thresholdDVDT,cellID,folder,params,sweepIDcount)
+function protocol = getSPdVdt(protocol,k,thresholdDVDT,cellID,params,sweepIDcount)
 
 %{
 getSPdVdt
@@ -25,7 +25,7 @@ if params.plot_all == 1
     axis tight
     ylim([0 300])
     box off
-    export_fig([folder(1:length(folder)-8),cellID,' ',int2str(sweepIDcount),' no spikes'],params.plot_format,'-r100');
+    export_fig(fullfile(PS.outDest ,[cellID,' ',int2str(sweepIDcount),' no spikes']),PS.pltForm ,'-r100');
     close
 end
 

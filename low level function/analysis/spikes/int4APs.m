@@ -1,33 +1,38 @@
-function [int4Peak2,putSpTimes2] = int4APs(putSpTimes)
+function [int4Peak,putSpTimes2] = int4APs(putSpTimes, PS)
 
 % interval for APs
 
-diffPutAPTime = diff(putSpTimes);                                           % intervals between putative APs
+diffPutAPTi = diff(putSpTimes);                                           % intervals between putative APs
+diffPutAPTiStarts= find(diffPutAPTi~=1);
+diffPutAPTiStarts = [1; diffPutAPTiStarts+1];
 putSpTimes2 = [];
-tag = 1;
 dCount = 1;
-for i = 1:length(putSpTimes)-1
-	if diffPutAPTime(i) ~= 1
-		int4Peak{dCount} = putSpTimes(tag):putSpTimes(i);
-		putSpTimes2(dCount) = putSpTimes(tag);
-		tag = i+1;
-		dCount = dCount + 1;                                                % count of intervals
-	end
+int4Peak = {};
+
+for i = 1:length(diffPutAPTiStarts)
+    if i==length(diffPutAPTiStarts) && length(diffPutAPTi) - diffPutAPTiStarts(i) > ...
+                PS.ThresHFNoise/(1000/PS.SwDat.sampleRT) 
+        int4Peak{dCount} = putSpTimes(diffPutAPTiStarts(i)):...
+        putSpTimes(end);
+        putSpTimes2(dCount) = putSpTimes(diffPutAPTiStarts(i));
+        dCount = dCount + 1; 
+    elseif i~=length(diffPutAPTiStarts) && ...
+            length(diffPutAPTiStarts(i):diffPutAPTiStarts(i+1)-1) > ...
+                PS.ThresHFNoise/(1000/PS.SwDat.sampleRT) 
+		int4Peak{dCount} = putSpTimes(diffPutAPTiStarts(i)):...
+            putSpTimes(diffPutAPTiStarts(i+1)-1);
+        putSpTimes2(dCount) = putSpTimes(diffPutAPTiStarts(i));
+        dCount = dCount + 1; 
+    end
 end
-int4Peak{dCount} = putSpTimes(tag):putSpTimes(end);
-putSpTimes2(dCount) = putSpTimes(tag);
-clear diffPutAPTime tag dCount i
 
-inds2remove = [];
-Z = 1:length(putSpTimes2);
-ind2keep = find(~ismember(Z,inds2remove)==1);
-
-putSpTimes2 = putSpTimes2(ind2keep);
-
-dCount = 1;
-int4Peak2 = [];
-for i = ind2keep
-	int4Peak2{dCount} = int4Peak{i};
-	dCount = dCount + 1;
+if ~isempty(int4Peak)
+   inds2remove = [false, ...
+    diff(cellfun(@(x) x(1,1),int4Peak))< PS.minISI/(1000/PS.SwDat.sampleRT)];
+   if any(inds2remove)
+     disp(['Potential spikes removed due to ISI violation of <',...
+        num2str(PS.minISI), ' ms' ])
+    int4Peak(inds2remove) = [];
+    putSpTimes2(inds2remove) = [];
+   end
 end
-clear ind2keep int4Peak dCount ind2keep
