@@ -1,8 +1,9 @@
 function plotSanityChecks(QC, PS, ICsummary, n, ICEtab)
 
-QCvec = logical(ICEtab.dynamictable.values{2}.vectordata.values{1}.data');
+Qvec = QC.pass.QC_total_pass==1;
+QC.testpulse = QC.testpulse(QC.params.TP==1 & Qvec);
+
 if ~isempty(QC.testpulse)
-    QC.testpulse = QC.testpulse(QCvec);
     QC.testpulse(cellfun(@isempty, QC.testpulse)) = [];
     shift=mean(cellfun(@range, QC.testpulse))/3;
     count = 0;
@@ -36,16 +37,16 @@ end
 %% Stimulus Onset LP
 LPvec = contains(string(ICEtab.dynamictable.values{...
                                  1}.vectordata.values{1}.data.load), 'LP');                             
-if any(all([QCvec, LPvec],2))
+if any(all([Qvec, LPvec],2))
 
 figure('visible','off'); hold on
 for s=1:height(QC.pass)
-    if LPvec(s)&& QCvec(s)
+    if LPvec(s)&& Qvec(s)
        plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
     end
 end
 I = ICEtab.stimuli.vectordata.values{1}.data.load(...
-                         find(all([QCvec, LPvec],2)));    
+                         find(all([Qvec, LPvec],2)));    
 title(['Stimulus onset ', PS.cellID, ' I= ',...
     num2str(min(I)), ' to ', num2str(max(I))]);
 ylabel('Voltage trace (mV)')
@@ -67,12 +68,12 @@ imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
 
 SPvec = contains(string(ICEtab.dynamictable.values{...
                                  1}.vectordata.values{1}.data.load), 'SP');                             
-if any(all([QCvec, SPvec],2))
+if any(all([Qvec, SPvec],2))
     I = ICEtab.stimuli.vectordata.values{1}.data.load(...
-                             find(all([QCvec, SPvec],2)));
+                             find(all([Qvec, SPvec],2)));
     figure('visible','off'); hold on
     for s=1:height(QC.pass)
-        if SPvec(s)&& QCvec(s)
+        if SPvec(s)&& Qvec(s)
            plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
         end
     end

@@ -1,7 +1,7 @@
 %% load paramter structure and start using it as workspace structure
-run(fullfile(mainFolder, 'loadParams.m')); PS = ans; PS.outDest = outDest; 
+run(fullfile(path, 'loadParams.m')); PS = ans; PS.outDest = path; 
 %% Initalize folder structure and loop
-cellList = dir([mainFolder,'\','*.nwb']);                                  % list of cell data files
+cellList = dir([path,'\','*.nwb']);                                  % list of cell data files
 cellList = cellList(~[cellList.isdir]);
 
 if ~exist(fullfile(PS.outDest, '\peristim'), 'dir')
@@ -34,10 +34,8 @@ MetaVarStart = find(contains(icSum.Properties.VariableNames,'Temperature'));
 NoiseSum = icSum(:,MetaVarStart:end);
 
 qc_tags = {'SweepsTotal' 'QC_total_pass' 'stRMSE_pre' 'stRMSE_post' ...
-        'ltRMSE_pre' 'ltRMSE_post' 'diffVrest' ...
-        'Vrest'  'holdingI' 'betweenSweep' ...
-        'bridge_balance_abs' 'bridge_balance_rela' 'bad_spikes' ...
-         };
+        'ltRMSE_pre' 'ltRMSE_post' 'diffVrest' 'Vrest'  'holdingI' ...
+        'betweenSweep' 'bridge_balance'};
      
 QC_removalsPerTag = array2table(NaN(length(cellList),length(qc_tags)), ...
     'VariableNames', qc_tags,'RowNames', {cellList.name});

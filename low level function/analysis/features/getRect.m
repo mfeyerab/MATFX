@@ -6,11 +6,10 @@ TempX = []; TempX = [];
 [HypRectDelay, DepRectDelay, HypRectInsta, DepRectInsta, ...
     hump, humpRat, humpAmp] = deal(nan);
 
-HD = SubThres.vectordata.map('maxSubDeflection').data;
-SS = SubThres.vectordata.map('SteadyState').data ...
-     - SubThres.vectordata.map('baseVm').data;
-SwpAmp = SubThres.vectordata.map('SwpAmp').data;
-SwpName = SubThres.vectordata.map('SwpName').data;
+HD = SubThres.maxSubDeflection;
+SS = SubThres.SteadyState - SubThres.baseVm;
+SwpAmp = SubThres.SwpAmp;
+SwpName = SubThres.SwpName;
 Idx = ismember(str2double(regexp(SwpName, '\d+', 'match', 'once')), ...
                                      IdPassSwps);
 
@@ -85,7 +84,7 @@ if length(DelayTempY)>1 && length(HypTempX)>1
   end   
   box off
   F=getframe(gcf);
-  % imwrite(F.cdata,fullfile(PS.outDest, 'IU', [PS.cellID,'_rectification',PS.pltForm]))
+  imwrite(F.cdata,fullfile(PS.outDest, 'IU', [PS.cellID,'_rectification',PS.pltForm]))
  end
 end
 

@@ -11,14 +11,14 @@ int4Peak = {};
 
 for i = 1:length(diffPutAPTiStarts)
     if i==length(diffPutAPTiStarts) && length(diffPutAPTi) - diffPutAPTiStarts(i) > ...
-                PS.ThresHFNoise/(1000/PS.sampleRT) 
+                PS.ThresHFNoise/(1000/PS.SwDat.sampleRT) 
         int4Peak{dCount} = putSpTimes(diffPutAPTiStarts(i)):...
         putSpTimes(end);
         putSpTimes2(dCount) = putSpTimes(diffPutAPTiStarts(i));
         dCount = dCount + 1; 
     elseif i~=length(diffPutAPTiStarts) && ...
             length(diffPutAPTiStarts(i):diffPutAPTiStarts(i+1)-1) > ...
-                PS.ThresHFNoise/(1000/PS.sampleRT) 
+                PS.ThresHFNoise/(1000/PS.SwDat.sampleRT) 
 		int4Peak{dCount} = putSpTimes(diffPutAPTiStarts(i)):...
             putSpTimes(diffPutAPTiStarts(i+1)-1);
         putSpTimes2(dCount) = putSpTimes(diffPutAPTiStarts(i));
@@ -28,7 +28,7 @@ end
 
 if ~isempty(int4Peak)
    inds2remove = [false, ...
-    diff(cellfun(@(x) x(1,1),int4Peak))< PS.minISI/(1000/PS.sampleRT)];
+    diff(cellfun(@(x) x(1,1),int4Peak))< PS.minISI/(1000/PS.SwDat.sampleRT)];
    if any(inds2remove)
      disp(['Potential spikes removed due to ISI violation of <',...
         num2str(PS.minISI), ' ms' ])

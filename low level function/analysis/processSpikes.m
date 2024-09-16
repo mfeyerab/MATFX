@@ -1,4 +1,4 @@
-function [modSpikes,sp,QC] = processSpikes(CCSers,PS,modSpikes,SwpCt, QC)
+function [TabIn,QC] = processSpikes(CCSers,PS,TabIn, QC)
 
  if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
     
@@ -16,11 +16,6 @@ if ~isempty(supraEvents)
     sp = estimatePeak(startPotSp,int4Peak,CCSers);
     if ~isempty(sp)
      sp = getSpikeParameter(CCSers, sp, PS);
-     if PS.enableSpQC==1
-      QC = processSpikeQC(CCSers, sp, PS, QC, SwpCt);
-     else
-      QC.pass.bad_spikes(SwpCt,1) = 1;
-     end
 %%  Clean up and saving of spike parameter
  
     sp = rmfield(sp, 'dVdt');
@@ -31,47 +26,33 @@ if ~isempty(supraEvents)
     else 
       Idx = abs(sp.peak-sp.threshold)>5;
     end
-    
-
-    
+        
     sp = structfun(@(F) F(find(Idx)), sp, 'uniform', 0);
     sp = structfun(@double, sp, 'UniformOutput', false);
 
-    table = array2table(cell2mat(struct2cell(sp))');
-    if ~isempty(table)
-        table.Properties.VariableNames = {'peak','peakTi','thres', ...
-                     'thresTi', 'trgh','trghTi','htPT', ...
-                     'wiPT','peakUpStrk','peakDwStrk', ...
-                     'peakStrkRat','fTrgh','fTrghDur',...
-                     'sTrgh','sTrghDur', 'wiTP', ...
-                     'htTP'};
-             
-        if checkVolts(CCSers.data_unit)&& string(CCSers.description) ~= "PLACEHOLDER"
+    if checkVolts(CCSers.data_unit)&& string(CCSers.description) ~= "PLACEHOLDER"
             
-            table.peak  = table.peak*1000;  
-            table.thres  = table.thres*1000;  
-            table.trgh  = table.trgh*1000;  
-            table.htPT  = table.htPT*1000;  
-            table.htTP  = table.htTP*1000;  
-            table.fTrgh  = table.fTrgh*1000;  
-            table.sTrgh  = table.sTrgh*1000;  
-            table.peakUpStrk = table.peakUpStrk*1000;
-            table.peakDwStrk = table.peakDwStrk*1000;
-        end     
-    
-        table.thresTi = ...
-            table.thresTi*1000/round(CCSers.starting_time_rate);
-    
-        table.peakTi = ...
-            table.peakTi*1000/round(CCSers.starting_time_rate);
-    
-        table.trghTi = ...
-            table.trghTi*1000/round(CCSers.starting_time_rate);
-    
-        NWBTab = util.table2nwb(table, 'AP processing results');
-    
-    %% save in dynamic table
-        modSpikes.dynamictable.set(PS.SwDat.CurrentName, NWBTab);    
+            sp.peak  = sp.peak*1000;  
+            sp.threshold  = sp.threshold*1000;  
+            sp.trough  = sp.trough*1000;  
+            sp.heightTP  = sp.heightTP*1000;  
+            sp.fast_trough  = sp.fast_trough*1000;  
+            sp.slow_trough  = sp.slow_trough*1000;  
+            sp.peakUpStroke = sp.peakUpStroke*1000;
+            sp.peakDownStroke = sp.peakDownStroke*1000;
+    end     
+    if isempty(TabIn)        
+        [TabIn.peak, TabIn.peakTi, TabIn.thres, TabIn.thresTi, ...
+         TabIn.trgh, TabIn.trghTi, ...
+         TabIn.peakUpStrk, TabIn.peakDwStrk, TabIn.peakStrkRat, ...
+         TabIn.fTrgh, TabIn.fTrghDur, TabIn.sTrgh, TabIn.sTrghDur, ...
+         TabIn.wiTP, TabIn.htTP] = deal({NaN}); SPcount = 0;
+    else
+        SPcount = sum(contains(TabIn.ProtoTag,'SP'));
+    end
+    TabIn.SweepID(PS.supraCount+SPcount) = {PS.SwDat.CurrentName};
+    TabIn.ProtoTag(PS.supraCount+SPcount) = {PS.SwDat.Tag};
+    TabIn{PS.supraCount+SPcount,1:end-2} = struct2cell(sp)';    
     end
     end
 end

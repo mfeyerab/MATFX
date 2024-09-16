@@ -13,7 +13,7 @@ SwpIDs = cellfun(@(a) str2double(a), cellfun(@(v)v(1),...                  % Ext
 IdPassSwps = SwpIDs(IdxPassSwps);                                          % Variable contains numbers of sweeps which passed QC  
 IdPassSwpsC = cellstr(string(IdPassSwps));
   
-if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
+if ~isempty(IdPassSwps)
   %% subthreshold parameters  
   [icSum.RinHD(ClNr), icSum.RinSS(ClNr)] = getRin(SubStats,PS, IdPassSwps);% Assign resistance of cell in summary table
   SubAmps = SubStats.SwpAmp;
@@ -31,7 +31,7 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
   end
   if PS.plot_all >= 2 && ~isempty(SubAmps(Idx))
    figure('Visible','off');
-   scatter(SubAmps(Idx), SubStats.tau(Idx))
+   scatter(SubAmps(Idx), SubThres.vectordata.map('tau').data(Idx))
    xlim([min(SubAmps(Idx))-10 0])
    F=getframe(gcf);
    imwrite(F.cdata,fullfile(PS.outDest, 'tauFit', ...
@@ -46,10 +46,6 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
    SuprIDs = cellfun(@(a) str2double(a), cellfun(@(v)v(1),...               % Extract the numbers from the sweep names as doubles  
                  regexp(SpPattrn.spTrainIDs,'\d*','Match')));
    passSuprIdx = ismember(IdPassSwps, SuprIDs); 
-   StartLP = mode(...
-       IcephysTab.responses.response.data.load.idx_start(LPIdx));
-   SamR_LP = mode(...
-       IcephysTab.responses.response.data.load.count(LPIdx));
    LPsupraIDs = IdPassSwps(passSuprIdx);
    [AllI, Ipass] = deal(round(SwpAmps(passSuprIdx)));                      % Get all stimulus amplitudes of suprathershold long pulse sweeps
    [Iorder, Isorted] = sort(Ipass);
@@ -108,8 +104,7 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
       figure('visible','off', 'Position', [128 320 1204 658]);
       %rasterplot
       subplot(2,3,1);rasterplot(SpPattrn.SpTimes')
-      xlim([StartLP-10 StartLP+SamR_LP+10])
-      set(gca, 'visible', 'off')
+      xlim([0 1010])
       %I-f curve 
       subplot(2,3,2); hold on;
       scatter(Ipass, passRts)
@@ -118,15 +113,15 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
       title('f/I curve');             box off; axis tight 
       subplot(2,3,3); hold on;
       %Adaptation over stimulus
-      scatter(Ipass,SpPattrn.Tab.adaptIndex(ismember(SuprIDs,IdPassSwps)))
+      scatter(Ipass,SpPattrn.Tab.adaptIndex(ismembder(SuprIDs,IdPassSwps))
       title('Adaptation Index 1 over stim'); 
 
       subplot(2,3,5);     
-      scatter(Ipass,SpPattrn.Tab.burst(ismember(SuprIDs,IdPassSwps)))
+      scatter(Ipass,SpPattrn.Tab.burst)
       title('burst over stim'); 
 
       subplot(2,3,6);  
-      scatter(Ipass,SpPattrn.Tab.cvISI(ismember(SuprIDs,IdPassSwps)))
+      scatter(Ipass,SpPattrn.Tab.cvISI)
       title('cvISI over stim'); 
 
       subplot(2,3,4); 
@@ -215,12 +210,12 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
     APTabPos= find(endsWith(APTab.SweepID,['_', num2str(RheoSwpID(1))]));  
     if ~isempty(PS.rheoSwpTabPos)                                          % if there is a rheo sweep
      PS.rheoSwpSers = nwb.resolve(SwpRespTbl(PS.rheoSwpTabPos).path);      % get CCSeries from rheo sweep
-     RheoStart = single(IcephysTab.responses.response.data.load.idx_start(...
-                                                         PS.rheoSwpTabPos));
+
      icSum.Rheo(ClNr) = round(min(Ipass(passRts==passRts(rheoIdx))));        % get minimum current stimulus of all sweeps with the number of spikes of rheobase sweep  
      icSum.rheoRt(ClNr) = passRts(rheoIdx);
-
-     Temp = APTab.thresTi{APTabPos} - RheoStart;
+     StimOnIdx = IcephysTab.responses.response.data.load.idx_start(...
+                                                         PS.rheoSwpTabPos);
+     Temp = APTab.thresTi{APTabPos} - double(StimOnIdx);
      icSum.lat(ClNr) = round(Temp(1)*1000/PS.SwDat.sampleRT,2);                  % get AP latency as threshold time                                                                             % into time in milliseconds)                                                                                                
      Temp = APTab.wiTP{APTabPos}; icSum.widTP_LP(ClNr) = round(Temp(1),2); % get AP width from Rheo sweep
      Temp = APTab.thres{APTabPos}; icSum.thresLP(ClNr) = round(Temp(1),2);
@@ -234,7 +229,6 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
      Temp = APTab.peakStrkRat{APTabPos};
      icSum.peakStrkRatLP(ClNr) = round(Temp(1),2); 
      Temp = APTab.htTP{APTabPos}; icSum.htTP_LP(ClNr) = round(Temp(1),2);
-     PS.RheoStart = RheoStart;
     end
    end
   end

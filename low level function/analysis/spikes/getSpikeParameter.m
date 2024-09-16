@@ -15,8 +15,6 @@ sp.threshold = NaN(1,length(sp.peak));
 sp.thresholdTime = NaN(1,length(sp.peak));
 sp.trough = NaN(1,length(sp.peak));
 sp.troughTime = NaN(1,length(sp.peak));
-sp.heightPT= NaN(1,length(sp.peak));
-sp.fullWidthPT = NaN(1,length(sp.peak));
 sp.peakUpStroke = NaN(1,length(sp.peak));
 sp.peakDownStroke = NaN(1,length(sp.peak));
 sp.peakStrokeRatio = NaN(1,length(sp.peak));
@@ -76,25 +74,7 @@ for i = 1:length(sp.peak)  % for each putative spike
        [sp.trough(i),temp] = min(data(sp.peakTime(i):sp.peakTime(i)+win4Trough));
           sp.troughTime(i) = sp.peakTime(i)+temp-1;
     end
-    
-    sp.heightPT(i) = sp.peak(i) - sp.trough(i);
-    peakMinusHeight = sp.peak(i)-(sp.heightPT(i)/2);
-    
-    if sp.thresholdTime(i)~=0
-      temp2 = find(data(sp.thresholdTime(i):sp.peakTime(i))<peakMinusHeight, 1, 'last');          
-      temp2 = sp.thresholdTime(i) + temp2;
-    else 
-      temp2 = [];
-    end
-    if ~isempty(temp2)
-        halfHeightTimeUpPT(i) = temp2; 
-        temp2 = find(data(sp.peakTime(i):sp.troughTime(i))<peakMinusHeight, 1, 'first');          
-        temp2 = sp.peakTime(i) + temp2;
-        if ~isempty(temp2)
-            halfHeightTimeDownPT(i) = temp2(1);
-            sp.fullWidthPT(i) = (halfHeightTimeDownPT(i) - halfHeightTimeUpPT(i))*1000/CCSers.starting_time_rate;
-        end
-    end
+        
 %% Get Spikeparameter
     sp.heightTP(i) = sp.peak(i) - sp.threshold(i);
     peakMinusHeight = sp.peak(i)-(sp.heightTP(i)/2);
@@ -127,8 +107,7 @@ for i = 1:length(sp.peak)  % for each putative spike
         sp.peakStrokeRatio(i) = sp.peakUpStroke(i) / sp.peakDownStroke(i);
     end
 
-    % Short (5ms) and long (between events) troughs
-%     restingPot = mean(CCSeries(CCSeries.stimOn(1,k)-(550/CCSeries.acquireRes):CCSeries.stimOn(1,k)-(50/CCSeries.acquireRes)));
+   %% Short (5ms) and long (between events) troughs
     [sp.fast_trough(i),sp.fast_trough_dur(i)] = min(data(sp.peakTime(i):sp.peakTime(i)+(5/(1000/CCSers.starting_time_rate))));
     if i < length(sp.peakTime)
         [sp.slow_trough(i), sp.slow_trough_dur(i)] = min(data(sp.peakTime(i):sp.peakTime(i+1)));
@@ -149,8 +128,6 @@ sp.maxdVdt(sp.thresholdTime==0) = [];
 sp.maxdVdtTime(sp.thresholdTime==0) = [];
 sp.trough(sp.thresholdTime==0) = [];
 sp.troughTime(sp.thresholdTime==0) = [];
-sp.heightPT(sp.thresholdTime==0) = [];
-sp.fullWidthPT(sp.thresholdTime==0) = [];
 sp.peakDownStroke(sp.thresholdTime==0) = [];
 sp.peakUpStroke(sp.thresholdTime==0) = [];
 sp.peakStrokeRatio(sp.thresholdTime==0) = [];

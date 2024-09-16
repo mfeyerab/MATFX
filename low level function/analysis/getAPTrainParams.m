@@ -1,81 +1,67 @@
-function SpPattrn = getAPTrainParams(CCSers , sp, PS, SpPattrn)
-
-latency = (sp.thresholdTime(1)-PS.SwDat.StimOn)/round(CCSers.starting_time_rate/1000);
-
+function SpPattrn = getAPTrainParams(CCSers , TabIn, PS, SpPattrn)
+SPcount = sum(contains(TabIn.ProtoTag,'SP'));
+latency = (min(TabIn.thresTi{PS.supraCount+SPcount}) ...
+    -PS.SwDat.StimOn)/round(CCSers.starting_time_rate/1000);
 TblIdx = sum(~cellfun(@isempty,SpPattrn.spTrainIDs));
-SpTimes = [];
 
 for b = 1:13
 SpPattrn.BinTbl(TblIdx,b) = sum(...
-    76.9*(b-1)/(1000/CCSers.starting_time_rate) < sp.thresholdTime - PS.SwDat.StimOn ...
-    & sp.thresholdTime - PS.SwDat.StimOn < 76.9*b/(1000/CCSers.starting_time_rate));
+    PS.SwDat.sampleRT/13*(b-1) < TabIn.thresTi{PS.supraCount + SPcount}-PS.SwDat.StimOn  & ...
+    TabIn.thresTi{PS.supraCount + SPcount}-PS.SwDat.StimOn <= (PS.SwDat.sampleRT/13)*b);
 end
 
-SpPattrn.spTrain.firingRate(PS.supraCount,1) = ...
-    sum(sp.thresholdTime<(PS.SwDat.StimOn+(1000/(1000/CCSers.starting_time_rate))));
-SpPattrn.RowNames{TblIdx} = char(SpPattrn.spTrainIDs(PS.supraCount));
+SpPattrn.Tab.firingRate(PS.supraCount,1) = ...
+                                   length(TabIn.thresTi{PS.supraCount + SPcount});
 
-if length(nonzeros(sp.thresholdTime)) >= 2						% skip this sweep if there was only 1 
-    peakAdapt = sp.heightTP(end) / sp.heightTP(1);
-    ISI = diff(sp.thresholdTime)*(1000/CCSers.starting_time_rate);
+if length(nonzeros(TabIn.thresTi{PS.supraCount + SPcount})) >= 2						% skip this sweep if there was only 1 
+    ISI = abs(diff(TabIn.thresTi{PS.supraCount + SPcount})*(1000/CCSers.starting_time_rate));
 	meanISI = mean(ISI);
 	cvISI = std(ISI) / meanISI;
 	if length(ISI) >= 3
 		for i = 1:length(ISI)-1
 			numer(i) = (ISI(i+1)-ISI(i))/(ISI(i+1)+ISI(i));
 		end
-		adaptIndex = sum(numer)/(length(ISI)-1);
-		adaptIndex2 = sum(numer(2:end))/(length(ISI)-2);		           % Adaptation without first ISI
+		adaptIndex = sum(numer(2:end))/(length(ISI)-2);		           % Adaptation without first ISI
         clear numer
+        tempHt = TabIn.htTP{PS.supraCount + SPcount};
         for i = 1:length(ISI)-1
-			numer(i) = (sp.heightTP(i+1)-sp.heightTP(i))/...
-                (sp.heightTP(i+1)+sp.heightTP(i));
+			numer(i) = (tempHt(i+1)-tempHt(i))/...
+                       (tempHt(i+1)+tempHt(i));
 		end
-		peakAdapt2 = sum(numer)/(length(ISI)-1);
-        clear numer
+		peakAdap = sum(numer)/(length(ISI)-1);
     else
         adaptIndex = NaN;
-        adaptIndex2 = NaN;
-        peakAdapt2 = NaN;
+        peakAdap = NaN;
     end
-	delay = latency/meanISI;
     if length(ISI) > 1
         burst = 1-(sum(ISI(1))/2)/mean(ISI(2:end));
     else
         burst = NaN;
     end
 else
-    peakAdapt = NaN;
+    peakAdap = NaN;
     ISI = NaN;
 	meanISI = NaN;
 	cvISI = NaN;
 	adaptIndex = NaN;
-    adaptIndex2 = NaN;
-	delay = NaN;
 	burst = NaN;
-    peakAdapt2 = NaN;
+    peakAdap = NaN;
 end
 
-SpPattrn.spTrain.latency(PS.supraCount,1) = latency;
-SpPattrn.spTrain.peakAdapt(PS.supraCount,1) = peakAdapt;
+SpPattrn.Tab.latency(PS.supraCount,1) = latency;
+SpPattrn.Tab.peakAdapt(PS.supraCount,1) = peakAdap;
 SpPattrn.ISIs{1,PS.supraCount} = ISI;
-SpPattrn.SpTimes{1,PS.supraCount}  = (sp.thresholdTime-PS.SwDat.StimOn)*(1000/CCSers.starting_time_rate);
-
-SpPattrn.spTrain.meanISI(PS.supraCount,1) = meanISI;
+SpPattrn.SpTimes{1,PS.supraCount} = TabIn.thresTi{PS.supraCount + SPcount}';
+SpPattrn.Tab.meanISI(PS.supraCount,1) = meanISI;
 if ~isnan(cvISI) && ~cvISI
-    SpPattrn.spTrain.cvISI(PS.supraCount,1) = NaN;
+    SpPattrn.Tab.cvISI(PS.supraCount,1) = NaN;
 else
-    SpPattrn.spTrain.cvISI(PS.supraCount,1) = cvISI;
+    SpPattrn.Tab.cvISI(PS.supraCount,1) = cvISI;
 end
-
-SpPattrn.spTrain.adaptIndex(PS.supraCount,1) = adaptIndex;
-SpPattrn.spTrain.adaptIndex2(PS.supraCount,1) = adaptIndex2;
-SpPattrn.spTrain.peakAdapt2(PS.supraCount,1) = peakAdapt2;
-SpPattrn.spTrain.delay(PS.supraCount,1) = delay;
-SpPattrn.spTrain.burst(PS.supraCount,1) = burst;
-SpPattrn.spTrain.LastQuiesence(PS.supraCount,1) = ...
-   (PS.SwDat.StimOn + CCSers.starting_time_rate - sp.thresholdTime(...
-   length(sp.thresholdTime)))*1000/CCSers.starting_time_rate;
-if SpPattrn.spTrain.LastQuiesence(PS.supraCount,1) < 0
-  SpPattrn.spTrain.LastQuiesence(PS.supraCount,1) = 0;
+SpPattrn.Tab.adaptIndex(PS.supraCount,1) = adaptIndex;
+SpPattrn.Tab.burst(PS.supraCount,1) = burst;
+SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = ...
+   (CCSers.starting_time_rate - (max(TabIn.thresTi{PS.supraCount + SPcount}) - PS.SwDat.StimOn))*1000/CCSers.starting_time_rate;
+if SpPattrn.Tab.LastQuiesence(PS.supraCount,1) < 0
+  SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = 0;
 end

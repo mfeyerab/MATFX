@@ -1,5 +1,8 @@
   %% Add subject data, dendritic type and reporter status   
-  AnaDat = nwb.processing.values{3}.dynamictable.values{1}.vectordata;
+  
+  if nwb.processing.Count > 0
+  AnaDat = nwb.processing.map('Anatomical data'...
+                                       ).dynamictable.values{1}.vectordata;
    if string(nwb.general_institution) == "Allen Institute of Brain Science"% if the cell is from the AIBS 
       icSum.brainOrigin(n) = {info.values{...
         1}.location(1:find(info.values{...
@@ -59,12 +62,10 @@
         end
    end
     %% Dendritic Type
-   if nwb.processing.isKey('Anatomical data') && ~isempty(...              
-           nwb.processing.values{3}.dynamictable.values{...                % if there is an anatomical data processing module
-                        1}.vectordata.values{1}.data)                      % and there is data on dendritic type of the cell
+   if ~isempty(AnaDat.map('DendriticType'))                                % and there is data on dendritic type of the cell
                     
          icSum.dendriticType(n) = {AnaDat.map('DendriticType').data.load}; % assigning dendritic type to summary table
-          icSum.SomaLayerLoc(n) = {AnaDat.map('SomaLayerLoc').data.load};  % assigning soma layer location to summary table
+         icSum.SomaLayerLoc(n) = {AnaDat.map('SomaLayerLoc').data.load};   % assigning soma layer location to summary table
         if any(contains(AnaDat.keys,'PyrID')) && ...
                 ~contains(AnaDat.map('PyrID').data.load,'NA') && ...
                   ~isempty(AnaDat.map('PyrID').data.load) 
@@ -76,3 +77,4 @@
        [icSum.dendriticType(n),icSum.SomaLayerLoc(n)] = ...
            deal({'NA'});                                                   % NA for soma layer location and dendritic type of cells without entries 
    end  
+  end

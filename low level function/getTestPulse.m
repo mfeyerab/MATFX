@@ -1,5 +1,5 @@
-function [testOn, TPtrace] = getTestPulse(PS, CCSers, StimData)
-
+function [testOn, TPtrace,testtag] = getTestPulse(PS, CCSers, StimData)
+testtag = 1;
 [~, posPeak] = findpeaks(diff(StimData), 'NPeaks', 1,'SortStr', 'descend');
 [~, negPeak] = findpeaks(-diff(StimData), 'NPeaks', 1,'SortStr', 'descend');
 
@@ -11,6 +11,7 @@ else
     disp([PS.SwDat.CurrentName, ' has no detectable test pulse'])
     TPtrace = nan(1,(PS.preTP+PS.TPtrace)*CCSers.starting_time_rate+1); 
     testOn = [];
+    testtag = 0;
 end
 
 if ~isempty(testOn) && PS.preTP*CCSers.starting_time_rate>testOn
