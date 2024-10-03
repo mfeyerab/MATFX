@@ -132,7 +132,8 @@ for n = 1:length(cellList)                                                % for 
           
      QC = SweepwiseQC(CCSers, PS, QC, SwpCt, LPfilt);                      % Sweep QC of the CurrentClampSeries                              
                                
-     if PS.SwDat.swpAmp > 0                                                % if current input is depolarizing
+     if PS.SwDat.swpAmp > 0 &&  ...
+             ~contains(CCSers.stimulus_description, PS.Noisetags)           % if current input is depolarizing and not noise stim
 
        [APTab, QC] = processSpikes(CCSers,PS, APTab, QC);                         % detection and processing of spikes 
        if ~isempty(APTab) && ismember(PS.SwDat.CurrentName,APTab.SweepID) && ...
@@ -142,18 +143,19 @@ for n = 1:length(cellList)                                                % for 
          PS.supraCount = PS.supraCount + 1;                         
        elseif ProtoTags(SwpCt,:)=="LP"                                     % if no spikes have been detected and protocol is long pulse
          SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
-         PS.subCount = PS.subCount +1;
-       elseif ProtoTags(SwpCt,:)=="Noise"
-         disp(ProtoTags(SwpCt,:)) 
-         NoiseSpPattrn.spTrainIDs(PS.NoiseCount,1) = ...
-             {PS.SwDat.CurrentName};                                       % sweep name is saved under noise spike train IDs         
-         NoiseSpPattrn = getNoiseTrainParams(...
-                                          CCSers, sp, PS, NoiseSpPattrn);  % getting spike train parameters
-         PS.NoiseCount = PS.NoiseCount + 1;                         
+         PS.subCount = PS.subCount +1;           
        end
      elseif ProtoTags(SwpCt,:)=="LP" 
          SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
          PS.subCount = PS.subCount +1;
+     elseif  contains(CCSers.stimulus_description, PS.Noisetags)
+         StimSers = nwb.resolve(['stimulus_presentation/', ...
+              extractAfter(PS.SwDat.CurrentPath,'n/')]);
+         NoiseSpPattrn = getNoiseTrainParams(StimSers,...
+                    CCSers , PS, NoiseSpPattrn);                     % getting spike train parameters
+         NoiseSpPattrn.SweepIDs(PS.NoiseCount,1) = {PS.SwDat.CurrentName}; % sweep name is saved under spike train IDs
+         PS.NoiseCount = PS.NoiseCount + 1;           
+
      end
    else
        disp([PS.SwDat.CurrentPath, ...
@@ -222,7 +224,7 @@ writetable(QC.params,[...
       [icSum, PS] = LPsummary(nwb, icSum, n, PS, QC, SubStats, SpPattrn, APTab);  % extract features from long pulse stimulus
       [icSum, PS] = SPsummary(nwb, icSum, n, PS, QC, APTab);               % extract features from short pulse stimulus
       if PS.NoiseCount > 1
-      [NoiseSum, PS] = NoiseSummary(nwb, NoiseSum, n, PS);                 % extract features from noise stimulus
+      % [NoiseSum, PS] = NoiseSummary(nwb, NoiseSum, n, PS, NoiseSpPattrn);  % extract features from noise stimulus
       end
       plotCellProfile(nwb, PS, icSum)                                      % plot cell profile 
  end  

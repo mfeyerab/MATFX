@@ -13,9 +13,9 @@ function [TabIn,QC] = processSpikes(CCSers,PS,TabIn, QC)
 sp = [];
 if ~isempty(supraEvents)
     [int4Peak,startPotSp] = int4APs(supraEvents, PS);
-    sp = estimatePeak(startPotSp,int4Peak,CCSers);
+    sp = estimatePeak(startPotSp,int4Peak,CCSers.data.load);
     if ~isempty(sp)
-     sp = getSpikeParameter(CCSers, sp, PS);
+     sp = getSpikeParameter(CCSers.data.load, sp, PS);
 %%  Clean up and saving of spike parameter
  
     sp = rmfield(sp, 'dVdt');
