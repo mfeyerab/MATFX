@@ -35,8 +35,7 @@ if ~isempty(QC.testpulse)
     exportgraphics(gcf,fullfile(PS.outDest, 'TP', [PS.cellID,' TP profile','.pdf']))
 end
 %% Stimulus Onset LP
-LPvec = contains(string(ICEtab.dynamictable.values{...
-                                 1}.vectordata.values{1}.data.load), 'LP');                             
+LPvec = contains(string(ICEtab.vectordata.Map('protocol_type').data.load), 'LP');                             
 if any(all([Qvec, LPvec],2))
 
 figure('visible','off'); hold on
@@ -66,14 +65,14 @@ F=getframe(gcf);
 imwrite(F.cdata,fullfile(PS.outDest, 'TP', [PS.cellID,' StimOnLP','.png']))
 %% Stimulus Onset SP
 
-SPvec = contains(string(ICEtab.dynamictable.values{...
-                                 1}.vectordata.values{1}.data.load), 'SP');                             
+SPvec = contains(string(ICEtab.vectordata.Map('protocol_type').data.load), 'SP');                             
+                          
 if any(all([Qvec, SPvec],2))
     I = ICEtab.stimuli.vectordata.values{1}.data.load(...
                              find(all([Qvec, SPvec],2)));
     figure('visible','off'); hold on
     for s=1:height(QC.pass)
-        if SPvec(s)&& Qvec(s)
+        if SPvec(s)&& Qvec(s) && length(QC.VStimOn)>=s
            plot(QC.VStimOn{s}-mean(QC.VStimOn{s}(1:15)))
         end
     end

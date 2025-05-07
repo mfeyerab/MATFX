@@ -3,8 +3,7 @@ function [icSum, PS] = LPsummary(nwb, icSum, ClNr, PS, QC, SubStats, SpPattrn, A
 IcephysTab = nwb.general_intracellular_ephys_intracellular_recordings;     % Assign new variable for readability
 SwpRespTbl = IcephysTab.responses.response.data.load.timeseries;           % Assign new variable for readability
 SwpAmps = IcephysTab.stimuli.vectordata.values{1}.data.load;               % Assign new variable for readability
-Proto = strtrim(string(IcephysTab.dynamictable.map('protocol_type'...
-                     ).vectordata.values{1}.data.load));
+Proto = strtrim(string(IcephysTab.vectordata.Map('protocol_type').data.load));
 LPIdx = contains(cellstr(Proto),PS.LPtags);  
 IdxPassSwps = QC.pass.QC_total_pass;                                       % creates indices from passing QC (sweeps x 1)and LP type indices                              
 SwpPaths = {SwpRespTbl.path};                                              % Gets all sweep paths of sweep response table and assigns it to a new variable  

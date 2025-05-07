@@ -118,9 +118,8 @@ for n = 1:length(cellList)                                                % for 
   (~PS.manTPremoval || (PS.manTPremoval  && QC.pass.manuTP(SwpCt)))        % (manual sweep removal because of test pulse is not enabled OR manual sweep removal because of test pulse is enabled and sweep passes
 
    CCSers = nwb.resolve(PS.SwDat.CurrentPath);                             % load the CurrentClampSeries of the respective sweep
-   PS.SwDat.StimOn = double(table2array(RespTbl(SwpCt,1)));                % gets stimulus onset from response table 
-   PS.SwDat.StimOff = double(...
-                          PS.SwDat.StimOn + table2array(RespTbl(SwpCt,2)));% gets end of stimulus from response table  
+   PS.SwDat.StimOn = double(RespTbl.idx_start(SwpCt));                     % gets stimulus onset from response table 
+   PS.SwDat.StimOff = PS.SwDat.StimOn + double(RespTbl.count(SwpCt));      % gets end of stimulus from response table  
    PS.SwDat.swpAmp = ICEtab.stimuli.vectordata.values{1}.data.load(SwpCt); % gets current amplitude from IntracellularRecordingsTable
                      
    if contains(CCSers.stimulus_description, PS.LPtags) && PS.Webexport==1  % if sweep is a long pulse protocol           
@@ -128,12 +127,12 @@ for n = 1:length(cellList)                                                % for 
    end  
    %% Sweep-wise analysis          
    if (PS.([PS.SwDat.Tag,'qc_recovTime'])+PS.([PS.SwDat.Tag,'length']))* ...                              
-        CCSers.starting_time_rate < CCSers.data.dims                       % checks if the sweep is of sufficient size for the respective protocol                                 
+        CCSers.starting_time_rate < length(CCSers.data.load)               % checks if the sweep is of sufficient size for the respective protocol                                 
           
      QC = SweepwiseQC(CCSers, PS, QC, SwpCt, LPfilt);                      % Sweep QC of the CurrentClampSeries                              
                                
      if PS.SwDat.swpAmp > 0 &&  ...
-             ~contains(CCSers.stimulus_description, PS.Noisetags)           % if current input is depolarizing and not noise stim
+             ~contains(CCSers.stimulus_description, PS.NoiseTags)           % if current input is depolarizing and not noise stim
 
        [APTab, QC] = processSpikes(CCSers,PS, APTab, QC);                         % detection and processing of spikes 
        if ~isempty(APTab) && ismember(PS.SwDat.CurrentName,APTab.SweepID) && ...
@@ -148,7 +147,7 @@ for n = 1:length(cellList)                                                % for 
      elseif ProtoTags(SwpCt,:)=="LP" 
          SubStats = subThresFeatures(CCSers,SubStats,PS,LPfilt);           % getting subthreshold parameters                          
          PS.subCount = PS.subCount +1;
-     elseif  contains(CCSers.stimulus_description, PS.Noisetags)
+     elseif  contains(CCSers.stimulus_description, PS.NoiseTags)
          StimSers = nwb.resolve(['stimulus_presentation/', ...
               extractAfter(PS.SwDat.CurrentPath,'n/')]);
          NoiseSpPattrn = getNoiseTrainParams(StimSers,...
@@ -210,7 +209,7 @@ writetable(QC.params,[...
          length(regexp(InitRa,'\d*','Match')) >= 1                         % if ini access resistance is non empty and has a number as character
    InitRa = str2double(InitRa);
    if InitRa > PS.cutoffInitRa && InitRa > tempRin*PS.factorRelaRa         % if ini access resistance is below absolute and relative threshold 
-     display(['excluded by cell-wide QC for initial Ra (', ...
+     disp(['excluded by cell-wide QC for initial Ra (', ...
         num2str(InitRa),') higher than relative cutoff (', ...
         num2str(tempRin*PS.factorRelaRa), ') or absolute cutoff (', ...
         num2str(PS.cutoffInitRa),')']);

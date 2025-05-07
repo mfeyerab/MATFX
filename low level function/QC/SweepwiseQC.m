@@ -46,7 +46,7 @@ if checkVolts(CCSers.data_unit) && string(CCSers.description) ~= "PLACEHOLDER"
            SR:PS.SwDat.StimOn-1).*1000;
       
  if PS.SwDat.StimOff+recvTi*SR+...
-           Wind*SR > CCSers.data.dims 
+           Wind*SR >length(CCSers.data.load)
        
        error('Recovery period and/or integration window are too long. Please adjust in loadParams')
  else

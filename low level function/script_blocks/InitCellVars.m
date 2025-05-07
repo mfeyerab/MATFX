@@ -41,5 +41,5 @@
      
  RespTbl = ICEtab.responses.response.data.load;                            % loading all sweep response from IntracellularRecordingsTable
  ProtoTags = deblank(string(...
-             ICEtab.dynamictable.values{1}.vectordata.values{1}.data.load));% Gets all protocol names without white space
+             ICEtab.vectordata.values{1}.data.load));% Gets all protocol names without white space
  info = nwb.general_intracellular_ephys;   

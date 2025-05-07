@@ -70,7 +70,7 @@ for i = 1:length(sp.peak)  % for each putative spike
     if i < length(sp)
 	  [sp.trough(i),temp] = min(data(sp.peakTime(i):sp.peakTime(i)));
 		sp.troughTime(i) = sp.peakTime(i)+temp(1)-1;
-    elseif ~contains(PS.SwDat.Tag,PS.Noisetags)
+    elseif ~contains(PS.SwDat.Tag,PS.NoiseTags)
        [sp.trough(i),temp] = min(data(sp.peakTime(i):sp.peakTime(i)+win4Trough));
           sp.troughTime(i) = sp.peakTime(i)+temp-1;
     else
@@ -111,12 +111,12 @@ for i = 1:length(sp.peak)  % for each putative spike
     end
 
    %% Short (5ms) and long (between events) troughs
-   if contains(PS.SwDat.Tag,PS.Noisetags) && i == length(sp.peakTime)
+   if contains(PS.SwDat.Tag,PS.NoiseTags) && i == length(sp.peakTime)
     [sp.fast_trough(i),sp.fast_trough_dur(i)] = min(data(sp.peakTime(i):end));
    else
     [sp.fast_trough(i),sp.fast_trough_dur(i)] = min(data(sp.peakTime(i):sp.peakTime(i)+(5/(1000/PS.SwDat.sampleRT))));
    end
-    if ~contains(PS.SwDat.Tag,PS.Noisetags)
+    if ~contains(PS.SwDat.Tag,PS.NoiseTags)
         if i < length(sp.peakTime)
             [sp.slow_trough(i), sp.slow_trough_dur(i)] = min(data(sp.peakTime(i):sp.peakTime(i+1)));
         else
