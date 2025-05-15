@@ -48,20 +48,31 @@ else
     peakAdap = NaN;
 end
 
-SpPattrn.Tab.latency(PS.supraCount,1) = latency;
-SpPattrn.Tab.peakAdapt(PS.supraCount,1) = peakAdap;
-SpPattrn.ISIs{1,PS.supraCount} = ISI;
-SpPattrn.SpTimes{1,PS.supraCount} = TabIn.thresTi{PS.supraCount + SPcount}';
-SpPattrn.Tab.meanISI(PS.supraCount,1) = meanISI;
-if ~isnan(cvISI) && ~cvISI
-    SpPattrn.Tab.cvISI(PS.supraCount,1) = NaN;
+if ~isnan(ISI)
+    SpPattrn.Tab.latency(PS.supraCount,1) = latency;
+    SpPattrn.Tab.peakAdapt(PS.supraCount,1) = peakAdap;
+    SpPattrn.ISIs{1,PS.supraCount} = ISI;
+    SpPattrn.SpTimes{1,PS.supraCount} = TabIn.thresTi{PS.supraCount + SPcount}';
+    SpPattrn.Tab.meanISI(PS.supraCount,1) = meanISI;
+    if ~isnan(cvISI) && ~cvISI
+        SpPattrn.Tab.cvISI(PS.supraCount,1) = NaN;
+    else
+        SpPattrn.Tab.cvISI(PS.supraCount,1) = cvISI;
+    end
+    SpPattrn.Tab.adaptIndex(PS.supraCount,1) = adaptIndex;
+    SpPattrn.Tab.burst(PS.supraCount,1) = burst;
+    SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = ...
+       (CCSers.starting_time_rate - (max(TabIn.thresTi{PS.supraCount + SPcount}) ...
+       - PS.SwDat.StimOn))*1000/CCSers.starting_time_rate;
+    if SpPattrn.Tab.LastQuiesence(PS.supraCount,1) < 0
+      SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = 0;
+    end
 else
-    SpPattrn.Tab.cvISI(PS.supraCount,1) = cvISI;
+    SpPattrn.Tab.latency(PS.supraCount,1) = nan;
+    SpPattrn.Tab.peakAdapt(PS.supraCount,1) = nan;   
+    SpPattrn.Tab.burst(PS.supraCount,1) = nan;
+    SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = nan;
+    SpPattrn.Tab.adaptIndex(PS.supraCount,1) = nan;
+    SpPattrn.Tab.cvISI(PS.supraCount,1) = NaN;
 end
-SpPattrn.Tab.adaptIndex(PS.supraCount,1) = adaptIndex;
-SpPattrn.Tab.burst(PS.supraCount,1) = burst;
-SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = ...
-   (CCSers.starting_time_rate - (max(TabIn.thresTi{PS.supraCount + SPcount}) - PS.SwDat.StimOn))*1000/CCSers.starting_time_rate;
-if SpPattrn.Tab.LastQuiesence(PS.supraCount,1) < 0
-  SpPattrn.Tab.LastQuiesence(PS.supraCount,1) = 0;
-end
+

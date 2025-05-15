@@ -24,16 +24,16 @@ if ~isempty(IdPassSwps)
    SPID = str2num(string(regexp(SPTab.SweepID{:},'\d*','Match')));
    SPSwpSers =  nwb.resolve(['acquisition/', SPTab.SweepID{:}]);
    SPStart = single(SwpRespTbl.idx_start(ismember(SwpIDs,SPID)));
-   icSum.latencySP(cellNr,1) = (SPTab.thresTi{:}-SPStart)*1000/SPSwpSers.starting_time_rate;
-   icSum.widthTP_SP(cellNr,1) = SPTab.wiTP{:};
-   icSum.peakSP(cellNr,1) = SPTab.peak{:}; 
-   icSum.thresholdSP(cellNr,1) = SPTab.thres{:}; 
-   icSum.fastTroughSP(cellNr,1) = SPTab.fTrgh{:}; 
-   icSum.slowTroughSP(cellNr,1) = SPTab.sTrgh{:}; 
-   icSum.peakUpStrokeSP(cellNr,1) = SPTab.peakUpStrk{:}; 
-   icSum.peakDownStrokeSP(cellNr,1) = SPTab.peakDwStrk{:}; 
-   icSum.peakStrokeRatioSP(cellNr,1) = SPTab.peakStrkRat{:};    
-   icSum.heightTP_SP(cellNr,1) = SPTab.htTP{:};     
+   icSum.latencySP(cellNr,1) = (SPTab.thresTi{1}(1)-SPStart)*1000/SPSwpSers.starting_time_rate;
+   icSum.widthTP_SP(cellNr,1) = SPTab.wiTP{1}(1);
+   icSum.peakSP(cellNr,1) = SPTab.peak{1}(1); 
+   icSum.thresholdSP(cellNr,1) = SPTab.thres{1}(1); 
+   icSum.fastTroughSP(cellNr,1) = SPTab.fTrgh{1}(1); 
+   icSum.slowTroughSP(cellNr,1) = SPTab.sTrgh{1}(1); 
+   icSum.peakUpStrokeSP(cellNr,1) = SPTab.peakUpStrk{1}(1); 
+   icSum.peakDownStrokeSP(cellNr,1) = SPTab.peakDwStrk{1}(1); 
+   icSum.peakStrokeRatioSP(cellNr,1) = SPTab.peakStrkRat{1}(1);    
+   icSum.heightTP_SP(cellNr,1) = SPTab.htTP{1}(1);     
    PS.SPSwpSers = SPSwpSers; PS.SPStart = SPStart;
  end    
 end

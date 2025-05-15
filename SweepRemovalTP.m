@@ -17,7 +17,7 @@ run(fullfile(path, 'loadParams.m')); PS = ans;
 PS.preTP= 0.015; PS.TPtrace = 0.08;
 
 %% Looping through cells
-for n = 1:length(cellList)                                                 % for all cells in directory
+for n = 488:length(cellList)                                                 % for all cells in directory
  cellID = cellList(n).name(1:length(cellList(n).name)-4);                  % cell ID (used for saving data)
  if ~isfile(fullfile(path,'inputTabsTP',[cellID,'_TP.csv']))
    nwb = nwbRead(fullfile(cellList(n).folder,cellList(n).name));         % load nwb file
@@ -25,21 +25,20 @@ for n = 1:length(cellList)                                                 % for
    ICEtab = nwb.general_intracellular_ephys_intracellular_recordings;      % assigning IntracellularRecordinsTable to new variable for readability of subsequent code
    RespTbl = ICEtab.responses.response.data.load;                          % loading all sweep response from IntracellularRecordingsTable
    %% Initalizing cell variables
-   Idx = find(~contains(string(...
-         ICEtab.dynamictable.values{1}.vectordata.values{1}.data.load),...
+   Idx = find(~contains(string(ICEtab.vectordata.values{1}.data.load),...
                    PS.SkipTags));
    QC.pass = table(); 
    temp = regexp({RespTbl.timeseries.path},'\w*','match');
    QC.pass.SweepID = cellfun(@(z)z(2),temp)';
-   QC.pass.Protocol = ICEtab.dynamictable.values{...
-                                   1}.vectordata.values{1}.data.load;
+   QC.pass.Protocol = ICEtab.vectordata.values{1}.data.load;
    SmplRt = nwb.resolve(RespTbl.timeseries(Idx(1)).path).starting_time_rate;
    QC.testpulse = zeros(length(Idx),(PS.preTP+PS.TPtrace)*SmplRt);    
    QC.pass.TP =  repmat({NaN},ICEtab.responses.id.data.dims,1);
    for i = 1:length(Idx)
-     CurrentPath = table2array(RespTbl(Idx(i),3)).path;                    % get path to sweep within nwb file  
+     CurrentPath = RespTbl.timeseries(Idx(i)).path;                        % get path to sweep within nwb file  
+     StimOn = RespTbl.idx_start(Idx(i));
      PreStimData = nwb.resolve(ICEtab.stimuli.stimulus.data.load(...
-       ).timeseries(Idx(i)).path).data.load(1:RespTbl{Idx(i),1}-OnsetBuffer); 
+       ).timeseries(Idx(i)).path).data.load(1:StimOn-OnsetBuffer); 
      CCSers = nwb.resolve(CurrentPath);                                    % load the CurrentClampSeries of the respective sweep   
      PS.SwDat.CurrentName = CurrentPath;
      if range(PreStimData)<15

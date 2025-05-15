@@ -18,7 +18,9 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
   SubAmps = SubStats.SwpAmp;
 
   %Vrest
-  icSum.Vrest(ClNr) = round(mean(QC.params.Vrest(IdxPassSwps)),2);  %calculates resting membrane potential as mean of prestim Vrest of all passed LP sweeps
+  icSum.Vrest(ClNr) = round(mean(...
+                              QC.params.Vrest(IdxPassSwps),...
+                                                   'all','omitmissing'),2);%calculates resting membrane potential as mean of prestim Vrest of all passed LP sweeps
   %tau
   Idx = SubStats.GFtau > PS.GF & SubAmps < 0 & ...
            SubStats.maxSubDeflection > PS.maxDefl & ...
@@ -50,7 +52,7 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
    SamR_LP = mode(...
        IcephysTab.responses.response.data.load.count(LPIdx));
    LPsupraIDs = IdPassSwps(passSuprIdx);
-   [AllI, Ipass] = deal(round(SwpAmps(passSuprIdx)));                      % Get all stimulus amplitudes of suprathershold long pulse sweeps
+   [AllI, Ipass] = deal(round(SwpAmps(ismember(SwpIDs,LPsupraIDs))));              % Get all stimulus amplitudes of suprathershold long pulse sweeps
    [Iorder, Isorted] = sort(Ipass);
    ISIs = SpPattrn.ISIs;  
    passRts = SpPattrn.Tab.firingRate(ismember(SuprIDs,IdPassSwps));  
@@ -179,7 +181,7 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
   end
   %% rheobase sweeps and parameters of first spike
   if exist('LPsupraIDs', 'var') && ~isempty(passRts)
-   rheoIdx = find(passRts <= median(passRts) & Ipass < median(Ipass));
+   rheoIdx = find(passRts <= median(passRts) & Ipass <= max(Ipass)/2);
    if ~isempty(rheoIdx) && length(unique(passRts(rheoIdx)))>1
        [maxPotRheoRt, tempIdx] = max(passRts(rheoIdx));
        while maxPotRheoRt > 1 && ...
@@ -192,8 +194,11 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
        end
    elseif length(passRts)==1
      rheoIdx=1;
+   elseif ~isempty(rheoIdx)
+        [~,temp] = min(Ipass(rheoIdx));
+        rheoIdx = rheoIdx(temp);
    else
-        [~,rheoIdx] = min(Ipass);
+     [~, rheoIdx]= min(Ipass);
    end
    RheoSwpID = LPsupraIDs(rheoIdx);
    if length(RheoSwpID) > 1
