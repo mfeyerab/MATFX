@@ -166,6 +166,12 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
    [~, temp] = max(SubStats.SwpAmp(PotSagIdx));  
    PotSagIdx = find(PotSagIdx);
    PotSagIdx = PotSagIdx(temp);
+  else
+      [~,PotSagIdx] = min(round(SubStats.SwpAmp) & ...
+                           ismember(SubIDs', IdPassSwpsC));
+      if SubStats.SwpAmp(PotSagIdx) >0 
+          PotSagIdx = 0;
+      end
   end
   if any(PotSagIdx)
     icSum.sagAmp(ClNr) = round(SubStats.SwpAmp(PotSagIdx));  
@@ -275,7 +281,16 @@ if ~isempty(IdPassSwps) & ~isempty(SubStats.SwpName)
      icSum.heroLat(ClNr) = round(SpPattrn.Tab.latency(PosSpTrain),2);      % get latency of hero sweep
      icSum.peakAda(ClNr) = SpPattrn.Tab.peakAdapt(PosSpTrain);             % get peak adaptation of hero sweep
      icSum.AdaIdx(ClNr) = SpPattrn.Tab.adaptIndex(PosSpTrain);             % get adaptation index of hero sweep   
-     icSum.burst(ClNr) = round(SpPattrn.Tab.burst(PosSpTrain),3);          % get bursting index of hero sweep      
+     icSum.burst(ClNr) = round(SpPattrn.Tab.burst(PosSpTrain),3);          % get bursting index of hero sweep     
+     if length(APTab.trgh{PosSpTrain})>1
+        icSum.TrghDiff(ClNr)= APTab.trgh{PosSpTrain}(1)-...
+         APTab.trgh{PosSpTrain}(end);
+        HeroVrest = QC.params.Vrest(string(QC.params.SweepID)== ...
+                              string(APTab.SweepID{PosSpTrain}));
+        icSum.TrghRatio(ClNr)= (APTab.trgh{PosSpTrain}(1)-HeroVrest)/...
+         (APTab.trgh{PosSpTrain}(end)-HeroVrest);
+     end
+
     else
         disp("No suitable hero sweep")
     end
